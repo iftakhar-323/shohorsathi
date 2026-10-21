@@ -16,6 +16,8 @@ export type CatalogItem = {
   image_url: string;
   area_ids: number[];
   is_active: boolean;
+  // paid placement, listed first with a label
+  is_sponsored?: boolean;
 };
 export type Service = CatalogItem & { base_price: string; price_note: string; duration_minutes: number; warranty_days: number; emergency_available: boolean };
 export type Product = CatalogItem & { price: string; unit: string; stock: number; shop_name: string };

@@ -98,6 +98,11 @@ def checkout(user_id, data):
 
     products = [(c, i) for c, i in priced if c.item_type == "product"]
     services = [(c, i) for c, i in priced if c.item_type == "service"]
+    for cart_item, item in services:
+        # Neighbours who filled a group deal for this service book it at the deal price.
+        deal = internal.get("catalog", "/api/internal/group-deals/discount/", user_id=user_id, slug=cart_item.slug) or {}
+        if deal.get("percent"):
+            item["unit_price"] = (item["unit_price"] * (100 - Decimal(deal["percent"])) / 100).quantize(Decimal("1"))
     surcharges = {}
     for cart_item, item in services:
         d = details[cart_item.id]
@@ -110,6 +115,7 @@ def checkout(user_id, data):
     subtotal = sum((i["unit_price"] * c.quantity for c, i in priced), Decimal("0")) + sum(surcharges.values(), Decimal("0"))
     delivery_fee = Decimal(settings.ORDER_DELIVERY_FEE) if products else Decimal("0")
 
+    ll_phone = data.get("landlord_phone", "")
     order = Order.objects.create(
         user_id=user_id,
         subtotal=subtotal,
@@ -120,6 +126,9 @@ def checkout(user_id, data):
         latitude=data.get("latitude"),
         longitude=data.get("longitude"),
         note=data.get("note", ""),
+        landlord_phone=ll_phone,
+        landlord_approval_status="pending" if ll_phone else "none",
+        landlord_token=secrets.token_hex(16) if ll_phone else "",
     )
     for cart_item, item in products:
         OrderItem.objects.create(
@@ -163,6 +172,11 @@ def checkout(user_id, data):
             "items": [{"slug": c.slug, "quantity": c.quantity} for c, _ in products],
         },
     )
+    if order.landlord_token:
+        events.publish("order.landlord_approval_requested", {
+            "order_id": order.id, "user_id": user_id, "landlord_phone": order.landlord_phone, "tenant_name": order.contact_name,
+            "address": order.address_line, "area_name": order.area_name, "total": str(order.total), "token": order.landlord_token,
+        })
     # Online orders reach providers only after the payment goes through (see payment_succeeded).
     if order.payment_method != Order.PaymentMethod.ONLINE:
         for booking in bookings:
@@ -378,3 +392,16 @@ def approve_warranty_claim(claim, note=""):
     payload["description"] = claim.description
     payload["preferred_provider_id"] = booking.provider_id
     events.publish("booking.created", payload)
+
+
+def landlord_decide(order, approve):
+    """The landlord, through the texted link, agrees (or not) that the repair is deducted from next month's rent."""
+    if order.landlord_approval_status != "pending":
+        raise ValidationError({"order": f"Already {order.landlord_approval_status}."})
+    order.landlord_approval_status = "approved" if approve else "rejected"
+    order.landlord_approved_at = timezone.now()
+    if approve:
+        order.rent_deduction_receipt_number = f"RDR-{order.number}"
+    order.save(update_fields=["landlord_approval_status", "landlord_approved_at", "rent_deduction_receipt_number"])
+    events.publish("order.landlord_decided", {"order_id": order.id, "user_id": order.user_id, "approved": approve})
+    return order

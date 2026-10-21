@@ -73,6 +73,17 @@ class Order(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     note = models.TextField(blank=True)
+    landlord_phone = models.CharField(max_length=15, blank=True)
+    landlord_approval_status = models.CharField(max_length=15, default="none", choices=[
+        ("none", "None"),
+        ("pending", "Pending"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    ])
+    landlord_approved_at = models.DateTimeField(null=True, blank=True)
+    rent_deduction_receipt_number = models.CharField(max_length=60, blank=True)
+    # Secret part of the link texted to the landlord; only that link can approve or reject.
+    landlord_token = models.CharField(max_length=32, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

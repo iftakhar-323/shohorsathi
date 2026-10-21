@@ -71,3 +71,12 @@ def test_whatsapp_notification_and_otp():
     w = WhatsAppLog.objects.get(phone="01712345678")
     assert "654321" in w.body and w.template == "otp"
 
+
+
+@pytest.mark.django_db
+def test_landlord_gets_approval_link_by_sms(settings):
+    settings.CUSTOMER_WEB_URL = "https://shohorsathi.com"
+    logic.handle("order.landlord_approval_requested", {"order_id": 7, "user_id": 3, "landlord_phone": "01799999999", "tenant_name": "Rafi",
+                                                        "address": "Road 7", "area_name": "Dhanmondi", "total": "1200.00", "token": "abc"})
+    assert "https://shohorsathi.com/landlord/abc" in SmsLog.objects.get(phone="01799999999").body
+    assert Notification.objects.get(user_id=3).link == "/orders/7"

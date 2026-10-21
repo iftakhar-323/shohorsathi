@@ -58,6 +58,7 @@ class CheckoutSerializer(serializers.Serializer):
     latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     note = serializers.CharField(required=False, allow_blank=True, max_length=500)
+    landlord_phone = serializers.CharField(required=False, allow_blank=True, max_length=15)
     payment_method = serializers.ChoiceField(choices=Order.PaymentMethod.choices, default=Order.PaymentMethod.COD)
     service_details = serializers.DictField(child=ServiceDetailSerializer(), required=False, default=dict)
     redeem_points = serializers.IntegerField(min_value=0, required=False, default=0)
@@ -119,7 +120,8 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             "id", "number", "status", "payment_method", "payment_status", "subtotal", "delivery_fee", "discount", "points_redeemed", "organization_id",
-            "total", "contact_name", "contact_phone", "address_line", "area_id", "area_name", "note", "items",
+            "total", "contact_name", "contact_phone", "address_line", "area_id", "area_name", "note", "landlord_phone", "landlord_approval_status",
+            "landlord_approved_at", "rent_deduction_receipt_number", "items",
             "bookings", "created_at", "updated_at",
         ]
 

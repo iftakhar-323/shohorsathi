@@ -9,8 +9,14 @@ from rest_framework.response import Response
 from shohor_common.permissions import IsAdmin
 
 from . import logic
-from .models import CustomRequest
-from .serializers import AdminCustomRequestSerializer, CounterSerializer, CustomRequestSerializer, QuoteSerializer
+from .models import AiQuoteRequest, CustomRequest
+from .serializers import (
+    AdminCustomRequestSerializer,
+    AiQuoteRequestSerializer,
+    CounterSerializer,
+    CustomRequestSerializer,
+    QuoteSerializer,
+)
 
 S = CustomRequest.Status
 
@@ -107,3 +113,38 @@ class AdvancePayableView(APIView):
         req = get_object_or_404(CustomRequest, pk=pk)
         payable = req.status in (S.ACCEPTED, S.PROVIDER_ASSIGNED, S.IN_PROGRESS) and not req.advance_paid
         return Response({"user_id": req.user_id, "amount": str(req.advance_amount or 0), "payable": payable})
+
+
+class AiQuoteViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+    serializer_class = AiQuoteRequestSerializer
+
+    def get_queryset(self):
+        user_id = getattr(self.request.user, "id", None)
+        return AiQuoteRequest.objects.filter(user_id=user_id) if user_id else AiQuoteRequest.objects.none()
+
+    def create(self, request):
+        photo_url = str(request.data.get("photo_url", ""))[:500]
+        description = str(request.data.get("description", ""))[:2000]
+        if not photo_url and not description:
+            return Response({"detail": "Either photo_url or description is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from . import ai_vision
+        diagnosis = ai_vision.analyze_photo_or_text(photo_url=photo_url, description=description)
+
+        user_id = getattr(request.user, "id", None)
+        ai_req = AiQuoteRequest.objects.create(
+            user_id=user_id,
+            photo_url=photo_url,
+            description=description,
+            detected_category=diagnosis["category"],
+            detected_issue=diagnosis["issue"],
+            recommended_service_slug=diagnosis["service_slug"],
+            recommended_service_name_bn=diagnosis["service_name_bn"],
+            estimated_min_price=diagnosis["min_price"],
+            estimated_max_price=diagnosis["max_price"],
+            confidence=diagnosis["confidence"],
+            severity=diagnosis["severity"],
+            suggested_action=diagnosis["action"],
+            engine=diagnosis["engine"],
+        )
+        return Response(AiQuoteRequestSerializer(ai_req).data, status=status.HTTP_201_CREATED)

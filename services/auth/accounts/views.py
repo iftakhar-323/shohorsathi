@@ -13,13 +13,15 @@ from shohor_common.internal import IsInternal
 from shohor_common.permissions import IsAdmin
 
 from . import otp, privacy
-from .models import Address, Area, OtpCode, User
+from .models import Address, Area, HomeProfile, HomeReminder, OtpCode, User
 from .serializers import (
     AddressSerializer,
+    AdminUserSerializer,
     AreaSerializer,
+    HomeProfileSerializer,
+    HomeReminderSerializer,
     OtpRequestSerializer,
     PasswordResetSerializer,
-    AdminUserSerializer,
     RegisterSerializer,
     UserSerializer,
 )
@@ -237,3 +239,64 @@ class InternalUserIdsView(APIView):
         if role := request.query_params.get("role"):
             qs = qs.filter(role__in=role.split(","))
         return Response({"ids": list(qs.values_list("id", flat=True))})
+
+
+class HomeProfileViewSet(viewsets.ModelViewSet):
+    serializer_class = HomeProfileSerializer
+
+    def get_queryset(self):
+        return HomeProfile.objects.filter(user=self.request.user).prefetch_related("reminders").select_related("area")
+
+    def perform_create(self, serializer):
+        profile = serializer.save(user=self.request.user)
+        today = timezone.localdate()
+        from datetime import timedelta
+        if profile.ac_count > 0:
+            HomeReminder.objects.create(
+                home=profile,
+                title_en="Pre-Summer AC Master Servicing",
+                title_bn="গ্রীষ্মপূর্ব এসি মাস্টার সার্ভিসিং",
+                category_slug="ac",
+                recommended_service_slug="ac-cleaning",
+                due_date=today + timedelta(days=90),
+                frequency_days=180,
+                notes="Recommended every 6 months to maintain cooling efficiency.",
+            )
+        if profile.water_purifier:
+            HomeReminder.objects.create(
+                home=profile,
+                title_en="Water Purifier Filter & Candle Replacement",
+                title_bn="ওয়াটার ফিল্টার ক্যান্ডেল পরিবর্তন",
+                category_slug="plumbing",
+                recommended_service_slug="plumber-visit",
+                due_date=today + timedelta(days=60),
+                frequency_days=90,
+                notes="Replace sediment & carbon filters for pure drinking water.",
+            )
+
+    @action(detail=True, methods=["get"])
+    def health(self, request, pk=None):
+        profile = self.get_object()
+        return Response({
+            "health_score": profile.health_score,
+            "wiring_age_years": profile.wiring_age_years,
+            "plumbing_age_years": profile.plumbing_age_years,
+            "overdue_reminders": profile.reminders.filter(is_completed=False, due_date__lt=timezone.localdate()).count(),
+        })
+
+    @action(detail=True, methods=["post"], url_path="add-reminder")
+    def add_reminder(self, request, pk=None):
+        profile = self.get_object()
+        serializer = HomeReminderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        reminder = serializer.save(home=profile)
+        return Response(HomeReminderSerializer(reminder).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="complete-reminder/(?P<reminder_id>[^/.]+)")
+    def complete_reminder(self, request, pk=None, reminder_id=None):
+        profile = self.get_object()
+        reminder = profile.reminders.filter(id=reminder_id).first()
+        if not reminder:
+            return Response({"detail": "Reminder not found."}, status=status.HTTP_404_NOT_FOUND)
+        reminder.complete()
+        return Response(HomeReminderSerializer(reminder).data)

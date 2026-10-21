@@ -5,12 +5,16 @@ import Footer from "./components/Footer";
 import Header from "./components/Header";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { useLowDataMode } from "./lib/lowData";
+import AiQuote from "./pages/AiQuote";
 import { BusinessDetail, BusinessHome } from "./pages/Business";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import { CustomRequestDetail, CustomRequestList, NewCustomRequest } from "./pages/CustomRequests";
 import Community from "./pages/Community";
 import Home from "./pages/Home";
+import Landlord from "./pages/Landlord";
+import Transparency from "./pages/Transparency";
+import HomeProfile from "./pages/HomeProfile";
 import { Privacy, Terms } from "./pages/Legal";
 import { IssueDetail, IssuesHome, ReportIssue } from "./pages/Issues";
 import NotFound from "./pages/NotFound";
@@ -48,6 +52,8 @@ export default function App() {
           <Route path="/register" element={<AuthPage appName={t("শহরসাথী")} initialMode="register" />} />
           <Route path="/services" element={<Services />} />
           <Route path="/services/:slug" element={<ServiceDetail />} />
+          <Route path="/ai-quote" element={<Private><AiQuote /></Private>} />
+          <Route path="/home-profile" element={<Private><HomeProfile /></Private>} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/cart" element={<Private><Cart /></Private>} />
           <Route path="/checkout" element={<Private><Checkout /></Private>} />
@@ -69,6 +75,8 @@ export default function App() {
           <Route path="/community" element={<Community />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/track/:token" element={<Track />} />
+          <Route path="/landlord/:token" element={<Landlord />} />
+          <Route path="/transparency" element={<Transparency />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/wallet" element={<Private><Wallet /></Private>} />
           <Route path="/business" element={<Private><BusinessHome /></Private>} />

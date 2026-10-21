@@ -28,6 +28,8 @@ export default function Checkout() {
   const [usePoints, setUsePoints] = useState(false);
   const [orgId, setOrgId] = useState("");
   const [schedules, setSchedules] = useState<Record<number, BookingDraft>>({});
+  const [isTenant, setIsTenant] = useState(false);
+  const [landlordPhone, setLandlordPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -83,6 +85,7 @@ export default function Checkout() {
         latitude,
         longitude,
         note,
+        landlord_phone: isTenant ? landlordPhone : "",
         payment_method: ["online", "bkash", "nagad"].includes(payment) ? "online" : payment,
         redeem_points: usePoints ? loyalty?.points ?? 0 : 0,
         organization_id: orgId ? Number(orgId) : null,
@@ -139,6 +142,29 @@ export default function Checkout() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("যোগাযোগের নাম")} required value={contactName} onChange={(e) => setContactName(e.target.value)} />
             <Field label={t("মোবাইল")} required pattern="01[3-9][0-9]{8}" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
+          </div>
+          <div className="rounded-xl border border-line bg-surface-tint p-3 text-sm">
+            <label className="flex items-center gap-2 cursor-pointer font-medium text-ink">
+              <input
+                type="checkbox"
+                checked={isTenant}
+                onChange={(e) => setIsTenant(e.target.checked)}
+                className="size-4 accent-brand rounded"
+              />
+              <span>{t("আমি একজন ভাড়াটিয়া (বাড়িওয়ালার অনুমোদন ও ভাড়া কর্তন রসিদ চাই)")}</span>
+            </label>
+            {isTenant && (
+              <div className="mt-3">
+                <Field
+                  label={t("বাড়িওয়ালার মোবাইল নম্বর")}
+                  required={isTenant}
+                  pattern="01[3-9][0-9]{8}"
+                  value={landlordPhone}
+                  onChange={(e) => setLandlordPhone(e.target.value)}
+                  placeholder={t("যেমন: 01712345678")}
+                />
+              </div>
+            )}
           </div>
         </Card>
 

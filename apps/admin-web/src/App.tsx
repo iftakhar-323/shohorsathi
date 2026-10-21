@@ -14,6 +14,7 @@ import Loyalty from "./pages/Loyalty";
 import Orders from "./pages/Orders";
 import Payments from "./pages/Payments";
 import Payouts from "./pages/Payouts";
+import Promotions from "./pages/Promotions";
 import Providers from "./pages/Providers";
 import Safety from "./pages/Safety";
 import Insurance from "./pages/Insurance";
@@ -41,6 +42,7 @@ export const NAV: { to: string; label: string; icon: IconName }[] = [
   { to: "/broadcast", label: "নোটিফিকেশন পাঠান", icon: "bell" },
   { to: "/providers", label: "প্রোভাইডার যাচাই", icon: "shield" },
   { to: "/catalog", label: "ক্যাটালগ", icon: "bag" },
+  { to: "/promotions", label: "গ্রুপ ডিল ও অফার", icon: "gift" },
   { to: "/payouts", label: "পেআউট", icon: "money" },
   { to: "/warranty", label: "ওয়ারেন্টি", icon: "refresh" },
   { to: "/areas", label: "এলাকা", icon: "pin" },
@@ -99,6 +101,7 @@ export default function App() {
                 <Route path="/custom-requests" element={<CustomRequests />} />
                 <Route path="/providers" element={<Providers />} />
                 <Route path="/catalog" element={<Catalog />} />
+                <Route path="/promotions" element={<Promotions />} />
                 <Route path="/subscriptions" element={<Subscriptions />} />
                 <Route path="/payments" element={<Payments />} />
                 <Route path="/safety" element={<Safety />} />

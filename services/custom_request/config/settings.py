@@ -13,3 +13,9 @@ SPECTACULAR_SETTINGS = {**SPECTACULAR_SETTINGS, "TITLE": "ShohorSathi Custom_req
 # Share of an accepted quote the customer pays up front. Bangladesh's Digital Commerce Operation Guidelines 2021 cap
 # advances at 10% unless the payment sits in a Bangladesh Bank-approved escrow; see docs/compliance.md.
 CUSTOM_REQUEST_ADVANCE_PERCENT = env("CUSTOM_REQUEST_ADVANCE_PERCENT", "10")
+
+# AI photo quote (Dhap 8). Without a key the quote comes from a keyword match on the description.
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", "")
+AI_QUOTE_MODEL = env("AI_QUOTE_MODEL", "claude-opus-5-5")
+# Uploaded public photos, read from the media volume mounted read-only.
+MEDIA_ROOT = env("MEDIA_ROOT", "/data/media")

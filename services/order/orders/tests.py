@@ -3,6 +3,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 from shohor_common import internal
+from rest_framework.test import APIClient
 from shohor_common.testing import auth_client
 
 from orders import logic
@@ -307,3 +308,42 @@ def test_sms_booking_draft_confirm_and_status(captured_events):
     assert "order.placed" in [e for e, _ in captured_events]
     assert "booking.created" in [e for e, _ in captured_events]
 
+
+@pytest.mark.django_db
+def test_landlord_approves_through_the_texted_link(customer, captured_events):
+    item = fill_cart(customer)
+    details = {str(item): {"scheduled_date": timezone.localdate().isoformat(), "slot": "09-11"}}
+    res = customer.post("/api/orders/", {**ADDRESS, "service_details": details, "landlord_phone": "01799999999"}, format="json")
+    assert res.status_code == 201
+    assert res.data["landlord_approval_status"] == "pending"
+    assert "landlord_token" not in res.data
+    order = Order.objects.get(pk=res.data["id"])
+    requested = next(p for e, p in captured_events if e == "order.landlord_approval_requested")
+    assert requested["token"] == order.landlord_token and requested["landlord_phone"] == "01799999999"
+
+    # the tenant cannot approve for the landlord, and has no receipt before approval
+    assert customer.post(f"/api/orders/{order.id}/landlord-approve/").status_code == 404
+    assert customer.get(f"/api/orders/{order.id}/rent-receipt/").status_code == 409
+
+    landlord = APIClient()
+    assert landlord.get("/api/orders/landlord/wrong-token/").status_code == 404
+    page = landlord.get(f"/api/orders/landlord/{order.landlord_token}/")
+    assert page.data["approval_status"] == "pending"
+    res = landlord.post(f"/api/orders/landlord/{order.landlord_token}/", {"decision": "approve"}, format="json")
+    assert res.data["approval_status"] == "approved"
+    assert res.data["receipt_number"] == f"RDR-{order.number}"
+    assert landlord.post(f"/api/orders/landlord/{order.landlord_token}/", {"decision": "reject"}, format="json").status_code == 400
+
+    receipt = customer.get(f"/api/orders/{order.id}/rent-receipt/")
+    assert "বাড়িভাড়া থেকে কর্তনযোগ্য" in receipt.data["certification_bn"]
+
+
+@pytest.mark.django_db
+def test_filled_group_deal_lowers_the_booking_price(customer, monkeypatch):
+    deals = {"/api/internal/group-deals/discount/": {"deal_id": 4, "percent": 20}}
+    monkeypatch.setattr(internal, "get", lambda service, path, **kw: deals.get(path) or CATALOG.get(path))
+    item = fill_cart(customer)
+    details = {str(item): {"scheduled_date": timezone.localdate().isoformat(), "slot": "09-11"}}
+    res = customer.post("/api/orders/", {**ADDRESS, "service_details": details}, format="json")
+    assert res.status_code == 201, res.data
+    assert res.data["bookings"][0]["price"] == "240.00"  # 300 − 20%

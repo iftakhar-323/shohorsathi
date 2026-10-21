@@ -14,4 +14,8 @@ router.register("api/admin/authorities", views.AuthorityViewSet, basename="admin
 urlpatterns = [
     path("api/internal/export/<int:user_id>/", export_view(privacy.collect)),
     path("api/admin/community/posts/<int:pk>/hide/", views.AdminHidePostView.as_view()),
+    path("api/issues/transparency/", views.TransparencyView.as_view()),
+    path("api/issues/feed/<str:token>/", views.AuthorityFeedView.as_view()),
+    path("api/issues/feed/<str:token>/<int:issue_id>/", views.AuthorityFeedView.as_view()),
+    path("api/admin/issues/export/", views.AdminIssueExportView.as_view()),
 ] + router.urls

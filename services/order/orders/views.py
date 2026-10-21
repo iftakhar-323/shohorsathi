@@ -82,6 +82,47 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         order = self.get_object()
         return Response({"status": order.status, "events": TrackingEventSerializer(order.events.all(), many=True).data})
 
+    @action(detail=True, methods=["get"], url_path="rent-receipt")
+    def rent_receipt(self, request, pk=None):
+        order = self.get_object()
+        if order.landlord_approval_status != "approved":
+            return Response({"detail": "The landlord has not approved this repair yet."}, status=status.HTTP_409_CONFLICT)
+        return Response(rent_receipt(order))
+
+
+def rent_receipt(order):
+    return {
+        "receipt_number": order.rent_deduction_receipt_number,
+        "order_number": order.number,
+        "tenant_name": order.contact_name,
+        "tenant_phone": order.contact_phone,
+        "landlord_phone": order.landlord_phone,
+        "address": order.address_line,
+        "area": order.area_name,
+        "total_repair_amount": str(order.total),
+        "approval_status": order.landlord_approval_status,
+        "approved_at": order.landlord_approved_at.isoformat() if order.landlord_approved_at else None,
+        "items": [{"name": b.service_name, "amount": str(b.price)} for b in order.bookings.all()],
+        "certification_bn": f"শহরসাথী নিশ্চিত করছে যে উক্ত বাসার প্রয়োজনীয় মেরামত বাবদ {order.total} টাকা ব্যয় হয়েছে। বাড়িওয়ালার সম্মতিক্রমে এটি পরবর্তী মাসের বাড়িভাড়া থেকে কর্তনযোগ্য।",
+        "certification_en": f"ShohorSathi certifies that BDT {order.total} was incurred for approved maintenance at {order.address_line}, deductible from upcoming monthly rent.",
+    }
+
+
+class LandlordView(APIView):
+    """The landlord opens the texted link: sees the repair and approves or rejects deducting it from the rent."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, token):
+        order = get_object_or_404(Order.objects.prefetch_related("bookings"), landlord_token=token)
+        return Response(rent_receipt(order))
+
+    def post(self, request, token):
+        order = get_object_or_404(Order, landlord_token=token)
+        logic.landlord_decide(order, request.data.get("decision") == "approve")
+        return Response(rent_receipt(order))
+
 
 class BookingViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = BookingSerializer

@@ -90,3 +90,43 @@ def test_user_deleted_keeps_issue_but_drops_posts(reporter):
     reporter.post("/api/community/posts/", {"area_id": 3, "area_name": "Mirpur", "kind": "tip", "body": "x"}, format="json")
     user_deleted({"user_id": 7})
     assert Issue.objects.get().reporter_name == "" and not Post.objects.exists()
+
+
+@pytest.mark.django_db
+def test_transparency_report_has_no_personal_data(reporter):
+    from django.utils import timezone
+
+    first = reporter.post("/api/issues/", SPOT, format="json").data
+    reporter.post("/api/issues/", {**SPOT, "category": "garbage", "latitude": "23.700000"}, format="json")
+    ward = Authority.objects.create(name_bn="ওয়ার্ড ৭", name_en="Ward 7")
+    Issue.objects.filter(pk=first["id"]).update(status="resolved", authority=ward, resolved_at=timezone.now())
+    res = APIClient().get("/api/issues/transparency/?days=30")
+    assert res.status_code == 200
+    assert res.data["reported"] == 2 and res.data["resolved"] == 1 and res.data["resolution_rate"] == 50
+    assert res.data["by_authority"][0]["name_en"] == "Ward 7" and res.data["by_authority"][0]["resolved"] == 1
+    assert "Rahim" not in str(res.data) and "user_id" not in str(res.data)
+
+
+@pytest.mark.django_db
+def test_authority_feed_link_lists_and_resolves_its_issues(reporter, captured_events):
+    admin = auth_client("admin", user_id=1)
+    issue = reporter.post("/api/issues/", SPOT, format="json").data
+    ward = admin.post("/api/admin/authorities/", {"name_bn": "ওয়ার্ড ৭", "name_en": "Ward 7", "categories": ["streetlight"]}, format="json").data
+    assert admin.post(f"/api/admin/issues/{issue['id']}/status/", {"status": "forwarded", "authority": ward["id"]}, format="json").status_code == 200
+    token = admin.post(f"/api/admin/authorities/{ward['id']}/rotate-feed/").data["feed_token"]
+
+    office = APIClient()
+    assert office.get("/api/issues/feed/not-a-token/").status_code == 404
+    feed = office.get(f"/api/issues/feed/{token}/")
+    assert feed["Content-Type"].startswith("text/csv")
+    body = feed.content.decode("utf-8-sig")
+    assert "Broken streetlight" in body and "Rahim" not in body
+    done = office.post(f"/api/issues/feed/{token}/{issue['id']}/", {"status": "in_progress", "note": "Crew sent"}, format="json")
+    assert done.status_code == 200 and done.data["status"] == "in_progress"
+    assert office.post(f"/api/issues/feed/{token}/{issue['id']}/", {"status": "rejected"}, format="json").status_code == 400
+
+    # rotating the link locks the old one out
+    admin.post(f"/api/admin/authorities/{ward['id']}/rotate-feed/")
+    assert office.get(f"/api/issues/feed/{token}/").status_code == 404
+    export = admin.get("/api/admin/issues/export/")
+    assert export.status_code == 200 and "Broken streetlight" in export.content.decode("utf-8-sig")

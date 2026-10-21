@@ -121,6 +121,9 @@ EVENTS_CAPTURE = False
 # Every service relays its outbox; services add their own jobs with {**CELERY_BEAT_SCHEDULE, ...}.
 CELERY_BEAT_SCHEDULE = {"relay-outbox": {"task": "shohor.relay_outbox", "schedule": 10.0}}
 
+# Where customers open the web app; used in links sent by SMS and redirects.
+CUSTOMER_WEB_URL = env("CUSTOMER_WEB_URL", "http://localhost:5173").rstrip("/")
+
 # Internal service addresses, used for the few synchronous calls between services.
 SERVICE_URLS = {
     "auth": env("AUTH_URL", "http://auth:8000"),

@@ -152,3 +152,64 @@ def test_export_and_delete(client, monkeypatch, captured_events):
     # the number is free to register again
     client.credentials()
     assert register(client).status_code == 201
+
+
+@pytest.mark.django_db
+def test_home_profile_lifecycle(client):
+    tokens = register(client, "01812345678").data
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
+
+    res = client.post("/api/home-profiles/", {
+        "name": "Dhanmondi Flat",
+        "address": "House 15, Road 7",
+        "property_type": "apartment",
+        "square_feet": 1400,
+        "ac_count": 2,
+        "water_purifier": True,
+        "wiring_age_years": 4,
+        "plumbing_age_years": 4,
+        "occupancy_mode": "tenant",
+        "landlord_name": "Kabir Hossain",
+        "landlord_phone": "01700000000",
+        "landlord_approval_threshold": "2000.00",
+    }, format="json")
+    assert res.status_code == 201
+    pid = res.data["id"]
+    assert res.data["occupancy_mode"] == "tenant"
+    assert len(res.data["reminders"]) >= 2
+    assert res.data["health_score"] >= 80
+
+    h_res = client.get(f"/api/home-profiles/{pid}/health/")
+    assert h_res.status_code == 200
+    assert h_res.data["health_score"] >= 80
+
+    rem_id = res.data["reminders"][0]["id"]
+    comp_res = client.post(f"/api/home-profiles/{pid}/complete-reminder/{rem_id}/")
+    assert comp_res.status_code == 200
+    assert comp_res.data["is_completed"] is True
+    added = client.post(f"/api/home-profiles/{pid}/add-reminder/", {"title_bn": "ট্যাংক পরিষ্কার", "title_en": "Tank cleaning",
+                                                                     "due_date": "2027-01-10", "recommended_service_slug": "home-deep-clean"}, format="json")
+    assert added.status_code == 201, added.data
+    # the next round of the same upkeep is scheduled
+    reminders = client.get(f"/api/home-profiles/{pid}/").data["reminders"]
+    nxt = [r for r in reminders if r["title_en"] == res.data["reminders"][0]["title_en"] and not r["is_completed"]]
+    assert len(nxt) == 1
+
+
+@pytest.mark.django_db
+def test_due_home_reminders_are_sent_once(captured_events):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from accounts.models import HomeProfile, HomeReminder, User
+    from accounts.tasks import home_reminders_due
+
+    user = User.objects.create_user(phone="01812345670", password="x-Strong-pass-1", full_name="R")
+    home = HomeProfile.objects.create(user=user, address="Road 1", ac_count=0, water_purifier=False)
+    HomeReminder.objects.create(home=home, title_en="AC", title_bn="এসি", due_date=timezone.localdate() + timedelta(days=2))
+    HomeReminder.objects.create(home=home, title_en="Later", title_bn="পরে", due_date=timezone.localdate() + timedelta(days=30))
+    home_reminders_due()
+    home_reminders_due()
+    sent = [p for e, p in captured_events if e == "home.reminder_due"]
+    assert [p["title_en"] for p in sent] == ["AC"]

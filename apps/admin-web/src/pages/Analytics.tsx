@@ -1,5 +1,7 @@
-import { Card, MapView, PageHeader, Select, Stat, api, formatDate, formatNumber, formatTaka, t, useCities, type MapPoint } from "@shohor/web-core";
+import { Badge, Button, Card, ErrorNote, MapView, PageHeader, Select, Stat, SuccessNote, Tabs, api, errorMessage, formatDate, formatNumber, formatTaka, t, useCities, type MapPoint } from "@shohor/web-core";
 import { useQuery } from "@tanstack/react-query";
+
+import { DataTable } from "../components";
 import { useState } from "react";
 
 type Summary = {
@@ -46,13 +48,136 @@ function Daily({ rows }: { rows: Summary["daily"] }) {
   );
 }
 
+type Forecast = { category: string; trend: number; last_14_days: number; week_total: number; days: { date: string; expected: number; providers_needed: number }[] };
+type Churn = { user_id: number; orders: number; value: string; last_order: string; days_since: number; usual_gap_days: number | null; score: number; risk: "high" | "medium" };
+type Flag = { kind: string; severity: "high" | "medium" | "low"; user_ids: number[]; detail: string };
+type Revenue = { commission: string; sponsored_listings: string; total: string };
+
+const FLAG_KIND: Record<string, string> = {
+  cancel_abuse: "বারবার অর্ডার বাতিল",
+  order_burst: "এক ঘণ্টায় অনেক অর্ডার",
+  shared_location: "একই ঠিকানায় অনেক অ্যাকাউন্ট",
+  big_first_cod: "প্রথম অর্ডারেই বড় ক্যাশ অন ডেলিভারি",
+};
+const SEVERITY_TONE = { high: "bad", medium: "warn", low: "info" } as const;
+
+/** Next 7 days per category; bar height is expected bookings, the hover shows how many providers that needs. */
+function ForecastView({ city }: { city?: string }) {
+  const { data, isPending } = useQuery({
+    queryKey: ["forecast", city],
+    queryFn: async () => (await api.get<Forecast[]>("/admin/analytics/forecast/", { params: { city } })).data,
+  });
+  if (isPending) return null;
+  if (!data?.length) return <Card><span className="text-muted">{t("পূর্বাভাসের জন্য অন্তত কয়েক সপ্তাহের বুকিং দরকার।")}</span></Card>;
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="m-0 text-sm text-muted">{t("গত ৮ সপ্তাহের একই বারের গড় × সাম্প্রতিক প্রবণতা (গত ১৪ দিন বনাম আগের ১৪ দিন)।")}</p>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {data.map((c) => {
+          const max = Math.max(1, ...c.days.map((d) => d.expected));
+          return (
+            <Card key={c.category} className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="m-0 text-lg font-bold">{c.category}</h2>
+                <span className="text-sm text-muted">
+                  {t("সপ্তাহে ~{n} বুকিং", { n: c.week_total })} · {c.trend >= 1 ? "↑" : "↓"} {Math.round((c.trend - 1) * 100)}%
+                </span>
+              </div>
+              <div className="flex h-28 items-end gap-2" role="img" aria-label={t("সপ্তাহে ~{n} বুকিং", { n: c.week_total })}>
+                {c.days.map((d) => (
+                  <div key={d.date} className="flex flex-1 flex-col items-center gap-1" title={`${formatDate(d.date)}: ${d.expected} · ${t("প্রোভাইডার লাগবে")} ${d.providers_needed}`}>
+                    <span className="text-[12px] tabular-nums text-muted">{d.expected}</span>
+                    <div className="w-full rounded-t bg-brand" style={{ height: `${(d.expected / max) * 72}px`, minHeight: d.expected ? 2 : 0 }} />
+                    <span className="text-[12px] text-muted">{new Date(d.date).toLocaleDateString(undefined, { weekday: "short" })}</span>
+                  </div>
+                ))}
+              </div>
+              <span className="text-sm">{t("সবচেয়ে ব্যস্ত দিনে প্রোভাইডার লাগবে")}: <b>{Math.max(...c.days.map((d) => d.providers_needed))}</b></span>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ChurnView({ city }: { city?: string }) {
+  const { data, isPending } = useQuery({
+    queryKey: ["churn", city],
+    queryFn: async () => (await api.get<Churn[]>("/admin/analytics/churn/", { params: { city } })).data,
+  });
+  const [picked, setPicked] = useState<number[]>([]);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+
+  async function winback() {
+    setError("");
+    try {
+      const { data: r } = await api.post<{ sent: number }>("/admin/analytics/churn/winback/", { user_ids: picked });
+      setNotice(t("{n} জন গ্রাহককে বার্তা পাঠানো হয়েছে।", { n: r.sent }));
+      setPicked([]);
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  }
+
+  const toggle = (id: number) => setPicked(picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id]);
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="m-0 flex-1 text-sm text-muted">{t("শেষ অর্ডারের পর যতদিন গেছে ÷ গ্রাহকের স্বাভাবিক বিরতি। ২× হলে ঝুঁকি, ৩× হলে বেশি ঝুঁকি।")}</p>
+        <Button icon="send" disabled={!picked.length} onClick={winback}>{t("ফিরে আসার বার্তা পাঠান ({n})", { n: picked.length })}</Button>
+      </div>
+      <SuccessNote>{notice}</SuccessNote>
+      <ErrorNote>{error}</ErrorNote>
+      <DataTable
+        loading={isPending}
+        rows={data?.map((c) => ({ ...c, id: c.user_id }))}
+        columns={[
+          { label: "", render: (c) => <input type="checkbox" aria-label={`#${c.user_id}`} checked={picked.includes(c.user_id)} onChange={() => toggle(c.user_id)} className="size-5 accent-brand" /> },
+          { label: t("গ্রাহক"), render: (c) => `#${c.user_id}` },
+          { label: t("অর্ডার"), render: (c) => c.orders },
+          { label: t("মোট মূল্য"), render: (c) => formatTaka(c.value) },
+          { label: t("শেষ অর্ডার"), render: (c) => `${formatDate(c.last_order)} (${t("{n} দিন আগে", { n: c.days_since })})` },
+          { label: t("স্বাভাবিক বিরতি"), render: (c) => (c.usual_gap_days ? t("{n} দিন", { n: c.usual_gap_days }) : t("একবার অর্ডার")) },
+          { label: t("ঝুঁকি"), render: (c) => <Badge tone={c.risk === "high" ? "bad" : "warn"}>{`${c.risk === "high" ? t("বেশি") : t("মাঝারি")} · ${c.score}×`}</Badge> },
+        ]}
+      />
+    </div>
+  );
+}
+
+function FraudView({ days }: { days: string }) {
+  const { data, isPending } = useQuery({
+    queryKey: ["fraud", days],
+    queryFn: async () => (await api.get<Flag[]>("/admin/analytics/fraud/", { params: { days } })).data,
+  });
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="m-0 text-sm text-muted">{t("এগুলো সন্দেহের সংকেত, প্রমাণ নয় — কাউকে ব্লক করার আগে অর্ডার ও ইউজার দেখে নিন।")}</p>
+      <DataTable
+        loading={isPending}
+        rows={data?.map((f, i) => ({ ...f, id: i }))}
+        columns={[
+          { label: t("ঝুঁকি"), render: (f) => <Badge tone={SEVERITY_TONE[f.severity]}>{t(f.severity === "high" ? "বেশি" : f.severity === "medium" ? "মাঝারি" : "কম")}</Badge> },
+          { label: t("সংকেত"), render: (f) => <span className="font-semibold">{t(FLAG_KIND[f.kind] ?? f.kind)}</span> },
+          { label: t("বিস্তারিত"), render: (f) => f.detail },
+          { label: t("ইউজার"), render: (f) => f.user_ids.map((u) => `#${u}`).join(", ") },
+        ]}
+      />
+    </div>
+  );
+}
+
 export default function Analytics() {
+  const [tab, setTab] = useState<"overview" | "forecast" | "churn" | "fraud">("overview");
   const [days, setDays] = useState("30");
   const [city, setCity] = useState("");
   const { data: cities } = useCities();
   const params = { days, city: city || undefined };
   const { data: s } = useQuery({ queryKey: ["analytics", params], queryFn: async () => (await api.get<Summary>("/admin/analytics/summary/", { params })).data });
   const { data: heat } = useQuery({ queryKey: ["heatmap", params], queryFn: async () => (await api.get<{ lat: number; lng: number; n: number }[]>("/admin/analytics/heatmap/", { params })).data });
+  const { data: revenue } = useQuery({ queryKey: ["revenue", params], queryFn: async () => (await api.get<Revenue>("/admin/analytics/revenue/", { params })).data });
   const points: MapPoint[] = (heat ?? []).map((h, i) => ({ id: i, lat: h.lat, lng: h.lng, radius: 5 + Math.min(h.n * 2, 20), color: "#B45309", label: `${h.n}` }));
 
   return (
@@ -67,6 +192,16 @@ export default function Analytics() {
           </div>
         }
       />
+      <Tabs value={tab} onChange={setTab} tabs={[
+        { value: "overview", label: t("সারসংক্ষেপ") },
+        { value: "forecast", label: t("চাহিদার পূর্বাভাস") },
+        { value: "churn", label: t("হারানোর ঝুঁকিতে গ্রাহক") },
+        { value: "fraud", label: t("জালিয়াতির সংকেত") },
+      ]} />
+      {tab === "forecast" && <ForecastView city={city || undefined} />}
+      {tab === "churn" && <ChurnView city={city || undefined} />}
+      {tab === "fraud" && <FraudView days={days} />}
+      {tab === "overview" && <>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-3">
         <Stat label={t("মোট অর্ডার মূল্য (GMV)")} value={formatTaka(s?.gmv)} icon="cart" />
         <Stat label={t("সম্পন্ন অর্ডারের আয়")} value={formatTaka(s?.revenue_completed)} icon="money" />
@@ -76,6 +211,8 @@ export default function Analytics() {
         <Stat label={t("নতুন / রিনিউ সাবস্ক্রিপশন")} value={s ? `${s.subscriptions_new} / ${s.subscriptions_renewed}` : "–"} icon="repeat" />
         <Stat label={t("নতুন বনাম পুরনো গ্রাহক")} value={s ? `${s.customers_new} / ${s.customers_returning}` : "–"} icon="user" />
         <Stat label={t("সমাধান হওয়া সমস্যা")} value={s?.issues_resolved ?? "–"} icon="flag" />
+        <Stat label={t("স্পন্সরড লিস্টিং আয়")} value={formatTaka(revenue?.sponsored_listings)} icon="gift" />
+        <Stat label={t("প্ল্যাটফর্মের মোট আয়")} value={formatTaka(revenue?.total)} icon="money" />
       </div>
       <Daily rows={s?.daily ?? []} />
       <div className="grid gap-4 lg:grid-cols-2">
@@ -87,6 +224,7 @@ export default function Analytics() {
         <p className="m-0 text-sm text-muted">{t("বড় বৃত্ত মানে বেশি বুকিং; নতুন প্রোভাইডার কোথায় দরকার বুঝতে সাহায্য করে।")}</p>
         <MapView points={points} zoom={12} height={380} />
       </Card>
+      </>}
     </div>
   );
 }

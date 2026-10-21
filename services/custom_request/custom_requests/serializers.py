@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import CounterOffer, CustomRequest, Quote, StatusLog
+from .models import AiQuoteRequest, CounterOffer, CustomRequest, Quote, StatusLog
 
 
 class QuoteSerializer(serializers.ModelSerializer):
@@ -70,4 +70,20 @@ class AdminCustomRequestSerializer(CustomRequestSerializer):
     class Meta(CustomRequestSerializer.Meta):
         fields = CustomRequestSerializer.Meta.fields + [
             "user_id", "customer_name", "customer_phone", "category_slug", "admin_note", "quotes",
+        ]
+
+
+class AiQuoteRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AiQuoteRequest
+        fields = [
+            "id", "user_id", "photo_url", "description", "detected_category",
+            "detected_issue", "recommended_service_slug", "recommended_service_name_bn",
+            "estimated_min_price", "estimated_max_price", "confidence", "severity",
+            "suggested_action", "engine", "created_at",
+        ]
+        read_only_fields = [
+            "id", "user_id", "detected_category", "detected_issue", "recommended_service_slug",
+            "recommended_service_name_bn", "estimated_min_price", "estimated_max_price",
+            "confidence", "severity", "suggested_action", "engine", "created_at",
         ]

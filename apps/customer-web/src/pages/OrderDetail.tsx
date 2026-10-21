@@ -1,5 +1,6 @@
 import {
   api,
+  Badge,
   Button,
   Card,
   errorMessage,
@@ -7,6 +8,7 @@ import {
   Field,
   formatDate,
   formatTaka,
+  getLang,
   Icon,
   LiveTracking,
   Loading,
@@ -24,12 +26,13 @@ import {
   Timeline,
   todayISO,
 } from "@shohor/web-core";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { useOrder, useTracking, type Booking } from "../api/orders";
+import { useOrder, useTracking, type Booking, type Order } from "../api/orders";
 import { BookingExtras, RefundRequest } from "../components/BookingExtras";
+import { ReceiptBody, type RentReceipt } from "./Landlord";
 
 /** A link family can open to follow the job (no phone numbers), valid for a day. */
 async function shareLiveJob(bookingId: number) {
@@ -256,6 +259,7 @@ export default function OrderDetail() {
             <Button onClick={() => payOnline("order", order.id)}>{t("এখনই পরিশোধ করুন")}</Button>
           )}
           {order.payment_method === "online" && <RefundRequest orderId={order.id} />}
+          {order.landlord_approval_status !== "none" && <RentDeduction order={order} />}
         </Card>
         <Card className="flex flex-col gap-4">
           <h2 className="m-0 text-lg font-bold">{t("টাইমলাইন")}</h2>
@@ -263,5 +267,34 @@ export default function OrderDetail() {
         </Card>
       </div>
     </section>
+  );
+}
+
+const LANDLORD_STATUS = { pending: "বাড়িওয়ালার অনুমতির অপেক্ষায়", approved: "বাড়িওয়ালা রাজি", rejected: "বাড়িওয়ালা রাজি হননি", none: "" };
+
+/** Tenant's view of the rent-deduction request; the receipt appears once the landlord agrees through their SMS link. */
+function RentDeduction({ order }: { order: Order }) {
+  const status = order.landlord_approval_status;
+  const { data: receipt } = useQuery({
+    queryKey: ["rent-receipt", order.id],
+    queryFn: async () => (await api.get<RentReceipt>(`/orders/${order.id}/rent-receipt/`)).data,
+    enabled: status === "approved",
+  });
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-line bg-subtle p-3">
+      <div className="flex items-center justify-between gap-2 font-semibold">
+        <span>{t("ভাড়া থেকে কাটা")}</span>
+        <Badge tone={status === "approved" ? "ok" : status === "rejected" ? "bad" : "warn"}>{t(LANDLORD_STATUS[status])}</Badge>
+      </div>
+      {status === "pending" && <span className="text-sm text-muted">{t("বাড়িওয়ালার {phone} নম্বরে এসএমএসে লিংক পাঠানো হয়েছে।", { phone: order.landlord_phone })}</span>}
+      {receipt && (
+        <div className="flex flex-col gap-1 text-sm">
+          <span className="font-semibold">{t("রসিদ নম্বর")}: {receipt.receipt_number}</span>
+          <ReceiptBody r={receipt} />
+          <span className="text-muted">{getLang() === "en" ? receipt.certification_en : receipt.certification_bn}</span>
+          <Button variant="ghost" icon="list" onClick={() => window.print()} className="self-start">{t("প্রিন্ট করুন")}</Button>
+        </div>
+      )}
+    </div>
   );
 }

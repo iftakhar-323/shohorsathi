@@ -56,6 +56,10 @@ def handle(event, payload):
             send_sms(phone, msg)
         return []
 
+    if event == "order.landlord_approval_requested":
+        send_sms(payload["landlord_phone"],
+                 f"ShohorSathi: আপনার ভাড়াটিয়া {payload['tenant_name']} ({payload['address']}) ৳{payload['total']} টাকার মেরামত "
+                 f"ভাড়া থেকে কাটার অনুমতি চেয়েছেন। দেখে সম্মতি দিন: {settings.CUSTOMER_WEB_URL}/landlord/{payload['token']}")
     if event == "safety.sos":
         payload = {**payload, "admin_ids": (internal.get("auth", "/api/internal/users/", role="admin") or {}).get("ids", [])}
         for phone in payload.get("sms_phones", []):

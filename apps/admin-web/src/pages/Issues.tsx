@@ -4,7 +4,39 @@ import { useState, type FormEvent } from "react";
 
 import { DataTable, FilterChips, usePaged } from "../components";
 
-type Authority = { id: number; name_bn: string; name_en: string; contact_phone: string; email: string; categories: string[]; area_ids: number[]; is_active: boolean };
+type Authority = { id: number; name_bn: string; name_en: string; contact_phone: string; email: string; categories: string[]; area_ids: number[]; is_active: boolean; feed_token: string };
+
+/** The admin export needs the login token, so it is fetched and handed to the browser as a file. */
+async function downloadCsv() {
+  const { data } = await api.get<Blob>("/admin/issues/export/", { responseType: "blob" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(data);
+  a.download = "shohorsathi-issues.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/** The authority's own link: its issues as CSV, which it can also use to mark them in progress or resolved. */
+function FeedLink({ authority }: { authority: Authority }) {
+  const qc = useQueryClient();
+  const [copied, setCopied] = useState(false);
+  const url = authority.feed_token ? `${window.location.origin}/api/issues/feed/${authority.feed_token}/` : "";
+  async function rotate() {
+    if (authority.feed_token && !confirm(t("নতুন লিংক দিলে পুরনো লিংক আর কাজ করবে না। চালিয়ে যাবেন?"))) return;
+    await api.post(`/admin/authorities/${authority.id}/rotate-feed/`);
+    qc.invalidateQueries({ queryKey: ["authorities"] });
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {url && (
+        <Button variant="ghost" onClick={async () => { await navigator.clipboard?.writeText(url); setCopied(true); }}>
+          {copied ? t("কপি হয়েছে") : t("লিংক কপি")}
+        </Button>
+      )}
+      <Button variant="ghost" icon="refresh" onClick={rotate}>{url ? t("নতুন লিংক") : t("ফিড লিংক তৈরি")}</Button>
+    </div>
+  );
+}
 type Issue = {
   id: number; category: string; title: string; description: string; photo_urls: string[]; latitude: string; longitude: string; landmark: string;
   area_name: string; status: string; authority_name: { bn: string; en: string } | null; admin_note: string; upvote_count: number; reporter_name: string;
@@ -131,6 +163,7 @@ function Authorities({ authorities }: { authorities: Authority[] }) {
         { label: t("নাম"), render: (a) => <><span className="font-semibold">{a.name_bn}</span><span className="block text-[13px] text-muted">{a.name_en}</span></> },
         { label: t("যোগাযোগ"), render: (a) => [a.contact_phone, a.email].filter(Boolean).join(" · ") || "—" },
         { label: t("ধরন"), render: (a) => a.categories.map((c) => t(CATEGORIES[c] ?? c)).join(", ") || t("সব") },
+        { label: t("কর্তৃপক্ষের ফিড (CSV)"), render: (a) => <FeedLink authority={a} /> },
       ]} />
     </div>
   );
@@ -161,7 +194,11 @@ export default function Issues() {
   const { data: stats } = useQuery({ queryKey: ["issue-stats"], queryFn: async () => (await api.get<{ by_status: Record<string, number> }>("/admin/issues/stats/")).data });
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={t("শহরের সমস্যা")} subtitle={t("যাচাই করুন, সংশ্লিষ্ট কর্তৃপক্ষকে পাঠান, সমাধান হলে ছবি দিন")} />
+      <PageHeader
+        title={t("শহরের সমস্যা")}
+        subtitle={t("যাচাই করুন, সংশ্লিষ্ট কর্তৃপক্ষকে পাঠান, সমাধান হলে ছবি দিন")}
+        actions={<Button variant="ghost" icon="list" onClick={downloadCsv}>{t("CSV এক্সপোর্ট")}</Button>}
+      />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
         <Stat label={t("নতুন রিপোর্ট")} value={stats?.by_status.reported ?? 0} icon="flag" />
         <Stat label={t("পাঠানো হয়েছে")} value={(stats?.by_status.forwarded ?? 0) + (stats?.by_status.in_progress ?? 0)} icon="send" />

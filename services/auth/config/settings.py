@@ -1,5 +1,6 @@
 from shohor_common.settings import *  # noqa: F401,F403
-from shohor_common.settings import INSTALLED_APPS, REST_FRAMEWORK, SPECTACULAR_SETTINGS, env, env_bool
+from celery.schedules import crontab
+from shohor_common.settings import CELERY_BEAT_SCHEDULE, INSTALLED_APPS, REST_FRAMEWORK, SPECTACULAR_SETTINGS, env, env_bool
 
 SERVICE_NAME = "auth"
 ROOT_URLCONF = "config.urls"
@@ -25,3 +26,9 @@ OTP_THROTTLE_RATE = env("OTP_THROTTLE_RATE", "10/hour")
 
 # Bump when the terms or privacy notice change; users accept the current version at sign-up.
 TERMS_VERSION = "2026-10"
+
+CELERY_BEAT_SCHEDULE = {
+    **CELERY_BEAT_SCHEDULE,
+    # Home Profile upkeep reminders (Dhap 8), sent each morning.
+    "home-reminders-due": {"task": "auth.home_reminders_due", "schedule": crontab(hour=9, minute=0)},
+}

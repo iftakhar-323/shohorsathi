@@ -32,6 +32,8 @@ def record(event, p):
         row.update(amount=p.get("amount", 0), category=p.get("category", ""), title=p.get("plan", ""), ref=f"subscription:{p['subscription_id']}")
     elif event == "payment.succeeded":
         row.update(amount=p.get("amount", 0), category=p.get("purpose", ""), ref=f"payment:{p['payment_id']}")
+    elif event == "listing.sponsored":
+        row.update(amount=p.get("fee", 0), category=p.get("item_type", ""), title=p.get("name", ""), ref=f"{p.get('item_type')}:{p.get('slug')}")
     elif event == "issue.status_changed":
         row.update(status=p["status"], ref=f"issue:{p['issue_id']}")
     else:

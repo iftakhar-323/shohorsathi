@@ -17,6 +17,7 @@ urlpatterns = [
     path("api/internal/export/<int:user_id>/", export_view(privacy.collect)),
     path("api/cart/", views.CartView.as_view()),
     path("api/orders/sms-inbound/", views.SmsInboundView.as_view()),
+    path("api/orders/landlord/<str:token>/", views.LandlordView.as_view()),
     path("api/admin/order-stats/", views.AdminStatsView.as_view()),
     path("api/internal/bookings/<int:pk>/verify-arrival/", views.VerifyArrivalView.as_view()),
     path("api/internal/orders/<int:pk>/payable/", views.OrderPayableView.as_view()),

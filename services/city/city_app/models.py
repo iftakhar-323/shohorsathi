@@ -12,6 +12,8 @@ class Authority(models.Model):
     categories = ArrayField(models.CharField(max_length=20), default=list, blank=True, help_text="Issue categories it handles")
     area_ids = ArrayField(models.PositiveIntegerField(), default=list, blank=True)
     is_active = models.BooleanField(default=True)
+    # Secret in the link the ward office / utility uses to pull its issues and mark them done, without an account.
+    feed_token = models.CharField(max_length=32, blank=True, db_index=True)
 
     class Meta:
         verbose_name_plural = "authorities"

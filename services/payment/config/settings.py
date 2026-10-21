@@ -17,4 +17,3 @@ SSLCOMMERZ_STORE_PASSWORD = env("SSLCOMMERZ_STORE_PASSWORD", "")
 SSLCOMMERZ_SANDBOX = env("SSLCOMMERZ_SANDBOX", "1") == "1"
 # Where the gateway can reach this API, and where customers land after paying.
 PUBLIC_API_URL = env("PUBLIC_API_URL", "http://localhost:8088")
-CUSTOMER_WEB_URL = env("CUSTOMER_WEB_URL", "http://localhost:5173")

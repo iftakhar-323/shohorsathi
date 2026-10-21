@@ -1,3 +1,6 @@
+from datetime import timedelta
+from decimal import Decimal
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.validators import RegexValidator
 from django.db import models
@@ -89,3 +92,85 @@ class OtpCode(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=["phone", "purpose", "-created_at"])]
+
+
+class HomeProfile(models.Model):
+    class PropertyType(models.TextChoices):
+        APARTMENT = "apartment", "ফ্ল্যাট / অ্যাপার্টমেন্ট"
+        HOUSE = "house", "বাড়ি / ডুপ্লেক্স"
+        OFFICE = "office", "অফিস / বাণিজ্যিক"
+
+    class OccupancyMode(models.TextChoices):
+        OWNER = "owner", "বাড়ির মালিক"
+        TENANT = "tenant", "ভাড়াটিয়া"
+        LANDLORD = "landlord", "বাড়িওয়ালা (রেন্টাল)"
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="home_profiles")
+    name = models.CharField(max_length=120, default="আমার বাসা")
+    address = models.CharField(max_length=255)
+    area = models.ForeignKey(Area, null=True, blank=True, on_delete=models.SET_NULL)
+    property_type = models.CharField(max_length=20, choices=PropertyType.choices, default=PropertyType.APARTMENT)
+    square_feet = models.PositiveIntegerField(default=1200)
+    ac_count = models.PositiveIntegerField(default=2)
+    refrigerator_count = models.PositiveIntegerField(default=1)
+    washing_machine = models.BooleanField(default=True)
+    water_purifier = models.BooleanField(default=True)
+    ips_inverter = models.BooleanField(default=False)
+    wiring_age_years = models.PositiveIntegerField(default=3)
+    plumbing_age_years = models.PositiveIntegerField(default=3)
+    occupancy_mode = models.CharField(max_length=20, choices=OccupancyMode.choices, default=OccupancyMode.OWNER)
+    landlord_name = models.CharField(max_length=120, blank=True)
+    landlord_phone = models.CharField(max_length=15, blank=True)
+    landlord_approval_threshold = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("1500.00"))
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    @property
+    def health_score(self):
+        score = 100
+        if self.wiring_age_years > 10:
+            score -= 15
+        elif self.wiring_age_years > 5:
+            score -= 5
+        if self.plumbing_age_years > 10:
+            score -= 15
+        elif self.plumbing_age_years > 5:
+            score -= 5
+        if self.ac_count >= 3:
+            score -= 5
+        overdue_count = self.reminders.filter(is_completed=False, due_date__lt=timezone.localdate()).count()
+        score -= (overdue_count * 10)
+        return max(20, min(100, score))
+
+
+class HomeReminder(models.Model):
+    home = models.ForeignKey(HomeProfile, on_delete=models.CASCADE, related_name="reminders")
+    title_en = models.CharField(max_length=160)
+    title_bn = models.CharField(max_length=160)
+    category_slug = models.CharField(max_length=60, default="ac")
+    recommended_service_slug = models.CharField(max_length=100, default="ac-cleaning")
+    due_date = models.DateField()
+    frequency_days = models.PositiveIntegerField(default=180)
+    is_completed = models.BooleanField(default=False)
+    last_serviced_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    notified_on = models.DateField(null=True, blank=True, help_text="when the due-soon reminder was sent")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["due_date"]
+
+    def complete(self):
+        """Mark it done and schedule the next one, so recurring upkeep keeps coming back."""
+        today = timezone.localdate()
+        self.is_completed, self.last_serviced_date = True, today
+        self.save(update_fields=["is_completed", "last_serviced_date"])
+        if self.frequency_days:
+            HomeReminder.objects.create(
+                home=self.home, title_en=self.title_en, title_bn=self.title_bn, category_slug=self.category_slug,
+                recommended_service_slug=self.recommended_service_slug, frequency_days=self.frequency_days,
+                due_date=today + timedelta(days=self.frequency_days), notes=self.notes,
+            )

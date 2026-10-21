@@ -2,10 +2,10 @@
 map $uri $service {
     default "";
 
-    ~^/api/(auth|me|areas|cities)/                                 auth;
+    ~^/api/(auth|me|areas|cities|home-profiles)/                                 auth;
     ~^/api/admin/(areas|users)/                                    auth;
 
-    ~^/api/(catalog|categories|products|services)/                 catalog;
+    ~^/api/(catalog|categories|products|services|group-deals|seasonal-packages)/                 catalog;
 
     ~^/api/(order|cart|orders|bookings)/                           order;
     ~^/api/admin/(orders|bookings|warranty-claims|order-stats)/    order;

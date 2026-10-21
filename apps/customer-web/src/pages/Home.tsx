@@ -1,7 +1,9 @@
-import { Icon, t, type IconName, useServices } from "@shohor/web-core";
+import { api, Badge, Button, errorMessage, ErrorNote, formatDate, formatTaka, getLang, Icon, t, type IconName, type Paginated, useAuth, useServices } from "@shohor/web-core";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { VoiceSearchButton } from "../components/VoiceSearchButton";
 import { ServiceCard } from "./Services";
 
 const quickSearches = ["ইলেকট্রিশিয়ান", "প্লাম্বার", "এসি সার্ভিস", "হোম ক্লিনিং", "পেস্ট কন্ট্রোল"];
@@ -40,7 +42,10 @@ export default function Home() {
   return (
     <>
       <Hero />
+      <SmartFeaturesBanner />
       <Layers />
+      <SeasonalPackages />
+      <GroupDealsSection />
       <PopularServices />
       <CustomRequestCta />
     </>
@@ -85,13 +90,14 @@ function Hero() {
             placeholder={t("কী সমস্যা? যেমন: ফ্যান চলছে না")}
             className="h-12 min-w-0 flex-auto bg-transparent px-3 text-[17px] outline-none"
           />
-          <button
-            type="button"
-            aria-label={t("ভয়েস সার্চ")}
-            className="flex size-12 items-center justify-center rounded-xl bg-brand-soft text-brand-strong"
-          >
-            <Icon name="mic" />
-          </button>
+          <div className="flex items-center px-1">
+            <VoiceSearchButton
+              onTranscript={(text) => {
+                setQuery(text);
+                navigate(`/services?q=${encodeURIComponent(text)}`);
+              }}
+            />
+          </div>
           <button type="submit" className="h-12 rounded-xl bg-brand px-6 font-semibold text-white">
             {t("খুঁজুন")}
           </button>
@@ -201,6 +207,174 @@ function CustomRequestCta() {
         >
           {t("রিকোয়েস্ট পাঠান")}
         </Link>
+      </div>
+    </section>
+  );
+}
+
+function SmartFeaturesBanner() {
+  return (
+    <section className="mx-auto max-w-[1200px] px-6 py-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link
+          to="/ai-quote"
+          className="flex items-center gap-4 rounded-3xl border border-line bg-surface p-5 no-underline transition hover:shadow-md"
+        >
+          <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand-strong">
+            <Icon name="camera" size={26} />
+          </span>
+          <div>
+            <div className="inline-block rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-bold text-brand-strong">
+              AI Vision
+            </div>
+            <h3 className="m-0 mt-1 text-lg font-bold text-ink">{t("ফটো দিয়ে ইনস্ট্যান্ট AI কোট")}</h3>
+            <p className="m-0 text-xs text-muted mt-0.5">
+              {t("নষ্ট যন্ত্রাংশ বা লিকেজের ছবি তুলুন — তাৎক্ষণিক রোগ নির্ণয় ও খরচ জানুন")}
+            </p>
+          </div>
+        </Link>
+
+        <Link
+          to="/home-profile"
+          className="flex items-center gap-4 rounded-3xl border border-line bg-surface p-5 no-underline transition hover:shadow-md"
+        >
+          <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-info-soft text-info-strong">
+            <Icon name="home" size={26} />
+          </span>
+          <div>
+            <div className="inline-block rounded-full bg-info-soft px-2.5 py-0.5 text-xs font-bold text-info-strong">
+              Health Score
+            </div>
+            <h3 className="m-0 mt-1 text-lg font-bold text-ink">{t("ডিজিটাল হোম প্রোফাইল")}</h3>
+            <p className="m-0 text-xs text-muted mt-0.5">
+              {t("বাসার হেলথ স্কোর, ওয়্যারিং/প্লাম্বিং বয়স ও সার্ভিসিং রিমাইন্ডার ট্র্যাক করুন")}
+            </p>
+          </div>
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+type GroupDeal = {
+  id: number;
+  title_bn: string;
+  title_en: string;
+  service_slug: string;
+  base_price: string;
+  discounted_price: string;
+  discount_percent: number;
+  current_participants: number;
+  target_participants: number;
+  is_locked_in: boolean;
+  joined: boolean;
+  expires_at: string;
+};
+
+type SeasonalPackage = {
+  id: number;
+  title_bn: string;
+  title_en: string;
+  tagline_bn: string;
+  tagline_en: string;
+  season: string;
+  service_slugs: string[];
+  discount_percent: number;
+  active_until: string;
+};
+
+/** Neighbours join the same service; once enough flats join, everyone books it at the deal price. */
+function GroupDealsSection() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [error, setError] = useState("");
+  const { data: deals } = useQuery({
+    queryKey: ["group-deals"],
+    queryFn: async () => (await api.get<Paginated<GroupDeal>>("/group-deals/")).data.results,
+  });
+
+  async function join(id: number) {
+    if (!user) return navigate("/login");
+    setError("");
+    try {
+      await api.post(`/group-deals/${id}/join/`);
+      qc.invalidateQueries({ queryKey: ["group-deals"] });
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  }
+
+  if (!deals?.length) return null;
+  return (
+    <section className="mx-auto max-w-[1200px] px-6 py-6">
+      <span className="text-[13px] font-bold text-alert-strong">{t("প্রতিবেশী গ্রুপ ডিল")}</span>
+      <h2 className="m-0 mb-4 text-2xl font-bold">{t("এলাকাভিত্তিক স্পেশাল অফার")}</h2>
+      <ErrorNote>{error}</ErrorNote>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {deals.map((deal) => (
+          <div key={deal.id} className="flex flex-col justify-between gap-3 rounded-2xl border border-line bg-surface p-4">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <Badge tone="warn">{t("{n}% ছাড়", { n: deal.discount_percent })}</Badge>
+                <span className="text-sm text-muted">
+                  {deal.is_locked_in ? t("ডিল পূর্ণ হয়েছে") : t("{n}/{target} ফ্ল্যাট যোগ দিয়েছে", { n: deal.current_participants, target: deal.target_participants })}
+                </span>
+              </div>
+              <h3 className="m-0 text-lg font-bold">{getLang() === "en" ? deal.title_en : deal.title_bn}</h3>
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-bold text-brand-strong">{formatTaka(deal.discounted_price)}</span>
+                <span className="text-sm text-muted line-through">{formatTaka(deal.base_price)}</span>
+              </div>
+              <span className="text-[13px] text-muted">{t("শেষ হবে {date}", { date: formatDate(deal.expires_at) })}</span>
+            </div>
+            {deal.joined ? (
+              deal.is_locked_in ? (
+                <Link to={`/services/${deal.service_slug}`} className="flex h-11 items-center justify-center rounded-xl bg-brand font-semibold text-white no-underline">
+                  {t("ডিল প্রাইসে বুক করুন")}
+                </Link>
+              ) : (
+                <span className="flex h-11 items-center justify-center rounded-xl bg-brand-soft font-semibold text-brand-strong">{t("আপনি যোগ দিয়েছেন")}</span>
+              )
+            ) : (
+              <Button onClick={() => join(deal.id)}>{t("গ্রুপ ডিলে যোগ দিন")}</Button>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Festival and season packages (Eid, summer AC, monsoon pest …) that are running now. */
+function SeasonalPackages() {
+  const { data: packages } = useQuery({
+    queryKey: ["seasonal-packages"],
+    queryFn: async () => (await api.get<Paginated<SeasonalPackage>>("/seasonal-packages/")).data.results,
+  });
+  if (!packages?.length) return null;
+  const en = getLang() === "en";
+  return (
+    <section className="mx-auto max-w-[1200px] px-6 py-6">
+      <h2 className="m-0 mb-4 text-2xl font-bold">{t("মৌসুমি প্যাকেজ")}</h2>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {packages.map((p) => (
+          <div key={p.id} className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-5">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="m-0 text-lg font-bold">{en ? p.title_en : p.title_bn}</h3>
+              <Badge tone="ok">{t("{n}% ছাড়", { n: p.discount_percent })}</Badge>
+            </div>
+            {(en ? p.tagline_en : p.tagline_bn) && <p className="m-0 text-muted">{en ? p.tagline_en : p.tagline_bn}</p>}
+            <div className="flex flex-wrap gap-2">
+              {p.service_slugs.map((slug) => (
+                <Link key={slug} to={`/services/${slug}`} className="rounded-full border border-line px-3 py-1 text-sm font-semibold text-ink no-underline">
+                  {slug.replaceAll("-", " ")}
+                </Link>
+              ))}
+            </div>
+            <span className="text-[13px] text-muted">{t("{date} পর্যন্ত", { date: formatDate(p.active_until) })}</span>
+          </div>
+        ))}
       </div>
     </section>
   );

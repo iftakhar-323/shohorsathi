@@ -1,4 +1,7 @@
-from django.db.models import Count, Exists, OuterRef
+from datetime import timedelta
+
+from django.db.models import Count, Exists, OuterRef, Q
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
@@ -7,14 +10,21 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from shohor_common.permissions import IsAdmin, token_role
 
-from . import logic
+import secrets
+
+from django.conf import settings
+from django.http import HttpResponse
+
+from . import logic, transparency
 from .models import Authority, Comment, Issue, IssueUpdate, IssueUpvote, Post, PostLike
 
 
 class AuthoritySerializer(serializers.ModelSerializer):
+    feed_token = serializers.CharField(read_only=True)
+
     class Meta:
         model = Authority
-        fields = ["id", "name_bn", "name_en", "contact_phone", "email", "categories", "area_ids", "is_active"]
+        fields = ["id", "name_bn", "name_en", "contact_phone", "email", "categories", "area_ids", "is_active", "feed_token"]
 
 
 class IssueUpdateSerializer(serializers.ModelSerializer):
@@ -152,6 +162,67 @@ class AuthorityViewSet(viewsets.ModelViewSet):
     serializer_class = AuthoritySerializer
     queryset = Authority.objects.all()
     pagination_class = None
+
+    @action(detail=True, methods=["post"], url_path="rotate-feed")
+    def rotate_feed(self, request, pk=None):
+        """Issue (or replace) the authority's feed link; the old link stops working."""
+        authority = self.get_object()
+        authority.feed_token = secrets.token_hex(16)
+        authority.save(update_fields=["feed_token"])
+        return Response(AuthoritySerializer(authority).data)
+
+
+def csv_response(text, name):
+    res = HttpResponse(text, content_type="text/csv; charset=utf-8")
+    res["Content-Disposition"] = f'attachment; filename="{name}"'
+    return res
+
+
+class TransparencyView(APIView):
+    """Public city dashboard: how many problems were reported, fixed, by whom and how fast."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        days = min(max(int(request.query_params.get("days", 90)), 7), 365)
+        return Response(transparency.report(days, request.query_params.get("city")))
+
+
+class AdminIssueExportView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        qs = AdminIssueViewSet(request=request, format_kwarg=None).get_queryset()
+        return csv_response(transparency.feed_csv(qs[:5000], settings.CUSTOMER_WEB_URL), "shohorsathi-issues.csv")
+
+
+class AuthorityFeedView(APIView):
+    """The authority's own link: GET its open and recent issues as CSV (or JSON), POST to mark one in progress or resolved."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def authority(self, token):
+        return get_object_or_404(Authority, feed_token=token, is_active=True) if token else None
+
+    def get(self, request, token):
+        authority = self.authority(token)
+        since = timezone.now() - timedelta(days=30)
+        qs = authority.issues.filter(Q(status__in=transparency.OPEN) | Q(resolved_at__gte=since)).order_by("-upvote_count", "created_at")
+        if request.query_params.get("format") == "json":
+            return Response({"authority": {"name_bn": authority.name_bn, "name_en": authority.name_en},
+                             "issues": MapIssueSerializer(qs, many=True).data})
+        return csv_response(transparency.feed_csv(qs, settings.CUSTOMER_WEB_URL), f"issues-{authority.id}.csv")
+
+    def post(self, request, token, issue_id):
+        authority = self.authority(token)
+        issue = get_object_or_404(Issue, pk=issue_id, authority=authority)
+        new = request.data.get("status")
+        if new not in (Issue.Status.IN_PROGRESS, Issue.Status.RESOLVED):
+            return Response({"status": ["Use in_progress or resolved."]}, status=status.HTTP_400_BAD_REQUEST)
+        logic.change_status(issue, new, (request.data.get("note") or "").strip() or f"{authority.name_bn}", photos=request.data.get("photos"))
+        return Response(MapIssueSerializer(issue).data)
 
 
 class PostSerializer(serializers.ModelSerializer):

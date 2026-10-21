@@ -1,7 +1,7 @@
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import Address, Area, OtpCode, User, bd_phone
+from .models import Address, Area, HomeProfile, HomeReminder, OtpCode, User, bd_phone
 
 
 class OtpRequestSerializer(serializers.Serializer):
@@ -62,3 +62,30 @@ class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
         fields = ["id", "label", "area", "area_detail", "line", "latitude", "longitude", "is_default"]
+
+
+class HomeReminderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HomeReminder
+        fields = [
+            "id", "home", "title_en", "title_bn", "category_slug", "recommended_service_slug",
+            "due_date", "frequency_days", "is_completed", "last_serviced_date", "notes", "created_at"
+        ]
+        read_only_fields = ["id", "home", "is_completed", "last_serviced_date", "created_at"]
+
+
+class HomeProfileSerializer(serializers.ModelSerializer):
+    area_detail = AreaSerializer(source="area", read_only=True)
+    reminders = HomeReminderSerializer(many=True, read_only=True)
+    health_score = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = HomeProfile
+        fields = [
+            "id", "user", "name", "address", "area", "area_detail", "property_type",
+            "square_feet", "ac_count", "refrigerator_count", "washing_machine",
+            "water_purifier", "ips_inverter", "wiring_age_years", "plumbing_age_years",
+            "occupancy_mode", "landlord_name", "landlord_phone", "landlord_approval_threshold",
+            "health_score", "reminders", "created_at", "updated_at"
+        ]
+        read_only_fields = ["id", "user", "health_score", "created_at", "updated_at"]

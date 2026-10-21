@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 
 
@@ -84,3 +85,23 @@ class StatusLog(models.Model):
 
     class Meta:
         ordering = ["created_at"]
+
+
+class AiQuoteRequest(models.Model):
+    user_id = models.PositiveBigIntegerField(null=True, blank=True, db_index=True)
+    photo_url = models.CharField(max_length=500, blank=True)
+    description = models.TextField(blank=True)
+    detected_category = models.CharField(max_length=60)
+    detected_issue = models.CharField(max_length=255)
+    recommended_service_slug = models.CharField(max_length=100)
+    recommended_service_name_bn = models.CharField(max_length=160)
+    estimated_min_price = models.DecimalField(max_digits=10, decimal_places=2)
+    estimated_max_price = models.DecimalField(max_digits=10, decimal_places=2)
+    confidence = models.DecimalField(max_digits=4, decimal_places=2, default=Decimal("0.90"))
+    severity = models.CharField(max_length=20, default="medium")
+    suggested_action = models.TextField(blank=True)
+    engine = models.CharField(max_length=10, default="keywords", help_text="claude or keywords")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]

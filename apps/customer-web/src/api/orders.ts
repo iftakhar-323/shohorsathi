@@ -46,6 +46,9 @@ export type Order = {
   note: string;
   items: { slug: string; name: string; unit_price: string; quantity: number; line_total: string }[];
   bookings: Booking[];
+  landlord_phone: string;
+  landlord_approval_status: "none" | "pending" | "approved" | "rejected";
+  rent_deduction_receipt_number: string;
   created_at: string;
 };
 

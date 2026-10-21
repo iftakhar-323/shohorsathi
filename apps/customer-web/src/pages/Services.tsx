@@ -1,6 +1,7 @@
 import { Empty, ErrorNote, formatTaka, Icon, Loading, localName, PageHeader, Select, t, type Service, useAreas, useCategories, useServices } from "@shohor/web-core";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { VoiceSearchButton } from "../components/VoiceSearchButton";
 import { useSelectedArea } from "../lib/area";
 
 export function ServiceCard({ service, emergency = false }: { service: Service; emergency?: boolean }) {
@@ -18,6 +19,7 @@ export function ServiceCard({ service, emergency = false }: { service: Service; 
           <Icon name="shield" size={14} />
           {service.warranty_days} {t("দিনের ওয়ারেন্টি")}
           {service.emergency_available && <span className="rounded-full bg-alert-soft px-2 text-alert-strong">{t("জরুরি সেবা")}</span>}
+          {service.is_sponsored && <span className="rounded-full bg-subtle px-2 text-muted">{t("স্পন্সরড")}</span>}
         </div>
         <h3 className="m-0 text-lg font-bold">{localName(service)}</h3>
         <p className="m-0 line-clamp-2 text-sm leading-normal text-muted">{service.description}</p>
@@ -67,15 +69,24 @@ export default function Services() {
           <label htmlFor="q" className="text-[15px] font-semibold">
             {t("খুঁজুন")}
           </label>
-          <input
-            id="q"
-            type="search"
-            defaultValue={q}
-            placeholder={t("যেমন: ফ্যান, পাইপ, এসি")}
-            onKeyDown={(e) => e.key === "Enter" && set("q", e.currentTarget.value)}
-            onBlur={(e) => set("q", e.currentTarget.value)}
-            className="h-11 rounded-xl border border-line px-3 outline-none focus:border-brand"
-          />
+          <div className="flex items-center gap-1.5">
+            <input
+              id="q"
+              type="search"
+              defaultValue={q}
+              placeholder={t("যেমন: ফ্যান, পাইপ, এসি")}
+              onKeyDown={(e) => e.key === "Enter" && set("q", e.currentTarget.value)}
+              onBlur={(e) => set("q", e.currentTarget.value)}
+              className="h-11 flex-1 rounded-xl border border-line px-3 outline-none focus:border-brand"
+            />
+            <VoiceSearchButton
+              onTranscript={(text) => {
+                const el = document.getElementById("q") as HTMLInputElement | null;
+                if (el) el.value = text;
+                set("q", text);
+              }}
+            />
+          </div>
         </div>
         <Select
           label={t("এলাকা")}

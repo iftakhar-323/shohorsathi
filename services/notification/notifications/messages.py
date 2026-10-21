@@ -54,6 +54,15 @@ def build(event, p):
         return [Note(p["user_id"], event, tbn, ten, bbn.format(name=name), ben.format(name=p.get("provider_name") or "The provider"), link, sms=sms)]
     if event == "booking.cancelled":
         return []
+    if event == "order.landlord_approval_requested":
+        return [Note(p["user_id"], event, "বাড়িওয়ালাকে অনুমতির লিংক পাঠানো হয়েছে", "Approval link sent to your landlord",
+                     link=f"/orders/{p['order_id']}")]
+    if event == "order.landlord_decided":
+        if p["approved"]:
+            return [Note(p["user_id"], event, "বাড়িওয়ালা মেরামতের খরচ ভাড়া থেকে কাটতে রাজি", "Landlord approved the rent deduction",
+                         "রসিদটি অর্ডার পেজে পাবেন।", "The receipt is on the order page.", f"/orders/{p['order_id']}", sms=True)]
+        return [Note(p["user_id"], event, "বাড়িওয়ালা ভাড়া থেকে কাটতে রাজি হননি", "Landlord declined the rent deduction",
+                     link=f"/orders/{p['order_id']}", sms=True)]
     if event == "provider.approved":
         return [Note(p["user_id"], event, "আবেদন অনুমোদিত!", "Application approved!", "এখন থেকে আপনার এলাকার কাজ নিতে পারবেন।",
                      "You can now take jobs in your area.", "/", app="provider", sms=True)]
@@ -76,6 +85,13 @@ def build(event, p):
     if event == "subscription.status_changed" and p["status"] in SUB_TEXT:
         bn, en = SUB_TEXT[p["status"]]
         return [Note(p["user_id"], event, bn, en, link="/subscriptions/mine")]
+    if event == "analytics.winback":
+        body = p.get("message") or "আপনার বাসার কোনো কাজ বাকি থাকলে আমরা আছি — যাচাই করা প্রোভাইডার, ওয়ারেন্টিসহ।"
+        return [Note(p["user_id"], event, "অনেকদিন দেখা নেই!", "We miss you!", body,
+                     p.get("message") or "If anything at home needs fixing, we're here — verified providers, with warranty.", "/services")]
+    if event == "home.reminder_due":
+        return [Note(p["user_id"], event, p["title_bn"], p["title_en"], f"{p['due_date']} তারিখের মধ্যে করানো ভালো।",
+                     f"Best done by {p['due_date']}.", f"/services/{p['service_slug']}", sms=True)]
     if event == "subscription.renewal_reminder":
         return [Note(p["user_id"], event, "সাবস্ক্রিপশন শীঘ্রই রিনিউ হবে", "Your subscription renews soon",
                      f"{p['end_date']} তারিখে মেয়াদ শেষ; স্বয়ংক্রিয়ভাবে রিনিউ হবে।", f"Ends on {p['end_date']} and renews automatically.",

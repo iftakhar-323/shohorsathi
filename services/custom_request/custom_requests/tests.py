@@ -106,3 +106,74 @@ def test_trends(customer, admin):
     submit(customer)
     customer.post("/api/custom-requests/", {**REQUEST, "service_type": "wall painting for 2 rooms"}, format="json")
     assert admin.get("/api/admin/custom-requests/trends/").data[0] == {"name": "wall painting for 2 rooms", "count": 2}
+
+
+CATALOG = {"results": [
+    {"slug": "ac-cleaning", "name_bn": "এসি ক্লিনিং", "name_en": "AC cleaning", "base_price": "800.00", "category_slug": "ac"},
+    {"slug": "plumber-visit", "name_bn": "প্লাম্বার ভিজিট", "name_en": "Plumber visit", "base_price": "300.00", "category_slug": "plumbing"},
+]}
+
+
+@pytest.fixture
+def catalog(monkeypatch):
+    monkeypatch.setattr("custom_requests.ai_vision.internal.get", lambda service, path, **kw: CATALOG)
+
+
+@pytest.mark.django_db
+def test_ai_quote_keyword_match_picks_a_catalog_service(customer, catalog, settings):
+    settings.ANTHROPIC_API_KEY = ""
+    res = customer.post("/api/custom-requests/ai-quote/", {
+        "photo_url": "/media/public/problem_photo/2026/10/x.jpg",
+        "description": "এসি থেকে পানি পড়ছে আর ঠান্ডা বাতাস বের হচ্ছে না",
+    }, format="json")
+    assert res.status_code == 201
+    assert res.data["engine"] == "keywords"
+    assert res.data["detected_category"] == "ac"
+    assert res.data["recommended_service_slug"] == "ac-cleaning"
+    assert float(res.data["estimated_min_price"]) == 800
+
+    list_res = customer.get("/api/custom-requests/ai-quote/")
+    assert len(list_res.data["results"]) == 1
+
+
+@pytest.mark.django_db
+def test_ai_quote_uses_claude_when_configured(customer, catalog, settings, monkeypatch, tmp_path):
+    import json
+    from types import SimpleNamespace
+
+    import anthropic
+
+    settings.ANTHROPIC_API_KEY = "test-key"
+    settings.MEDIA_ROOT = str(tmp_path)
+    (tmp_path / "public" / "problem_photo").mkdir(parents=True)
+    (tmp_path / "public" / "problem_photo" / "leak.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    sent = {}
+
+    def create(**kwargs):
+        sent.update(kwargs)
+        answer = {"issue": "বেসিনের পাইপ লিক", "service_slug": "plumber-visit", "min_price": 200, "max_price": 900,
+                  "confidence": 0.8, "severity": "high", "action": "পানির লাইন বন্ধ রাখুন"}
+        return SimpleNamespace(stop_reason="end_turn", content=[SimpleNamespace(type="text", text=json.dumps(answer))])
+
+    fake = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(create=create)))
+    monkeypatch.setattr(anthropic, "Anthropic", lambda **kw: fake)
+
+    res = customer.post("/api/custom-requests/ai-quote/", {
+        "photo_url": "/media/public/problem_photo/leak.png", "description": "পানি পড়ছে",
+    }, format="json")
+    assert res.status_code == 201
+    assert res.data["engine"] == "claude"
+    assert res.data["recommended_service_slug"] == "plumber-visit"
+    assert float(res.data["estimated_min_price"]) == 300  # never below the catalog price
+    assert sent["messages"][0]["content"][0]["type"] == "image"
+    assert sent["output_config"]["format"]["schema"]["properties"]["service_slug"]["enum"] == ["ac-cleaning", "plumber-visit"]
+
+
+@pytest.mark.django_db
+def test_ai_quote_ignores_paths_outside_the_media_folder(settings, tmp_path):
+    from custom_requests.ai_vision import _local_image
+
+    settings.MEDIA_ROOT = str(tmp_path)
+    (tmp_path / "secret.png").write_bytes(b"x")
+    assert _local_image("/media/public/../secret.png") is None
+    assert _local_image("https://evil.example/x.png") is None

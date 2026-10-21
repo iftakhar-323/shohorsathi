@@ -5,6 +5,7 @@ from . import views
 
 router = SimpleRouter()
 router.register("api/me/addresses", views.AddressViewSet, basename="address")
+router.register("api/home-profiles", views.HomeProfileViewSet, basename="home-profile")
 router.register("api/admin/areas", views.AdminAreaViewSet, basename="admin-area")
 router.register("api/admin/users", views.AdminUserViewSet, basename="admin-user")
 

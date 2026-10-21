@@ -128,7 +128,12 @@ export function IssuesHome({ mine = false }: { mine?: boolean }) {
       <PageHeader
         title={mine ? t("আমার রিপোর্ট") : t("শহরের সমস্যা")}
         subtitle={t("ময়লা, নষ্ট বাতি, জলাবদ্ধতা — ছবি ও লোকেশন দিয়ে জানান, সমর্থন দিন, অগ্রগতি দেখুন")}
-        actions={<Link to="/issues/new" className="flex h-11 items-center gap-2 rounded-xl bg-alert px-4 font-semibold text-ink no-underline"><Icon name="flag" size={18} />{t("সমস্যা রিপোর্ট করুন")}</Link>}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link to="/transparency" className="flex h-11 items-center gap-2 rounded-xl border border-line px-4 font-semibold text-ink no-underline"><Icon name="chart" size={18} />{t("স্বচ্ছতা ড্যাশবোর্ড")}</Link>
+            <Link to="/issues/new" className="flex h-11 items-center gap-2 rounded-xl bg-alert px-4 font-semibold text-ink no-underline"><Icon name="flag" size={18} />{t("সমস্যা রিপোর্ট করুন")}</Link>
+          </div>
+        }
       />
       {!mine && (
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">

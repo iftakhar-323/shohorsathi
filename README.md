@@ -87,6 +87,22 @@ apps/admin-web    ─┘                          ├─► order           ─�
   Bayesian reputation scores); providers can submit dispute claims against unfair reviews for admin arbitration.
   Verified providers can enroll in micro-insurance plans with claim filing, and request instant payouts with automatic
   insurance premium deductions.
+- **AI photo quote:** photo + description → Claude (when `ANTHROPIC_API_KEY` is set) picks one of the catalog's own
+  services and a price range that never goes below its base price; without a key a keyword match answers, and the
+  result says which one did. Voice search uses the browser's Bangla (bn-BD) speech recognition where available.
+- **Home Profile:** appliances and wiring/plumbing age give a health score; upkeep reminders recur when marked done
+  and are sent (app + SMS) three days before they are due.
+- **Tenant mode:** at checkout a tenant gives the landlord's number → the landlord gets an SMS link (no account) to
+  agree or refuse deducting the repair from rent → on agreement the tenant gets a printable rent-deduction receipt.
+- **Group deals & seasonal packages:** neighbours join a deal; once it fills, everyone who joined books that service at
+  the deal price at checkout. Festival/season packages show on the home page while they run.
+- **City partnership:** a public transparency dashboard (reported / resolved / median days, per authority and type, no
+  personal data); each authority gets a secret feed link to download its issues as CSV and mark them in progress or
+  resolved; admins export all issues as CSV.
+- **Insights:** demand forecast per category for the next 7 days (same-weekday average × recent trend, with providers
+  needed), customers at risk of churning with a one-click win-back note, and fraud signals (cancel abuse, order bursts,
+  many accounts at one address, big first COD orders) for review. Sponsored listings put a paid service first with a
+  label; the fees show in platform revenue.
 
 ## Languages (Bangla + English)
 
@@ -147,6 +163,8 @@ python3 scripts/e2e_phase4.py           # credit & points, referrals, B2B portal
 python3 scripts/e2e_phase5.py           # consent, encrypted NID, data export, account deletion, outbox
 python3 scripts/e2e_phase6.py           # trust & safety: female provider, training, insurance, SOS, ratings, instant payout
 python3 scripts/e2e_phase7.py           # channels & payments: direct bKash/Nagad, tokenized auto-debit, WhatsApp OTP, Messenger bot, SMS booking
+python3 scripts/e2e_phase8.py           # AI quote, fuzzy search, Home Profile, landlord SMS approval, group deal price, seasonal packages
+python3 scripts/e2e_phase9.py           # transparency dashboard, authority feed, CSV export, sponsored listing, forecast/churn/fraud
 E2E_ADMIN_PHONE=... E2E_ADMIN_PASSWORD=... pnpm --filter e2e test   # browser tests (Playwright) of the three apps
 pnpm -r build                           # type-check and build all web apps
 ```
@@ -163,5 +181,6 @@ pnpm -r build                           # type-check and build all web apps
 | 5 — Compliance & Ops | Consent (PDPO 2025), encrypted NID, data export, account deletion, outbox relay | done |
 | 6 — Trust & Safety | SOS emergency alert, live sharing, female provider preference, two-way ratings & disputes, provider insurance, training & certificates, instant payouts | done |
 | 7 — Channels & Payments | bKash tokenized auto-debit, direct payment, WhatsApp Business notification & OTP, Messenger bot, PWA, SMS booking | done |
-| 8 — Smart Features | AI photo quote (vision), Bangla voice search, Digital Home Profile & reminders, tenant/landlord mode, neighbourhood group deals | planned |
-| 9 — Growth & City Partnership | City corporation data export & transparency dashboard, demand forecasting, fraud & churn detection, parts marketplace | planned |
+| 8 — Smart Features | AI photo quote (vision), Bangla voice search, Digital Home Profile & reminders, tenant/landlord mode, neighbourhood group deals, seasonal packages, Bangla fuzzy search | done |
+| 9 — Growth & City Partnership | Transparency dashboard & authority feed/CSV export, demand forecasting, churn & win-back, fraud signals, sponsored listings | done |
+| Later | Parts marketplace (providers adding catalog parts to a job bill), instant-service (≤60 min) pilot | planned |
