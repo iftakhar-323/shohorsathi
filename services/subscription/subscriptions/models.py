@@ -108,6 +108,7 @@ class Subscription(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     diet = models.CharField(max_length=20, blank=True, help_text="meals: bangla / light / protein")
+    required_gender = models.CharField(max_length=10, blank=True, help_text='"female" for a woman cleaner/helper')
     addons = models.JSONField(default=list, blank=True)
     members = models.JSONField(default=list, blank=True, help_text="mess/group plan: [{name, phone}]")
     prepaid_months = models.PositiveSmallIntegerField(default=1)

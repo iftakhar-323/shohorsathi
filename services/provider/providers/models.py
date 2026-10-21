@@ -27,6 +27,9 @@ class Provider(models.Model):
     full_name = models.CharField(max_length=120)
     phone = models.CharField(max_length=11)
     gender = models.CharField(max_length=10, blank=True, help_text="Lets customers request a female cleaner/helper")
+    # Told by SMS if the provider presses SOS during a job.
+    emergency_contact_name = models.CharField(max_length=120, blank=True)
+    emergency_contact_phone = models.CharField(max_length=11, blank=True)
     provider_type = models.CharField(max_length=20, choices=Type.choices)
     # Catalog category slugs this provider can take jobs for.
     skills = ArrayField(models.SlugField(), default=list)
@@ -119,6 +122,11 @@ class Job(models.Model):
     after_photos = models.JSONField(default=list, blank=True)
     provider_note = models.TextField(blank=True)
     preferred_provider_id = models.PositiveBigIntegerField(null=True, blank=True, help_text="provider user id")
+    # "female" when the customer asked for a woman provider; only matching providers see or get the job.
+    required_gender = models.CharField(max_length=10, blank=True, default="")
+    # The provider's rating of the customer (two-way ratings).
+    customer_rating = models.PositiveSmallIntegerField(null=True, blank=True)
+    customer_feedback = models.TextField(blank=True, default="")
     provider = models.ForeignKey(Provider, null=True, blank=True, on_delete=models.SET_NULL, related_name="jobs")
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.OPEN)
     accepted_at = models.DateTimeField(null=True, blank=True)
@@ -150,7 +158,11 @@ class Payout(models.Model):
         REJECTED = "rejected"
 
     provider = models.ForeignKey(Provider, on_delete=models.PROTECT, related_name="payouts")
+    # What is sent to the provider: earnings minus fee and insurance premium.
     amount = models.DecimalField(max_digits=12, decimal_places=2)
+    instant = models.BooleanField(default=False)
+    fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    insurance_premium = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     method = models.CharField(max_length=10)
     account = models.CharField(max_length=20)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.REQUESTED)
@@ -183,12 +195,138 @@ class Earning(models.Model):
 
 
 class Review(models.Model):
+    class Dispute(models.TextChoices):
+        NONE = ""
+        OPEN = "open"
+        UPHELD = "upheld", "Upheld: review hidden"
+        REJECTED = "rejected"
+
     job = models.OneToOneField(Job, on_delete=models.CASCADE, related_name="review")
     provider = models.ForeignKey(Provider, on_delete=models.CASCADE, related_name="reviews")
     user_id = models.PositiveBigIntegerField()
     rating = models.PositiveSmallIntegerField()
     comment = models.TextField(blank=True)
+    # A provider may contest an unfair review with evidence; an upheld dispute hides it from the score.
+    dispute = models.CharField(max_length=10, choices=Dispute.choices, blank=True, default="")
+    dispute_reason = models.TextField(blank=True)
+    dispute_note = models.CharField(max_length=255, blank=True)
+    hidden = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class CustomerScore(models.Model):
+    """Providers' ratings of a customer, shown to providers before they take a job."""
+
+    user_id = models.PositiveBigIntegerField(unique=True)
+    rating_sum = models.PositiveIntegerField(default=0)
+    rating_count = models.PositiveIntegerField(default=0)
+
+    @property
+    def average(self):
+        return round(self.rating_sum / self.rating_count, 1) if self.rating_count else None
+
+
+class SafetyIncident(models.Model):
+    class Status(models.TextChoices):
+        OPEN = "open"
+        RESOLVED = "resolved"
+
+    job = models.ForeignKey(Job, null=True, blank=True, on_delete=models.SET_NULL, related_name="incidents")
+    raised_by = models.PositiveBigIntegerField()
+    role = models.CharField(max_length=10, help_text="customer / provider")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    note = models.TextField(blank=True)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.OPEN)
+    resolution = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["status", "-created_at"]
+
+
+class ShareLink(models.Model):
+    """A customer shares a live view of a job (no phone numbers) with family."""
+
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="share_links")
+    token = models.CharField(max_length=32, unique=True)
+    created_by = models.PositiveBigIntegerField()
+    expires_at = models.DateTimeField()
+
+
+class InsurancePlan(models.Model):
+    name_bn = models.CharField(max_length=120)
+    name_en = models.CharField(max_length=120)
+    partner = models.CharField(max_length=120, help_text="Insurer providing the cover")
+    weekly_premium = models.DecimalField(max_digits=8, decimal_places=2)
+    coverage_bn = models.TextField()
+    coverage_en = models.TextField()
+    is_active = models.BooleanField(default=True)
+
+
+class InsuranceEnrollment(models.Model):
+    class Status(models.TextChoices):
+        ACTIVE = "active"
+        CANCELLED = "cancelled"
+
+    provider = models.ForeignKey(Provider, on_delete=models.CASCADE, related_name="insurance")
+    plan = models.ForeignKey(InsurancePlan, on_delete=models.PROTECT)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
+    # ISO week ("2026-W43") of the last premium taken from a payout, so a week is never charged twice.
+    last_premium_week = models.CharField(max_length=8, blank=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+
+
+class InsuranceClaim(models.Model):
+    class Status(models.TextChoices):
+        SUBMITTED = "submitted"
+        FORWARDED = "forwarded", "Sent to insurer"
+        PAID = "paid"
+        REJECTED = "rejected"
+
+    enrollment = models.ForeignKey(InsuranceEnrollment, on_delete=models.PROTECT, related_name="claims")
+    description = models.TextField()
+    photo_urls = models.JSONField(default=list, blank=True)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.SUBMITTED)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class TrainingModule(models.Model):
+    slug = models.SlugField(unique=True)
+    title_bn = models.CharField(max_length=160)
+    title_en = models.CharField(max_length=160)
+    body_bn = models.TextField(blank=True)
+    body_en = models.TextField(blank=True)
+    video_url = models.URLField(blank=True)
+    # Empty: for everyone; otherwise providers with this skill.
+    category_slug = models.SlugField(blank=True)
+    # [{"q": {"bn","en"}, "options": [{"bn","en"}, ...], "answer": <index>}]
+    questions = models.JSONField(default=list)
+    pass_percent = models.PositiveSmallIntegerField(default=70)
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "slug"]
+
+
+class ModuleCompletion(models.Model):
+    provider = models.ForeignKey(Provider, on_delete=models.CASCADE, related_name="trainings")
+    module = models.ForeignKey(TrainingModule, on_delete=models.CASCADE)
+    score = models.PositiveSmallIntegerField()
+    passed = models.BooleanField()
+    certificate_code = models.CharField(max_length=16, blank=True)
+    attempts = models.PositiveSmallIntegerField(default=1)
+    completed_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [("provider", "module")]

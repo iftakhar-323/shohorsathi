@@ -11,7 +11,7 @@ map $uri $service {
     ~^/api/admin/(orders|bookings|warranty-claims|order-stats)/    order;
 
     ~^/api/(provider|providers)/                                   provider;
-    ~^/api/admin/(providers|jobs|payouts|provider-stats)/          provider;
+    ~^/api/admin/(providers|jobs|payouts|provider-stats|safety|review-disputes|insurance-plans|insurance-claims|training-modules)/  provider;
 
     ~^/api/(custom_request|custom-requests)/                       custom-request;
     ~^/api/admin/custom-requests/                                  custom-request;

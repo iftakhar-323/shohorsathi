@@ -5,6 +5,7 @@ export type BookingDraft = {
   problem_description: string;
   photo_urls: string[];
   is_emergency?: boolean;
+  prefer_female?: boolean;
 };
 
 const KEY = "shohor.bookingDrafts";

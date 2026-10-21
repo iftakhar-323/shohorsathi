@@ -16,6 +16,7 @@ import {
   PhotoUpload,
   Select,
   slotOptions,
+  SosButton,
   StatusBadge,
   SuccessNote,
   t,
@@ -29,6 +30,15 @@ import { useParams } from "react-router-dom";
 
 import { useOrder, useTracking, type Booking } from "../api/orders";
 import { BookingExtras, RefundRequest } from "../components/BookingExtras";
+
+/** A link family can open to follow the job (no phone numbers), valid for a day. */
+async function shareLiveJob(bookingId: number) {
+  const { data } = await api.post<{ token: string }>("/providers/share/", { source: "booking", source_id: bookingId });
+  const url = `${window.location.origin}/track/${data.token}`;
+  if (navigator.share) await navigator.share({ title: t("শহরসাথী লাইভ জব"), url });
+  else await navigator.clipboard?.writeText(url);
+  return t("লিংক তৈরি হয়েছে: {url}", { url });
+}
 
 function BookingCard({ booking, onChanged }: { booking: Booking; onChanged: () => void }) {
   const [dialog, setDialog] = useState<"reschedule" | "warranty" | null>(null);
@@ -103,6 +113,15 @@ function BookingCard({ booking, onChanged }: { booking: Booking; onChanged: () =
       )}
 
       {["on_the_way", "working"].includes(booking.status) && <LiveTracking source="booking" sourceId={booking.id} />}
+
+      {["confirmed", "on_the_way", "working"].includes(booking.status) && (
+        <div className="flex flex-wrap gap-2">
+          <SosButton source="booking" sourceId={booking.id} />
+          <Button variant="ghost" icon="send" onClick={() => shareLiveJob(booking.id).then((msg) => setNotice(msg)).catch((e) => setError(errorMessage(e)))}>
+            {t("পরিবারের সাথে লাইভ শেয়ার")}
+          </Button>
+        </div>
+      )}
 
       <BookingExtras booking={booking} />
 

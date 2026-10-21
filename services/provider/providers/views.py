@@ -10,8 +10,20 @@ from rest_framework.views import APIView
 from shohor_common.internal import IsInternal
 from shohor_common.permissions import IsAdmin
 
-from . import logic
-from .models import Earning, Job, Payout, Provider, Review
+from . import logic, trust
+from .models import (
+    Earning,
+    InsuranceClaim,
+    InsuranceEnrollment,
+    InsurancePlan,
+    Job,
+    ModuleCompletion,
+    Payout,
+    Provider,
+    Review,
+    SafetyIncident,
+    TrainingModule,
+)
 from .serializers import (
     AdvanceSerializer,
     EarningSerializer,
@@ -21,8 +33,15 @@ from .serializers import (
     PayoutSerializer,
     ProviderSerializer,
     PublicProviderSerializer,
+    ClaimSerializer,
+    DisputeSerializer,
+    EnrollmentSerializer,
+    InsurancePlanSerializer,
+    ProviderModuleSerializer,
     RegisterProviderSerializer,
     ReviewSerializer,
+    SafetyIncidentSerializer,
+    TrainingModuleSerializer,
 )
 
 S = Job.Status
@@ -127,6 +146,11 @@ class JobViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gene
         job = logic.advance(self.get_object(), self.provider(), **data.validated_data)
         return Response(JobSerializer(job).data)
 
+    @action(detail=True, methods=["post"], url_path="rate-customer")
+    def rate_customer(self, request, pk=None):
+        job = trust.rate_customer(self.get_object(), self.provider(), request.data.get("rating", 0), request.data.get("feedback", ""))
+        return Response(JobSerializer(job).data)
+
 
 class EarningsView(APIView):
     def get(self, request):
@@ -143,6 +167,12 @@ class PayoutViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def create(self, request):
         payout = logic.request_payout(current_provider(request))
+        return Response(PayoutSerializer(payout).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"])
+    def instant(self, request):
+        """Cash out now for a fee instead of waiting for Sunday."""
+        payout = logic.request_payout(current_provider(request), instant=True)
         return Response(PayoutSerializer(payout).data, status=status.HTTP_201_CREATED)
 
 
@@ -306,7 +336,7 @@ class PublicReviewsView(generics.ListAPIView):
     serializer_class = ReviewSerializer
 
     def get_queryset(self):
-        return Review.objects.filter(provider_id=self.kwargs["pk"], provider__status=Provider.Status.APPROVED).select_related("job")
+        return Review.objects.filter(provider_id=self.kwargs["pk"], provider__status=Provider.Status.APPROVED, hidden=False).select_related("job")
 
 
 class InternalJobBySourceView(APIView):
@@ -320,3 +350,157 @@ class InternalJobBySourceView(APIView):
         return Response({"job_id": job.id, "title": job.title, "status": job.status, "customer_user_id": job.user_id,
                          "provider_user_id": job.provider.user_id if job.provider else None,
                          "provider_name": job.provider.full_name if job.provider else ""})
+
+
+
+# ---- trust & safety ----------------------------------------------------------------------------
+
+class SosView(APIView):
+    """Either side of a job can press SOS; admins are alerted at once (SMS + notification)."""
+
+    def post(self, request):
+        d = request.data
+        incident = trust.raise_sos(request.user.id, d.get("source", ""), int(d.get("source_id", 0)), d.get("latitude"), d.get("longitude"), d.get("note", ""))
+        return Response({"id": incident.id, "status": incident.status}, status=status.HTTP_201_CREATED)
+
+
+class ShareView(APIView):
+    def post(self, request):
+        link = trust.create_share(request.user.id, request.data.get("source", ""), int(request.data.get("source_id", 0)))
+        return Response({"token": link.token, "expires_at": link.expires_at}, status=status.HTTP_201_CREATED)
+
+
+class SharedJobView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, token):
+        return Response(trust.shared_view(token))
+
+
+class DisputeView(APIView):
+    def post(self, request, pk):
+        review = get_object_or_404(Review, pk=pk)
+        return Response(ReviewSerializer(trust.dispute_review(review, current_provider(request), request.data.get("reason", ""))).data)
+
+
+class InsuranceView(APIView):
+    def get(self, request):
+        provider = current_provider(request)
+        enrollment = trust.active_enrollment(provider)
+        claims = InsuranceClaim.objects.filter(enrollment__provider=provider)
+        return Response({
+            "plans": InsurancePlanSerializer(InsurancePlan.objects.filter(is_active=True), many=True).data,
+            "enrollment": EnrollmentSerializer(enrollment).data if enrollment else None,
+            "claims": ClaimSerializer(claims, many=True).data,
+        })
+
+    def post(self, request):
+        plan = get_object_or_404(InsurancePlan, pk=request.data.get("plan"))
+        return Response(EnrollmentSerializer(trust.enroll(current_provider(request), plan)).data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request):
+        enrollment = trust.active_enrollment(current_provider(request))
+        if enrollment:
+            enrollment.status = InsuranceEnrollment.Status.CANCELLED
+            enrollment.save(update_fields=["status"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ClaimView(APIView):
+    def post(self, request):
+        claim = trust.file_claim(current_provider(request), request.data.get("description", ""), request.data.get("photo_urls", []))
+        return Response(ClaimSerializer(claim).data, status=status.HTTP_201_CREATED)
+
+
+class TrainingView(APIView):
+    def get(self, request):
+        provider = current_provider(request)
+        completions = {c.module_id: c for c in provider.trainings.all()}
+        modules = trust.modules_for(provider)
+        return Response(ProviderModuleSerializer(modules, many=True, context={"completions": completions}).data)
+
+
+class QuizView(APIView):
+    def post(self, request, slug):
+        provider = current_provider(request)
+        module = get_object_or_404(TrainingModule, slug=slug, is_active=True)
+        c = trust.submit_quiz(provider, module, request.data.get("answers", []))
+        return Response({"score": c.score, "passed": c.passed, "certificate_code": c.certificate_code, "attempts": c.attempts})
+
+
+class CertificateView(APIView):
+    """Anyone can verify a training certificate by its code."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, code):
+        c = get_object_or_404(ModuleCompletion.objects.select_related("provider", "module"), certificate_code=code, passed=True)
+        return Response({"provider": c.provider.full_name, "module": {"bn": c.module.title_bn, "en": c.module.title_en}, "score": c.score, "issued": c.completed_at})
+
+
+class AdminSafetyViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = [IsAdmin]
+    serializer_class = SafetyIncidentSerializer
+
+    def get_queryset(self):
+        qs = SafetyIncident.objects.select_related("job__provider")
+        if s := self.request.query_params.get("status"):
+            qs = qs.filter(status=s)
+        return qs
+
+    @action(detail=True, methods=["post"])
+    def resolve(self, request, pk=None):
+        return Response(SafetyIncidentSerializer(trust.resolve_incident(self.get_object(), request.data.get("resolution", ""))).data)
+
+
+class AdminDisputeViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = [IsAdmin]
+    serializer_class = DisputeSerializer
+
+    def get_queryset(self):
+        return Review.objects.filter(dispute=self.request.query_params.get("status", "open")).select_related("job", "provider")
+
+    @action(detail=True, methods=["post"])
+    def decide(self, request, pk=None):
+        review = get_object_or_404(Review, pk=pk)
+        return Response(DisputeSerializer(trust.decide_dispute(review, bool(request.data.get("uphold")), request.data.get("note", ""))).data)
+
+
+class AdminInsurancePlanViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdmin]
+    serializer_class = InsurancePlanSerializer
+    queryset = InsurancePlan.objects.all()
+    pagination_class = None
+
+
+class AdminClaimViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = [IsAdmin]
+    serializer_class = ClaimSerializer
+
+    def get_queryset(self):
+        qs = InsuranceClaim.objects.select_related("enrollment__provider", "enrollment__plan")
+        if s := self.request.query_params.get("status"):
+            qs = qs.filter(status=s)
+        return qs
+
+    @action(detail=True, methods=["post"])
+    def update_status(self, request, pk=None):
+        claim = self.get_object()
+        new = request.data.get("status")
+        if new not in InsuranceClaim.Status.values:
+            return Response({"status": ["Unknown status."]}, status=status.HTTP_400_BAD_REQUEST)
+        claim.status, claim.note = new, request.data.get("note", claim.note)
+        if request.data.get("amount"):
+            claim.amount = request.data["amount"]
+        claim.save()
+        return Response(ClaimSerializer(claim).data)
+
+
+class AdminTrainingViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdmin]
+    serializer_class = TrainingModuleSerializer
+    queryset = TrainingModule.objects.all()
+    pagination_class = None
+    lookup_field = "slug"

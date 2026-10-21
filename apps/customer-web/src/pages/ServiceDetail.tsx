@@ -22,6 +22,7 @@ export default function ServiceDetail() {
   const [slot, setSlot] = useState(SLOTS[0].value);
   const [problem, setProblem] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
+  const [preferFemale, setPreferFemale] = useState(false);
   const [error, setError] = useState("");
 
   if (isPending) return <Loading />;
@@ -35,7 +36,7 @@ export default function ServiceDetail() {
     setError("");
     try {
       const item = await addToCart.mutateAsync({ item_type: "service", slug: service!.slug });
-      saveDraft(item.id, { scheduled_date: date, slot, problem_description: problem, photo_urls: photos, is_emergency: emergency });
+      saveDraft(item.id, { scheduled_date: date, slot, problem_description: problem, photo_urls: photos, is_emergency: emergency, prefer_female: preferFemale });
       navigate("/cart");
     } catch (e) {
       setError(errorMessage(e));
@@ -107,6 +108,10 @@ export default function ServiceDetail() {
 
         <TextArea label={t("সমস্যা লিখুন")} placeholder={t("যেমন: বেডরুমের ফ্যান ঘুরছে না")} value={problem} onChange={(e) => setProblem(e.target.value)} />
         <PhotoUpload label={t("সমস্যার ছবি (ঐচ্ছিক)")} value={photos} onChange={setPhotos} purpose="problem_photo" max={3} />
+        <label className="flex items-center gap-2 text-[15px]">
+          <input type="checkbox" checked={preferFemale} onChange={(e) => setPreferFemale(e.target.checked)} className="size-5 accent-brand" />
+          {t("মহিলা প্রোভাইডার চাই")}
+        </label>
 
         <ErrorNote>{error}</ErrorNote>
         <Button onClick={book} loading={addToCart.isPending} className="h-12 text-base" variant={emergency ? "alert" : "primary"}>

@@ -23,3 +23,15 @@ CELERY_BEAT_SCHEDULE = {
 
 # Data protection: how long a rejected applicant's NID and photos are kept (for appeals) before deletion.
 REJECTED_DOCUMENT_RETENTION_DAYS = int(env("REJECTED_DOCUMENT_RETENTION_DAYS", "90"))
+
+# Fair ratings: Bayesian prior (score a new provider starts near) and how many reviews it is worth.
+RATING_PRIOR = env("RATING_PRIOR", "4.5")
+RATING_PRIOR_WEIGHT = env("RATING_PRIOR_WEIGHT", "5")
+# Safety and privacy windows.
+SHARE_LINK_HOURS = int(env("SHARE_LINK_HOURS", "24"))
+CONTACT_VISIBLE_HOURS_AFTER = int(env("CONTACT_VISIBLE_HOURS_AFTER", "48"))
+# Instant cash-out before the weekly payout.
+INSTANT_PAYOUT_FEE_PERCENT = env("INSTANT_PAYOUT_FEE_PERCENT", "1.5")
+INSTANT_PAYOUT_MIN_FEE = env("INSTANT_PAYOUT_MIN_FEE", "10")
+# "mock" marks instant payouts paid at once (development); "manual" leaves them for admins to send.
+PAYOUT_BACKEND = env("PAYOUT_BACKEND", "mock")

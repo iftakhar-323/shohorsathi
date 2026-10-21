@@ -19,6 +19,7 @@ import Profile from "./pages/Profile";
 import ServiceDetail from "./pages/ServiceDetail";
 import Services from "./pages/Services";
 import Shop from "./pages/Shop";
+import Track from "./pages/Track";
 import Wallet from "./pages/Wallet";
 import { MySubscriptions, Subscribe, SubscriptionDetail, SubscriptionPlans } from "./pages/Subscriptions";
 
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/issues/:id" element={<IssueDetail />} />
           <Route path="/community" element={<Community />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/track/:token" element={<Track />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/wallet" element={<Private><Wallet /></Private>} />
           <Route path="/business" element={<Private><BusinessHome /></Private>} />

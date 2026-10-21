@@ -5,15 +5,19 @@ import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom"
 import { useProvider } from "./api";
 import Apply from "./pages/Apply";
 import Earnings from "./pages/Earnings";
+import Insurance from "./pages/Insurance";
 import JobDetail from "./pages/JobDetail";
 import Jobs from "./pages/Jobs";
 import Profile from "./pages/Profile";
 import Schedule from "./pages/Schedule";
+import Training from "./pages/Training";
 
 const NAV: { to: string; label: string; icon: IconName }[] = [
   { to: "/", label: "জব ইনবক্স", icon: "list" },
   { to: "/schedule", label: "ক্যালেন্ডার", icon: "calendar" },
   { to: "/earnings", label: "আয় ও পেআউট", icon: "money" },
+  { to: "/training", label: "প্রশিক্ষণ", icon: "sparkle" },
+  { to: "/insurance", label: "সুরক্ষা বিমা", icon: "shield" },
   { to: "/chat", label: "চ্যাট", icon: "chat" },
   { to: "/notifications", label: "নোটিফিকেশন", icon: "bell" },
   { to: "/profile", label: "প্রোফাইল", icon: "user" },
@@ -77,6 +81,8 @@ export default function App() {
                 <Route path="/jobs/:id" element={<JobDetail />} />
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/earnings" element={<Earnings />} />
+                <Route path="/training" element={<Training />} />
+                <Route path="/insurance" element={<Insurance />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/chat/:id" element={<ChatPage />} />

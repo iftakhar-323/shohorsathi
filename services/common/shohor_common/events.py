@@ -41,6 +41,7 @@ SUBSCRIBERS = {
     "review.created": ["provider"],
     "issue.status_changed": ["notification", "analytics"],
     "emergency.raised": ["notification"],
+    "safety.sos": ["notification"],
     "loyalty.points_earned": ["notification"],
     "b2b.visit_due": ["provider"],
     "b2b.invoice_issued": ["notification"],

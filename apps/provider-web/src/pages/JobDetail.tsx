@@ -1,4 +1,4 @@
-import { api, Button, Card, errorMessage, ErrorNote, Field, formatDate, formatTaka, Icon, Loading, openJobChat, PageHeader, PhotoUpload, slotLabel, StatusBadge, t, TextArea, Timeline } from "@shohor/web-core";
+import { api, Button, Card, errorMessage, ErrorNote, Field, formatDate, formatTaka, Icon, Loading, openJobChat, PageHeader, PhotoUpload, slotLabel, SosButton, StatusBadge, t, TextArea, Timeline } from "@shohor/web-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -101,7 +101,14 @@ export default function JobDetail() {
               ))}
             </div>
           )}
-          <span className="text-lg font-bold">{formatTaka(job.amount)}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-lg font-bold">{formatTaka(job.amount)}</span>
+            {job.customer_score?.average != null && (
+              <span className="text-sm text-muted">
+                {t("গ্রাহকের রেটিং")} ★ {Number(job.customer_score.average).toFixed(1)} ({job.customer_score.count})
+              </span>
+            )}
+          </div>
         </Card>
 
         <ErrorNote>{error}</ErrorNote>
@@ -154,6 +161,10 @@ export default function JobDetail() {
           </Card>
         )}
 
+        {["accepted", "on_the_way", "working"].includes(job.status) && <SosButton source="job" sourceId={job.id} className="self-start" />}
+
+        {job.status === "completed" && <RateCustomer job={job} />}
+
         {["on_the_way", "working"].includes(job.status) && (
           <label className="flex items-center gap-3 text-[15px]">
             <input type="checkbox" checked={sharing} onChange={(e) => setSharing(e.target.checked)} className="size-5 accent-brand" />
@@ -183,5 +194,52 @@ export default function JobDetail() {
         </Card>
       )}
     </div>
+  );
+}
+
+/** After the job the provider rates the customer too; other providers see the average before accepting. */
+function RateCustomer({ job }: { job: Job }) {
+  const qc = useQueryClient();
+  const [rating, setRating] = useState(0);
+  const [feedback, setFeedback] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  if (job.customer_rating) {
+    return (
+      <Card className="flex flex-col gap-1">
+        <span className="font-semibold">{t("আপনি গ্রাহককে রেটিং দিয়েছেন")}</span>
+        <span className="text-alert-strong">{"★".repeat(job.customer_rating)}<span className="text-line">{"★".repeat(5 - job.customer_rating)}</span></span>
+      </Card>
+    );
+  }
+
+  async function submit() {
+    setBusy(true);
+    setError("");
+    try {
+      await api.post(`/providers/jobs/${job.id}/rate-customer/`, { rating, feedback });
+      qc.invalidateQueries({ queryKey: ["job", String(job.id)] });
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <h2 className="m-0 text-lg font-bold">{t("গ্রাহককে রেটিং দিন")}</h2>
+      <div className="flex gap-1" role="radiogroup" aria-label={t("রেটিং")}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} type="button" role="radio" aria-checked={rating === n} onClick={() => setRating(n)} className={`text-3xl ${n <= rating ? "text-alert-strong" : "text-line"}`}>
+            ★
+          </button>
+        ))}
+      </div>
+      <TextArea label={t("মন্তব্য (ঐচ্ছিক)")} value={feedback} onChange={(e) => setFeedback(e.target.value)} />
+      <ErrorNote>{error}</ErrorNote>
+      <Button loading={busy} disabled={!rating} onClick={submit} className="self-start">{t("রেটিং দিন")}</Button>
+    </Card>
   );
 }

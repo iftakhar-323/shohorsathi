@@ -19,6 +19,7 @@ def overrides(simple_jwt):
     private, public = jwt_keypair()
     return {
         "SIMPLE_JWT": {**simple_jwt, "SIGNING_KEY": private, "VERIFYING_KEY": public},
+        "INTERNAL_API_TOKEN": "dev-internal-token",
         "EVENTS_CAPTURE": True,
         "CELERY_TASK_ALWAYS_EAGER": True,
         "PASSWORD_HASHERS": ["django.contrib.auth.hashers.MD5PasswordHasher"],

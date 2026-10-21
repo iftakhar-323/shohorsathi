@@ -48,6 +48,7 @@ class CreateSubscriptionSerializer(QuoteSerializer):
     latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     diet = serializers.ChoiceField(choices=["", "bangla", "light", "protein"], default="", required=False)
+    prefer_female = serializers.BooleanField(default=False, required=False)
     payment_method = serializers.ChoiceField(choices=["cod", "online"], default="cod")
     auto_renew = serializers.BooleanField(default=True)
 
@@ -88,7 +89,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         model = Subscription
         fields = [
             "id", "plan", "duration_days", "home_size", "preferred_weekday", "slot", "start_date", "end_date", "area_id",
-            "area_name", "address_line", "diet", "addons", "members", "prepaid_months", "student_discount", "price",
+            "area_name", "address_line", "diet", "required_gender", "addons", "members", "prepaid_months", "student_discount", "price",
             "credit_applied", "amount_due", "credit", "payment_method", "paid", "status", "auto_renew", "next_plan",
             "preferred_provider_name", "paused_until", "created_at", "upcoming", "stats",
         ]

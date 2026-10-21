@@ -39,6 +39,7 @@ class ServiceDetailSerializer(serializers.Serializer):
     problem_description = serializers.CharField(required=False, allow_blank=True, max_length=2000)
     photo_urls = serializers.ListField(child=serializers.CharField(max_length=500), required=False, max_length=5)
     is_emergency = serializers.BooleanField(required=False, default=False)
+    prefer_female = serializers.BooleanField(required=False, default=False)
 
     def validate_scheduled_date(self, value):
         from django.utils import timezone
@@ -80,10 +81,17 @@ class BookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = [
             "id", "order", "order_number", "service_slug", "service_name", "price", "scheduled_date", "slot",
-            "slot_label", "problem_description", "photo_urls", "is_emergency", "surcharge", "status", "provider_id",
+            "slot_label", "problem_description", "photo_urls", "is_emergency", "surcharge", "required_gender", "status", "provider_id",
             "provider_name", "provider_phone", "arrival_code", "warranty_days", "warranty_until", "completed_at",
             "created_at",
         ]
+
+    def to_representation(self, obj):
+        data = super().to_representation(obj)
+        # The provider's number is for coordinating the visit only.
+        if "provider_phone" in data and obj.status not in (Booking.Status.CONFIRMED, Booking.Status.ON_THE_WAY, Booking.Status.WORKING):
+            data["provider_phone"] = ""
+        return data
 
     def get_warranty_until(self, obj):
         from datetime import timedelta

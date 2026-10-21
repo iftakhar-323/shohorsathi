@@ -205,7 +205,7 @@ export function Subscribe() {
   const { data: addresses } = useAddresses(!!user);
   const { data: areas } = useAreas();
   const tomorrow = todayISO(1);
-  const [f, setF] = useState({ duration_days: 30, home_size: 1, prepaid_months: 1, start_date: tomorrow, preferred_weekday: 5, slot: "09-11", diet: "bangla", payment_method: "cod", auto_renew: true });
+  const [f, setF] = useState({ duration_days: 30, home_size: 1, prepaid_months: 1, start_date: tomorrow, preferred_weekday: 5, slot: "09-11", diet: "bangla", payment_method: "cod", auto_renew: true, prefer_female: false });
   const [picked, setPicked] = useState<string[]>([]);
   const [members, setMembers] = useState<{ name: string; phone: string }[]>([]);
   const [addressId, setAddressId] = useState<number | "new">("new");
@@ -367,6 +367,12 @@ export function Subscribe() {
           <input type="checkbox" checked={f.auto_renew} onChange={(e) => set("auto_renew", e.target.checked)} className="size-5 accent-brand" />
           {t("মেয়াদ শেষে স্বয়ংক্রিয় রিনিউ")}
         </label>
+        {!isMeal && (
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={f.prefer_female} onChange={(e) => set("prefer_female", e.target.checked)} className="size-5 accent-brand" />
+            {t("মহিলা প্রোভাইডার চাই")}
+          </label>
+        )}
         <ErrorNote>{error}</ErrorNote>
         <Button type="submit" loading={busy} disabled={!quote} className="h-12 text-base">{t("সাবস্ক্রাইব করুন")}</Button>
       </Card>

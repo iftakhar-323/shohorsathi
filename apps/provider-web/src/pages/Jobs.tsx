@@ -50,7 +50,9 @@ function JobRow({ job, tab }: { job: Job; tab: Tab }) {
         </Link>
         <span className="text-sm text-muted">
           {job.area_name} · {formatTaka(job.amount)}
+          {job.customer_score?.average != null && ` · ${t("গ্রাহক")} ★ ${Number(job.customer_score.average).toFixed(1)}`}
         </span>
+        {job.required_gender === "female" && <span className="self-start"><Badge tone="warn">{t("মহিলা প্রোভাইডার চাওয়া হয়েছে")}</Badge></span>}
         <ErrorNote>{error}</ErrorNote>
       </div>
       {tab === "available" ? (
@@ -96,9 +98,14 @@ export default function Jobs() {
         title={t("জব ইনবক্স")}
         subtitle={`${provider?.full_name} · ${t("যাচাইকৃত")}`}
         actions={
-          <Button variant={provider?.is_online ? "primary" : "ghost"} icon={provider?.is_online ? "check" : "clock"} onClick={toggleOnline}>
-            {provider?.is_online ? t("অনলাইন") : t("অফলাইন")}
-          </Button>
+          <div className="flex items-center gap-2">
+            {provider?.badges?.some((b) => b.startsWith("trained")) && (
+              <Badge tone="ok">{t("প্রশিক্ষিত")}</Badge>
+            )}
+            <Button variant={provider?.is_online ? "primary" : "ghost"} icon={provider?.is_online ? "check" : "clock"} onClick={toggleOnline}>
+              {provider?.is_online ? t("অনলাইন") : t("অফলাইন")}
+            </Button>
+          </div>
         }
       />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-3">

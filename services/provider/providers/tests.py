@@ -153,12 +153,24 @@ def test_cancel_from_booking_event(approved):
     assert job.status == "cancelled"
 
 
+def completed_job(provider, source_id, user_id=7):
+    job = logic.create_job({**BOOKING, "source_id": source_id, "user_id": user_id})
+    Job.objects.filter(pk=job.pk).update(status="completed", provider=provider)
+    job.refresh_from_db()
+    return job
+
+
 @pytest.mark.django_db
-def test_rating_updates_average_and_badges(approved):
-    for _ in range(10):
-        logic.apply_review({"provider_user_id": 50, "rating": 5})
+def test_rating_is_bayesian_and_earns_badges(approved):
+    completed_job(approved, 100)
+    logic.create_review(7, "booking", 100, 1, "late")
     approved.refresh_from_db()
-    assert approved.rating_avg == 5 and "top_rated" in approved.badges
+    assert float(approved.rating_avg) == pytest.approx(3.92, abs=0.01)  # one 1-star does not sink a new provider: (4.5*5+1)/6
+    for i in range(10):
+        completed_job(approved, 200 + i)
+        logic.create_review(7, "booking", 200 + i, 5)
+    approved.refresh_from_db()
+    assert approved.rating_count == 11 and float(approved.rating_avg) == pytest.approx(4.59, abs=0.01)  # (4.5*5 + 1 + 50) / 16
 
 
 @pytest.mark.django_db
@@ -172,7 +184,7 @@ def test_customer_reviews_completed_job_once(approved):
     assert customer.post("/api/providers/reviews/", body, format="json").status_code == 201
     assert customer.post("/api/providers/reviews/", body, format="json").status_code == 400
     approved.refresh_from_db()
-    assert approved.rating_avg == 4 and approved.rating_count == 1
+    assert approved.rating_count == 1 and float(approved.rating_avg) == pytest.approx(4.42, abs=0.01)  # (4.5*5+4)/6
     public = auth_client().get(f"/api/providers/public/{approved.id}/reviews/").data
     assert public["results"][0]["comment"] == "Good"
 
@@ -262,3 +274,131 @@ def test_user_deleted_suspends_provider_and_redacts_jobs(approved, monkeypatch):
     job.refresh_from_db()
     assert approved.status == "suspended" and approved.full_name == "Deleted user" and approved.photo_url == ""
     assert job.customer_phone == "" and job.customer_name == "Deleted user"
+
+
+
+# ---- Dhap 6: trust & safety ---------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_women_only_jobs_reach_women_providers(provider_client, approved):
+    logic.create_job({**BOOKING, "source_id": 30, "required_gender": "female"})
+    assert provider_client.get("/api/providers/jobs/?tab=available").data["count"] == 0  # approved provider has no gender
+    Provider.objects.filter(pk=approved.pk).update(gender="female")
+    assert provider_client.get("/api/providers/jobs/?tab=available").data["count"] == 1
+
+
+@pytest.mark.django_db
+def test_sos_from_provider_alerts_with_emergency_contact(provider_client, approved, captured_events):
+    Provider.objects.filter(pk=approved.pk).update(emergency_contact_phone="01999888777")
+    job = logic.create_job(BOOKING)
+    logic.accept(job, approved)
+    res = provider_client.post("/api/providers/safety/sos/", {"source": "booking", "source_id": 10, "note": "Threatened"}, format="json")
+    assert res.status_code == 201
+    event, payload = captured_events[-1]
+    assert event == "safety.sos" and payload["role"] == "provider" and payload["sms_phones"] == ["01999888777"]
+    assert auth_client("customer", user_id=99).post("/api/providers/safety/sos/", {"source": "booking", "source_id": 10}, format="json").status_code == 403
+    admin = auth_client("admin")
+    incident = admin.get("/api/admin/safety/?status=open").data["results"][0]
+    assert incident["provider"]["emergency_contact"] == "01999888777"
+    assert admin.post(f"/api/admin/safety/{incident['id']}/resolve/", {"resolution": "Called both, police informed"}, format="json").data["status"] == "resolved"
+
+
+@pytest.mark.django_db
+def test_share_link_shows_job_without_phones(approved):
+    job = logic.create_job(BOOKING)
+    logic.accept(job, approved)
+    customer = auth_client("customer", user_id=7)
+    token = customer.post("/api/providers/share/", {"source": "booking", "source_id": 10}, format="json").data["token"]
+    from rest_framework.test import APIClient
+
+    view = APIClient().get(f"/api/providers/share/{token}/").data
+    assert view["provider_first_name"] == "Karim" and "phone" not in str(view)
+    assert auth_client("provider", user_id=50).post("/api/providers/share/", {"source": "booking", "source_id": 10}, format="json").status_code == 403
+
+
+@pytest.mark.django_db
+def test_customer_phone_hidden_48h_after_completion(provider_client, approved):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    job = completed_job(approved, 40)
+    Job.objects.filter(pk=job.pk).update(completed_at=timezone.now())
+    assert provider_client.get(f"/api/providers/jobs/{job.id}/").data["customer_phone"] == "01712345678"
+    Job.objects.filter(pk=job.pk).update(completed_at=timezone.now() - timedelta(hours=49))
+    assert provider_client.get(f"/api/providers/jobs/{job.id}/").data["customer_phone"] == ""
+    assert auth_client("admin").get(f"/api/admin/jobs/{job.id}/").data["customer_phone"] == "01712345678"
+
+
+@pytest.mark.django_db
+def test_provider_rates_customer_and_others_see_it(provider_client, approved):
+    job = completed_job(approved, 41)
+    assert provider_client.post(f"/api/providers/jobs/{job.id}/rate-customer/", {"rating": 2, "feedback": "Rude"}, format="json").status_code == 200
+    assert provider_client.post(f"/api/providers/jobs/{job.id}/rate-customer/", {"rating": 5}, format="json").status_code == 400
+    logic.create_job({**BOOKING, "source_id": 42})
+    available = provider_client.get("/api/providers/jobs/?tab=available").data["results"][0]
+    assert available["customer_score"] == {"average": 2.0, "count": 1}
+
+
+@pytest.mark.django_db
+def test_upheld_dispute_hides_review_from_score(provider_client, approved):
+    completed_job(approved, 43)
+    review = logic.create_review(7, "booking", 43, 1, "never came")
+    assert provider_client.post(f"/api/providers/reviews/{review.id}/dispute/", {"reason": "short"}, format="json").status_code == 400
+    provider_client.post(f"/api/providers/reviews/{review.id}/dispute/", {"reason": "Customer cancelled at the door, see chat"}, format="json")
+    admin = auth_client("admin")
+    assert [d["id"] for d in admin.get("/api/admin/review-disputes/").data["results"]] == [review.id]
+    admin.post(f"/api/admin/review-disputes/{review.id}/decide/", {"uphold": True, "note": "Chat confirms"}, format="json")
+    approved.refresh_from_db()
+    assert approved.rating_count == 0
+    assert auth_client().get(f"/api/providers/public/{approved.id}/reviews/").data["count"] == 0
+
+
+@pytest.mark.django_db
+def test_insurance_premium_taken_once_a_week_and_claims(provider_client, approved):
+    from decimal import Decimal
+
+    from providers.models import InsurancePlan
+
+    plan = InsurancePlan.objects.create(name_bn="দুর্ঘটনা", name_en="Accident", partner="[Insurer]", weekly_premium="20", coverage_bn="x", coverage_en="x")
+    assert provider_client.post("/api/providers/insurance/", {"plan": plan.id}, format="json").status_code == 201
+    assert provider_client.post("/api/providers/insurance/", {"plan": plan.id}, format="json").status_code == 400
+    for i in range(2):
+        job = logic.create_job({**BOOKING, "source_id": 60 + i})
+        Job.objects.filter(pk=job.pk).update(status="working", provider=approved)
+        job.refresh_from_db()
+        logic.advance(job, approved, "completed")
+        payout = provider_client.post("/api/providers/payouts/").data
+        assert Decimal(payout["insurance_premium"]) == (Decimal("20") if i == 0 else 0)
+    claim = provider_client.post("/api/providers/insurance/claims/", {"description": "Fell from ladder"}, format="json")
+    assert claim.status_code == 201
+    auth_client("admin").post(f"/api/admin/insurance-claims/{claim.data['id']}/update_status/", {"status": "forwarded"}, format="json")
+    assert provider_client.get("/api/providers/insurance/").data["claims"][0]["status"] == "forwarded"
+
+
+@pytest.mark.django_db
+def test_instant_payout_charges_fee_and_mock_pays(provider_client, approved):
+    job = logic.create_job(BOOKING)
+    Job.objects.filter(pk=job.pk).update(status="working", provider=approved)
+    job.refresh_from_db()
+    logic.advance(job, approved, "completed")  # net 850
+    res = provider_client.post("/api/providers/payouts/instant/").data
+    assert res["instant"] and res["fee"] == "12.75" and res["amount"] == "837.25" and res["status"] == "paid"
+
+
+@pytest.mark.django_db
+def test_training_quiz_certificate_and_badge(provider_client, approved):
+    from rest_framework.test import APIClient
+
+    admin = auth_client("admin")
+    questions = [{"q": {"bn": "প্রশ্ন", "en": "Q"}, "options": [{"bn": "ক", "en": "a"}, {"bn": "খ", "en": "b"}], "answer": 1}] * 2
+    admin.post("/api/admin/training-modules/", {"slug": "safety-basics", "title_bn": "নিরাপত্তা", "title_en": "Safety", "questions": questions}, format="json")
+    modules = provider_client.get("/api/providers/training/").data
+    assert "answer" not in modules[0]["questions"][0]
+    fail = provider_client.post("/api/providers/training/safety-basics/submit/", {"answers": [0, 1]}, format="json").data
+    assert fail["passed"] is False and fail["score"] == 50
+    ok = provider_client.post("/api/providers/training/safety-basics/submit/", {"answers": [1, 1]}, format="json").data
+    assert ok["passed"] and ok["attempts"] == 2
+    approved.refresh_from_db()
+    assert "trained:safety-basics" in approved.badges
+    assert APIClient().get(f"/api/providers/certificates/{ok['certificate_code']}/").data["module"]["en"] == "Safety"

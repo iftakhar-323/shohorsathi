@@ -117,6 +117,8 @@ class Booking(models.Model):
     problem_description = models.TextField(blank=True)
     photo_urls = models.JSONField(default=list, blank=True)
     is_emergency = models.BooleanField(default=False)
+    # "female" when the customer asked for a woman provider (cleaner, helper, beautician…)
+    required_gender = models.CharField(max_length=10, blank=True)
     # Priority charge included in price for emergency bookings
     surcharge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)

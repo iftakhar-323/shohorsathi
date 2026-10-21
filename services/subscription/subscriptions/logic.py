@@ -163,6 +163,7 @@ def create(user_id, name, phone, data, renewed_from=None):
         latitude=data.get("latitude"),
         longitude=data.get("longitude"),
         diet=data.get("diet", ""),
+        required_gender="female" if data.get("prefer_female") else "",
         addons=q["addons"],
         members=data.get("members", []),
         prepaid_months=months,
@@ -319,6 +320,7 @@ def dispatch(visit):
             "amount": str(visit.value),
             "description": f"{plan.name_en}; diet: {sub.diet}" if sub.diet else plan.name_en,
             "preferred_provider_id": sub.preferred_provider_id,
+            "required_gender": sub.required_gender,
         },
     )
     visit.status = V.DISPATCHED
@@ -412,6 +414,7 @@ def renew(sub, plan=None):
         "latitude": sub.latitude,
         "longitude": sub.longitude,
         "diet": sub.diet,
+        "prefer_female": sub.required_gender == "female",
         "addons": sub.addons,
         "members": sub.members,
         "prepaid_months": sub.prepaid_months,

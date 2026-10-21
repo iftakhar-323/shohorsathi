@@ -26,6 +26,12 @@ def send_sms(phone, text):
 
 
 def handle(event, payload):
+    if event == "safety.sos":
+        payload = {**payload, "admin_ids": (internal.get("auth", "/api/internal/users/", role="admin") or {}).get("ids", [])}
+        for phone in payload.get("sms_phones", []):
+            who = payload.get("provider_name") if payload["role"] == "provider" else payload.get("customer_name")
+            send_sms(phone, f"ShohorSathi SOS: {who} pressed the emergency button at {payload.get('area_name', '')}. "
+                            f"Location: https://www.openstreetmap.org/?mlat={payload.get('latitude')}&mlon={payload.get('longitude')}")
     created = []
     for note in build(event, payload):
         created.append(Notification.objects.create(

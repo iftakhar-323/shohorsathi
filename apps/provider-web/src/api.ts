@@ -31,6 +31,8 @@ export type Provider = {
   jobs_completed: number;
   badges: string[];
   trust_score: number;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
 };
 
 export type Job = {
@@ -57,6 +59,10 @@ export type Job = {
   status: string;
   provider: number | null;
   logs?: { status: string; note: string; created_at: string }[];
+  required_gender: string;
+  customer_rating: number | null;
+  customer_feedback: string;
+  customer_score: { average: number | null; count: number };
 };
 
 export const PROVIDER_TYPES = [

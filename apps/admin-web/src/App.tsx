@@ -15,6 +15,9 @@ import Orders from "./pages/Orders";
 import Payments from "./pages/Payments";
 import Payouts from "./pages/Payouts";
 import Providers from "./pages/Providers";
+import Safety from "./pages/Safety";
+import Insurance from "./pages/Insurance";
+import Training from "./pages/Training";
 import Subscriptions from "./pages/Subscriptions";
 import { Broadcast, SupportInbox } from "./pages/Support";
 import Users from "./pages/Users";
@@ -28,6 +31,9 @@ export const NAV: { to: string; label: string; icon: IconName }[] = [
   { to: "/custom-requests", label: "কাস্টম রিকোয়েস্ট", icon: "send" },
   { to: "/subscriptions", label: "সাবস্ক্রিপশন", icon: "repeat" },
   { to: "/payments", label: "পেমেন্ট ও রিফান্ড", icon: "money" },
+  { to: "/safety", label: "সেফটি ও ট্রাস্ট", icon: "alert" },
+  { to: "/insurance", label: "সুরক্ষা বিমা", icon: "shield" },
+  { to: "/training", label: "ট্রেনিং মডিউল", icon: "sparkle" },
   { to: "/issues", label: "শহরের সমস্যা", icon: "flag" },
   { to: "/business", label: "বিল্ডিং ও ব্যবসা", icon: "building" },
   { to: "/loyalty", label: "লয়্যালটি ও ক্রেডিট", icon: "gift" },
@@ -95,6 +101,9 @@ export default function App() {
                 <Route path="/catalog" element={<Catalog />} />
                 <Route path="/subscriptions" element={<Subscriptions />} />
                 <Route path="/payments" element={<Payments />} />
+                <Route path="/safety" element={<Safety />} />
+                <Route path="/insurance" element={<Insurance />} />
+                <Route path="/training" element={<Training />} />
                 <Route path="/support" element={<SupportInbox />} />
                 <Route path="/issues" element={<Issues />} />
                 <Route path="/analytics" element={<Analytics />} />

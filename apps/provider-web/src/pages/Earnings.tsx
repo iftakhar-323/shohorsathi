@@ -4,7 +4,7 @@ import { useState } from "react";
 
 type Summary = { pending: string; in_payout: string; paid: string; this_week: string; commission_total: string };
 type Earning = { id: number; job_title: string; gross: string; commission: string; bonus: string; net: string; status: string; created_at: string };
-type Payout = { id: number; amount: string; method: string; account: string; status: string; reference: string; created_at: string };
+type Payout = { id: number; amount: string; method: string; account: string; status: string; reference: string; instant: boolean; fee: string; insurance_premium: string; created_at: string };
 
 export default function Earnings() {
   const qc = useQueryClient();
@@ -19,11 +19,11 @@ export default function Earnings() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  async function requestPayout() {
+  async function requestPayout(instant = false) {
     setError("");
     try {
-      await api.post("/providers/payouts/");
-      setNotice(t("পেআউটের অনুরোধ পাঠানো হয়েছে।"));
+      await api.post(instant ? "/providers/payouts/instant/" : "/providers/payouts/");
+      setNotice(instant ? t("ইনস্ট্যান্ট পেআউট পাঠানো হয়েছে।") : t("পেআউটের অনুরোধ পাঠানো হয়েছে।"));
       qc.invalidateQueries({ queryKey: ["earnings"] });
       qc.invalidateQueries({ queryKey: ["payouts"] });
     } catch (e) {
@@ -40,9 +40,14 @@ export default function Earnings() {
         title={t("আয় ও পেআউট")}
         subtitle={t("প্রতি রবিবার জমা আয় স্বয়ংক্রিয়ভাবে বিকাশ/নগদে পাঠানোর জন্য তৈরি হয়")}
         actions={
-          <Button icon="money" onClick={requestPayout} disabled={Number(s.pending) <= 0}>
-            {t("এখনই পেআউট চান")}
-          </Button>
+          <>
+            <Button variant="secondary" icon="money" onClick={() => requestPayout()} disabled={Number(s.pending) <= 0}>
+              {t("পেআউটের অনুরোধ")}
+            </Button>
+            <Button icon="money" onClick={() => requestPayout(true)} disabled={Number(s.pending) <= 0}>
+              {t("এখনই টাকা তুলুন (ফি ১.৫%)")}
+            </Button>
+          </>
         }
       />
       <SuccessNote>{notice}</SuccessNote>
@@ -93,6 +98,12 @@ export default function Earnings() {
             <span className="flex-1">
               {formatDate(p.created_at)} · {p.method === "bkash" ? t("বিকাশ") : t("নগদ")} {p.account}
               {p.reference && <span className="block text-[13px] text-muted">TxID: {p.reference}</span>}
+              {(Number(p.fee) > 0 || Number(p.insurance_premium) > 0) && (
+                <span className="block text-[13px] text-muted">
+                  {Number(p.fee) > 0 && `${t("ইনস্ট্যান্ট ফি")} ${formatTaka(p.fee)} `}
+                  {Number(p.insurance_premium) > 0 && `${t("বিমা প্রিমিয়াম")} ${formatTaka(p.insurance_premium)}`}
+                </span>
+              )}
             </span>
             <span className="font-bold">{formatTaka(p.amount)}</span>
             <StatusBadge status={p.status} />

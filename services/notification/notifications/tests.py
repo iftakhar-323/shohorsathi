@@ -47,3 +47,18 @@ def test_admin_broadcast():
     res = admin.post("/api/admin/notifications/broadcast/", {"audience": "customers", "title_bn": "ঈদ অফার", "title_en": "Eid offer"}, format="json")
     assert res.data["sent_count"] == 2 and Notification.objects.filter(kind="promo").count() == 2
     assert auth_client().post("/api/admin/notifications/broadcast/", {}, format="json").status_code == 403
+
+
+@pytest.mark.django_db
+def test_sos_alerts_admins_and_texts_emergency_contact(monkeypatch):
+    def fake(service, path, **kw):
+        if path == "/api/internal/users/":
+            assert kw["role"] == "admin"
+            return {"ids": [1, 2]}
+        return {"phone": "01700000000"}
+
+    monkeypatch.setattr(internal, "get", fake)
+    logic.handle("safety.sos", {"incident_id": 1, "role": "provider", "job_title": "Fan", "area_name": "Mirpur", "latitude": "23.8",
+                                "longitude": "90.4", "provider_name": "Rina", "customer_name": "X", "sms_phones": ["01999888777"]})
+    assert sorted(Notification.objects.values_list("user_id", flat=True)) == [1, 2]
+    assert SmsLog.objects.filter(phone="01999888777").exists()

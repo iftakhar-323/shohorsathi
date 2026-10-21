@@ -70,6 +70,7 @@ def booking_payload(booking, source="booking", source_id=None, price=None):
         "slot": booking.slot,
         "amount": str(booking.price if price is None else price),
         "is_emergency": booking.is_emergency,
+        "required_gender": booking.required_gender,
         "description": booking.problem_description,
         "photo_urls": booking.photo_urls,
     }
@@ -142,6 +143,7 @@ def checkout(user_id, data):
                 problem_description=d.get("problem_description", ""),
                 photo_urls=d.get("photo_urls", []),
                 is_emergency=d.get("is_emergency", False),
+                required_gender="female" if d.get("prefer_female") else "",
                 arrival_code=f"{secrets.randbelow(10_000):04d}",
             )
         )

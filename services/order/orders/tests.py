@@ -264,3 +264,15 @@ def test_user_deleted_redacts_orders_but_keeps_totals(customer):
     user_deleted({"user_id": 7})
     order = Order.objects.get(pk=order_id)
     assert (order.contact_name, order.contact_phone, order.address_line) == ("Deleted user", "", "") and order.total > 0
+
+
+@pytest.mark.django_db
+def test_prefer_female_reaches_job_and_provider_phone_window(customer, captured_events):
+    item = customer.post("/api/cart/items/", {"item_type": "service", "slug": "fan-repair"}, format="json").data["id"]
+    details = {str(item): {"scheduled_date": timezone.localdate().isoformat(), "slot": "09-11", "prefer_female": True}}
+    booking = customer.post("/api/orders/", {**ADDRESS, "service_details": details}, format="json").data["bookings"][0]
+    assert [p for e, p in captured_events if e == "booking.created"][0]["required_gender"] == "female"
+    logic.apply_job_status({"source": "booking", "source_id": booking["id"], "status": "accepted", "provider_id": 5, "provider_name": "Rina", "provider_phone": "01811111111"})
+    assert customer.get(f"/api/bookings/{booking['id']}/").data["provider_phone"] == "01811111111"
+    logic.apply_job_status({"source": "booking", "source_id": booking["id"], "status": "completed"})
+    assert customer.get(f"/api/bookings/{booking['id']}/").data["provider_phone"] == ""

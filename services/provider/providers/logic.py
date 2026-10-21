@@ -4,7 +4,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from shohor_common import events, internal
@@ -21,7 +21,7 @@ PROVIDER_FLOW = {
 JOB_FIELDS = [
     "booking_id", "user_id", "title", "service_slug", "category_slug", "area_id", "area_name", "address_line",
     "latitude", "longitude", "customer_name", "customer_phone", "scheduled_date", "slot", "amount", "is_emergency",
-    "description", "photo_urls", "preferred_provider_id", "commission_override",
+    "description", "photo_urls", "preferred_provider_id", "commission_override", "required_gender",
 ]
 SLOT_END_HOUR = {"09-11": 11, "11-13": 13, "14-16": 16, "16-18": 18, "18-20": 20, "20-22": 22}
 
@@ -52,11 +52,9 @@ def set_status(job, status, note="", actor="system"):
 
 
 def available_jobs(provider):
-    return Job.objects.filter(
-        status=S.OPEN,
-        area_id__in=provider.area_ids,
-        category_slug__in=provider.skills,
-    )
+    jobs = Job.objects.filter(status=S.OPEN, area_id__in=provider.area_ids, category_slug__in=provider.skills)
+    # Jobs where the customer asked for a woman provider are shown only to women providers.
+    return jobs.filter(Q(required_gender="") | Q(required_gender=provider.gender or "-"))
 
 
 # ---- events from other services -------------------------------------------------------------
@@ -94,9 +92,8 @@ def nearest_online(job, limit=20):
 
 
 def available_jobs_providers(job):
-    return Provider.objects.filter(
-        status=Provider.Status.APPROVED, area_ids__contains=[job.area_id], skills__contains=[job.category_slug]
-    )
+    qs = Provider.objects.filter(status=Provider.Status.APPROVED, area_ids__contains=[job.area_id], skills__contains=[job.category_slug])
+    return qs.filter(gender=job.required_gender) if job.required_gender else qs
 
 
 @transaction.atomic
@@ -124,7 +121,7 @@ def _locked(job):
 def accept(job, provider):
     job = _locked(job)
     if job.status == S.OPEN:
-        if job.area_id not in provider.area_ids or job.category_slug not in provider.skills:
+        if job.area_id not in provider.area_ids or job.category_slug not in provider.skills or (job.required_gender and provider.gender != job.required_gender):
             raise ValidationError({"job": "This job is outside your areas or skills."})
     elif not (job.status == S.ASSIGNED and job.provider_id == provider.id):
         raise ValidationError({"job": "This job is no longer available."})
@@ -204,6 +201,8 @@ def assign(job, provider):
     job = _locked(job)
     if provider.status != Provider.Status.APPROVED:
         raise ValidationError({"provider_id": "Provider is not approved."})
+    if job.required_gender and provider.gender != job.required_gender:
+        raise ValidationError({"provider_id": "The customer asked for a woman provider."})
     if job.status not in (S.OPEN, S.ASSIGNED, S.ACCEPTED):
         raise ValidationError({"job": "Job already started or closed."})
     job.provider = provider
@@ -262,19 +261,10 @@ def earnings_summary(provider):
     }
 
 
-@transaction.atomic
-def request_payout(provider):
-    if not provider.payout_method or not provider.payout_account:
-        raise ValidationError({"payout": "Add your bKash or Nagad number in your profile first."})
-    pending = provider.earnings.select_for_update().filter(status=Earning.Status.PENDING)
-    amount = pending.aggregate(s=Sum("net"))["s"] or Decimal("0")
-    if amount <= 0:
-        raise ValidationError({"payout": "Nothing to pay out yet."})
-    payout = Payout.objects.create(
-        provider=provider, amount=amount, method=provider.payout_method, account=provider.payout_account
-    )
-    pending.update(status=Earning.Status.IN_PAYOUT, payout=payout)
-    return payout
+def request_payout(provider, instant=False):
+    from .trust import request_payout as _request  # trust builds on this module
+
+    return _request(provider, instant)
 
 
 @transaction.atomic
@@ -310,18 +300,20 @@ def create_review(user_id, source, source_id, rating, comment=""):
     if not 1 <= int(rating) <= 5:
         raise ValidationError({"rating": "Rate from 1 to 5."})
     review = Review.objects.create(job=job, provider=job.provider, user_id=user_id, rating=rating, comment=comment)
-    apply_review({"provider_user_id": job.provider.user_id, "rating": rating})
+    recompute_rating(job.provider)
     return review
 
 
-def apply_review(payload):
-    """Keep the provider's running average."""
-    provider = Provider.objects.filter(user_id=payload["provider_user_id"]).first()
-    if provider is None:
-        return
-    total = provider.rating_avg * provider.rating_count + Decimal(payload["rating"])
-    provider.rating_count += 1
-    provider.rating_avg = (total / provider.rating_count).quantize(Decimal("0.01"))
+def recompute_rating(provider):
+    """Fair score: a Bayesian average that starts from a neutral prior, so a single harsh (or glowing) review on a
+    new provider cannot swing the score, and reviews hidden after an upheld dispute do not count.
+    Low scores never block anyone automatically; they show up for admin review instead."""
+    visible = provider.reviews.filter(hidden=False)
+    agg = visible.aggregate(total=Sum("rating"), n=Count("id"))
+    n, total = agg["n"] or 0, Decimal(agg["total"] or 0)
+    prior, weight = Decimal(settings.RATING_PRIOR), Decimal(settings.RATING_PRIOR_WEIGHT)
+    provider.rating_count = n
+    provider.rating_avg = ((prior * weight + total) / (weight + n)).quantize(Decimal("0.01")) if n else Decimal("0")
     badges = set(provider.badges)
     if provider.rating_count >= 10 and provider.rating_avg >= Decimal("4.8"):
         badges.add("top_rated")

@@ -36,8 +36,8 @@ apps/admin-web    ─┘                          ├─► order           ─�
 | `services/common` | Shared package `shohor_common`: settings, role permissions, event bus, internal calls, test helpers |
 | `services/auth` | Users, roles, phone OTP, JWT, areas, saved addresses, user block/unblock |
 | `services/catalog` | Categories, products, services, fixed prices, stock |
-| `services/order` | Cart (products + services), COD checkout, bookings, tracking, arrival code, warranty claims |
-| `services/provider` | Provider onboarding & verification, job inbox, smart matching, earnings, weekly payouts, trust score |
+| `services/order` | Cart (products + services), COD checkout, bookings, tracking, arrival code, warranty claims, live share tokens, female provider preference |
+| `services/provider` | Provider onboarding & verification, job inbox, smart matching, earnings, weekly & instant payouts, Bayesian trust score, training & certification, micro-insurance, safety SOS & review disputes |
 | `services/custom_request` | Custom service requests, admin quotes with cost breakdown, one counter-offer round |
 | `services/media` | Photo/document uploads; NID files are always private |
 | `services/subscription` | 7/15/30-day cleaning, meal and household plans: schedules, skip (10 PM cutoff), pause, cancel, renew, upgrade, same-cleaner pin, 48h re-clean, group meals, student discount, meal menu |
@@ -80,6 +80,13 @@ apps/admin-web    ─┘                          ├─► order           ─�
 - **Multi-city:** a city exists as soon as it has areas; customers pick their city, and analytics can be filtered by it.
 - **Provider onboarding:** apply with NID/photos (kitchen photos for home chefs) → admin approves → `provider.approved`
   makes the user a provider (picked up on the next token refresh).
+- **Trust & safety:** customers can request a female provider for household bookings and subscriptions (dispatched
+  only to verified female providers); bookings provide a public live-share tracking link for family and an instant SOS
+  alert with live GPS coordinates broadcast to admins and emergency contacts. Providers take interactive video modules
+  and quizzes to earn badges and digital verification certificates. Both parties rate each other after service (feeding
+  Bayesian reputation scores); providers can submit dispute claims against unfair reviews for admin arbitration.
+  Verified providers can enroll in micro-insurance plans with claim filing, and request instant payouts with automatic
+  insurance premium deductions.
 
 ## Languages (Bangla + English)
 
@@ -138,6 +145,7 @@ python3 scripts/e2e_phase2.py           # subscriptions, payments/escrow, review
 python3 scripts/e2e_phase3.py           # city issues, community, emergency request, live tracking
 python3 scripts/e2e_phase4.py           # credit & points, referrals, B2B portal, analytics, multi-city
 python3 scripts/e2e_phase5.py           # consent, encrypted NID, data export, account deletion, outbox
+python3 scripts/e2e_phase6.py           # trust & safety: female provider, training, insurance, SOS, ratings, instant payout
 E2E_ADMIN_PHONE=... E2E_ADMIN_PASSWORD=... pnpm --filter e2e test   # browser tests (Playwright) of the three apps
 pnpm -r build                           # type-check and build all web apps
 ```
@@ -151,3 +159,8 @@ pnpm -r build                           # type-check and build all web apps
 | 2 — Subscriptions & Trust | 7/15/30-day cleaning & meal plans, online payment + escrow, reviews, chat, notifications | done |
 | 3 — City Layer | Issue reporting, live map, emergency request, community hub | done |
 | 4 — Scale | Loyalty points & wallet, referrals, B2B portal, analytics, multi-city | done |
+| 5 — Compliance & Ops | Consent (PDPO 2025), encrypted NID, data export, account deletion, outbox relay | done |
+| 6 — Trust & Safety | SOS emergency alert, live sharing, female provider preference, two-way ratings & disputes, provider insurance, training & certificates, instant payouts | done |
+| 7 — Channels & Payments | bKash tokenized auto-debit, direct payment, WhatsApp Business notification & OTP, Messenger bot, PWA, SMS booking | planned |
+| 8 — Smart Features | AI photo quote (vision), Bangla voice search, Digital Home Profile & reminders, tenant/landlord mode, neighbourhood group deals | planned |
+| 9 — Growth & City Partnership | City corporation data export & transparency dashboard, demand forecasting, fraud & churn detection, parts marketplace | planned |

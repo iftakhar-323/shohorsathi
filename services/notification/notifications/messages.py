@@ -57,6 +57,12 @@ def build(event, p):
     if event == "provider.approved":
         return [Note(p["user_id"], event, "আবেদন অনুমোদিত!", "Application approved!", "এখন থেকে আপনার এলাকার কাজ নিতে পারবেন।",
                      "You can now take jobs in your area.", "/", app="provider", sms=True)]
+    if event == "safety.sos":
+        who_bn = "প্রোভাইডার" if p["role"] == "provider" else "গ্রাহক"
+        who_en = "Provider" if p["role"] == "provider" else "Customer"
+        return [Note(uid, event, f"SOS: {who_bn} সাহায্য চাইছেন", f"SOS: {who_en} needs help",
+                     f"{p['job_title']} · {p['area_name']}", f"{p['job_title']} · {p['area_name']}", "/safety", app="admin", sms=True)
+                for uid in p.get("admin_ids", [])]
     if event == "emergency.raised":
         return [Note(uid, event, "জরুরি কাজ!", "Emergency job!", p["title"], p["title"], "/", app="provider", sms=True) for uid in p["provider_user_ids"]]
     if event == "custom_request.quoted":
