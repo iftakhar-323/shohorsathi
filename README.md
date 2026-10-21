@@ -126,6 +126,8 @@ without an English translation or Bangla JSX text that is not wrapped in `t()`.
 
 ## Run locally
 
+For a presentation with demo accounts, photos and data, follow [DEMO.md](DEMO.md) (`python3 scripts/seed_demo.py`).
+
 ```bash
 ./scripts/gen-jwt-keys.sh          # creates .keys/jwt_private.pem + jwt_public.pem (gitignored)
 cp .env.example .env
@@ -166,6 +168,7 @@ python3 scripts/e2e_phase7.py           # channels & payments: direct bKash/Naga
 python3 scripts/e2e_phase8.py           # AI quote, fuzzy search, Home Profile, landlord SMS approval, group deal price, seasonal packages
 python3 scripts/e2e_phase9.py           # transparency dashboard, authority feed, CSV export, sponsored listing, forecast/churn/fraud
 E2E_ADMIN_PHONE=... E2E_ADMIN_PASSWORD=... pnpm --filter e2e test   # browser tests (Playwright) of the three apps
+cd apps/e2e && npx playwright test tests/demo-tour.spec.ts          # every page of all apps on the demo data, with screenshots
 pnpm -r build                           # type-check and build all web apps
 ```
 

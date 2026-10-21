@@ -28,13 +28,13 @@ function Shell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   return (
     <div className="flex min-h-screen flex-wrap">
-      <aside className="flex w-full flex-col gap-1 bg-night p-4 text-night-text md:sticky md:top-0 md:h-screen md:w-60">
+      <aside className="flex w-full flex-col gap-1 bg-night p-4 text-night-text md:sticky md:top-0 md:h-screen md:w-60 md:overflow-y-auto">
         <div className="flex items-center gap-2 px-2 pb-4">
           <span className="text-xl font-bold text-white">{t("শহরসাথী")}</span>
           <span className="rounded-full bg-alert px-2 py-0.5 text-xs font-semibold text-ink">{t("পার্টনার")}</span>
           <span className="ml-auto md:hidden"><LanguageToggle /></span>
         </div>
-        <nav aria-label={t("প্রোভাইডার মেনু")} className="flex gap-1 overflow-x-auto md:flex-col">
+        <nav aria-label={t("প্রোভাইডার মেনু")} className="flex gap-1 overflow-x-auto md:shrink-0 md:flex-col md:overflow-visible">
           {NAV.map((n) => (
             <NavLink
               key={n.to}

@@ -30,7 +30,7 @@ export function todayISO(offsetDays = 0) {
 
 export const SLOTS = [
   { value: "09-11", label: "সকাল ৯–১১" },
-  { value: "11-13", label: "১১–১" },
+  { value: "11-13", label: "বেলা ১১–১" },
   { value: "14-16", label: "দুপুর ২–৪" },
   { value: "16-18", label: "বিকাল ৪–৬" },
   { value: "18-20", label: "সন্ধ্যা ৬–৮" },

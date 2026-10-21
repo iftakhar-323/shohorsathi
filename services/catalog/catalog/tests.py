@@ -207,3 +207,13 @@ def test_sponsored_listing_comes_first_and_records_the_fee(client, electrical, c
     customer = APIClient()
     customer.credentials(HTTP_AUTHORIZATION=f"Bearer {token('customer')}")
     assert customer.post("/api/services/new-fan/sponsor/", {"days": 7, "fee": "0", "sponsor_name": "x"}, format="json").status_code == 403
+
+
+@pytest.mark.django_db
+def test_admin_saves_uploaded_photo_path(electrical):
+    admin = APIClient()
+    admin.credentials(HTTP_AUTHORIZATION=f"Bearer {token('admin')}")
+    res = admin.post("/api/services/", {"category": electrical.id, "slug": "fan-fix", "name_en": "Fan", "name_bn": "ফ্যান",
+                                        "base_price": "300", "image_url": "/media/public/catalog/2026/10/a.jpg"}, format="json")
+    assert res.status_code == 201, res.data
+    assert res.data["image_url"] == "/media/public/catalog/2026/10/a.jpg"

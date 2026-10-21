@@ -30,7 +30,7 @@ export const EN: Record<string, string> = {
   "বন্ধ করুন": "Close",
   "কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।": "Something went wrong. Please try again.",
   "সকাল ৯–১১": "Morning 9–11",
-  "১১–১": "11–1",
+  "বেলা ১১–১": "Midday 11–1",
   "দুপুর ২–৪": "Afternoon 2–4",
   "বিকাল ৪–৬": "Afternoon 4–6",
   "সন্ধ্যা ৬–৮": "Evening 6–8",
@@ -1304,4 +1304,5 @@ export const EN: Record<string, string> = {
   "ফি (৳)": "Fee (৳)",
   "স্পন্সর করুন": "Sponsor",
   "স্পন্সর": "Sponsor",
+  "১ দিনের কম": "Less than a day",
 };

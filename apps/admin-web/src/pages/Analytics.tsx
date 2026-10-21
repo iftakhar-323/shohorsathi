@@ -1,4 +1,4 @@
-import { Badge, Button, Card, ErrorNote, MapView, PageHeader, Select, Stat, SuccessNote, Tabs, api, errorMessage, formatDate, formatNumber, formatTaka, t, useCities, type MapPoint } from "@shohor/web-core";
+import { Badge, Button, Card, ErrorNote, MapView, PageHeader, Select, Stat, SuccessNote, Tabs, api, errorMessage, formatDate, formatNumber, formatTaka, getLang, localName, t, useCategories, useCities, type MapPoint } from "@shohor/web-core";
 import { useQuery } from "@tanstack/react-query";
 
 import { DataTable } from "../components";
@@ -63,6 +63,11 @@ const SEVERITY_TONE = { high: "bad", medium: "warn", low: "info" } as const;
 
 /** Next 7 days per category; bar height is expected bookings, the hover shows how many providers that needs. */
 function ForecastView({ city }: { city?: string }) {
+  const { data: categories } = useCategories("service");
+  const categoryName = (slug: string) => {
+    const c = categories?.find((x) => x.slug === slug);
+    return c ? localName(c) : slug;
+  };
   const { data, isPending } = useQuery({
     queryKey: ["forecast", city],
     queryFn: async () => (await api.get<Forecast[]>("/admin/analytics/forecast/", { params: { city } })).data,
@@ -78,7 +83,7 @@ function ForecastView({ city }: { city?: string }) {
           return (
             <Card key={c.category} className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-2">
-                <h2 className="m-0 text-lg font-bold">{c.category}</h2>
+                <h2 className="m-0 text-lg font-bold">{categoryName(c.category)}</h2>
                 <span className="text-sm text-muted">
                   {t("সপ্তাহে ~{n} বুকিং", { n: c.week_total })} · {c.trend >= 1 ? "↑" : "↓"} {Math.round((c.trend - 1) * 100)}%
                 </span>
@@ -88,7 +93,7 @@ function ForecastView({ city }: { city?: string }) {
                   <div key={d.date} className="flex flex-1 flex-col items-center gap-1" title={`${formatDate(d.date)}: ${d.expected} · ${t("প্রোভাইডার লাগবে")} ${d.providers_needed}`}>
                     <span className="text-[12px] tabular-nums text-muted">{d.expected}</span>
                     <div className="w-full rounded-t bg-brand" style={{ height: `${(d.expected / max) * 72}px`, minHeight: d.expected ? 2 : 0 }} />
-                    <span className="text-[12px] text-muted">{new Date(d.date).toLocaleDateString(undefined, { weekday: "short" })}</span>
+                    <span className="text-[12px] text-muted">{new Date(d.date).toLocaleDateString(getLang() === "en" ? "en-GB" : "bn-BD", { weekday: "short" })}</span>
                   </div>
                 ))}
               </div>

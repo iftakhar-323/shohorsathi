@@ -60,7 +60,7 @@ function Shell({ children }: { children: ReactNode }) {
           <span className="rounded-full bg-ink px-2 py-0.5 text-xs font-semibold text-white">{t("অ্যাডমিন")}</span>
           <span className="ml-auto md:hidden"><LanguageToggle /></span>
         </div>
-        <nav aria-label={t("অ্যাডমিন মেনু")} className="flex gap-1 overflow-x-auto md:flex-col">
+        <nav aria-label={t("অ্যাডমিন মেনু")} className="flex gap-1 overflow-x-auto md:shrink-0 md:flex-col md:overflow-visible">
           {NAV.map((n) => (
             <NavLink
               key={n.to}

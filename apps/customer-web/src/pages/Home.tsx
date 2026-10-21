@@ -1,4 +1,4 @@
-import { api, Badge, Button, errorMessage, ErrorNote, formatDate, formatTaka, getLang, Icon, t, type IconName, type Paginated, useAuth, useServices } from "@shohor/web-core";
+import { api, Badge, Button, errorMessage, ErrorNote, formatDate, formatTaka, getLang, Icon, localName, t, type IconName, type Paginated, useAuth, useServices } from "@shohor/web-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -280,6 +280,7 @@ type SeasonalPackage = {
   season: string;
   service_slugs: string[];
   discount_percent: number;
+  banner_image_url: string;
   active_until: string;
 };
 
@@ -352,14 +353,21 @@ function SeasonalPackages() {
     queryKey: ["seasonal-packages"],
     queryFn: async () => (await api.get<Paginated<SeasonalPackage>>("/seasonal-packages/")).data.results,
   });
+  const { data: services } = useServices();
   if (!packages?.length) return null;
   const en = getLang() === "en";
+  const nameOf = (slug: string) => {
+    const s = services?.results.find((x) => x.slug === slug);
+    return s ? localName(s) : slug.replaceAll("-", " ");
+  };
   return (
     <section className="mx-auto max-w-[1200px] px-6 py-6">
       <h2 className="m-0 mb-4 text-2xl font-bold">{t("মৌসুমি প্যাকেজ")}</h2>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {packages.map((p) => (
-          <div key={p.id} className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-5">
+          <div key={p.id} className="flex flex-col gap-2 overflow-hidden rounded-2xl border border-line bg-surface">
+            {p.banner_image_url && <img src={p.banner_image_url} alt="" className="h-40 w-full object-cover" />}
+            <div className="flex flex-col gap-2 p-5 pt-3">
             <div className="flex items-center justify-between gap-2">
               <h3 className="m-0 text-lg font-bold">{en ? p.title_en : p.title_bn}</h3>
               <Badge tone="ok">{t("{n}% ছাড়", { n: p.discount_percent })}</Badge>
@@ -368,11 +376,12 @@ function SeasonalPackages() {
             <div className="flex flex-wrap gap-2">
               {p.service_slugs.map((slug) => (
                 <Link key={slug} to={`/services/${slug}`} className="rounded-full border border-line px-3 py-1 text-sm font-semibold text-ink no-underline">
-                  {slug.replaceAll("-", " ")}
+                  {nameOf(slug)}
                 </Link>
               ))}
             </div>
             <span className="text-[13px] text-muted">{t("{date} পর্যন্ত", { date: formatDate(p.active_until) })}</span>
+            </div>
           </div>
         ))}
       </div>

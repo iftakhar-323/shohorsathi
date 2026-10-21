@@ -17,6 +17,8 @@ ITEM_FIELDS = ["id", "category", "category_slug", "slug", "name_en", "name_bn", 
 
 
 class SponsoredMixin(serializers.Serializer):
+    # Uploaded photos come back from the media service as site paths (/media/public/...), not absolute URLs.
+    image_url = serializers.CharField(max_length=200, required=False, allow_blank=True)
     is_sponsored = serializers.SerializerMethodField()
     sponsored_until = serializers.DateTimeField(read_only=True)
 
@@ -75,6 +77,8 @@ class GroupDealSerializer(serializers.ModelSerializer):
 
 
 class SeasonalPackageSerializer(serializers.ModelSerializer):
+    banner_image_url = serializers.CharField(max_length=200, required=False, allow_blank=True)
+
     class Meta:
         model = SeasonalPackage
         fields = [

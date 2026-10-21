@@ -16,7 +16,7 @@ type Report = {
   months: { month: string; reported: number; resolved: number }[];
 };
 
-const days = (n: number | null) => (n == null ? "—" : t("{n} দিন", { n }));
+const days = (n: number | null) => (n == null ? "—" : n < 1 ? t("১ দিনের কম") : t("{n} দিন", { n }));
 
 /** Share of a row that is done, drawn as a filled track; the numbers sit beside it so the bar is never the only cue. */
 function Progress({ done, total }: { done: number; total: number }) {
