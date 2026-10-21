@@ -108,10 +108,15 @@ test("customer app: main flows work by clicking", async ({ page }) => {
   await page.goto(`${C}/`);
   await expect(page.locator("option", { hasText: "খুলনা" })).toHaveCount(1);
   await page.goto(`${C}/transparency`);
-  await expect(page.getByText("খুলনা সিটি কর্পোরেশন, ওয়ার্ড ১৬")).toBeVisible();
+  for (const name of ["খুলনা সিটি কর্পোরেশন, প্রকৌশল বিভাগ", "খুলনা সিটি কর্পোরেশন, স্বাস্থ্য বিভাগ (মশক নিধন)", "খুলনা ওয়াসা", "ওজোপাডিকো, খুলনা"]) {
+    await expect(page.getByText(name)).toBeVisible();
+  }
   await page.goto(`${C}/issues`);
   await expect(page.getByText("সোনাডাঙ্গা বাসস্ট্যান্ডে পানি জমে")).toBeVisible();
-  await expect(page.getByText("খালিশপুরে ময়লার কন্টেইনার উপচে পড়ছে")).toBeVisible();
+  for (const title of ["খালিশপুরে ময়লার কন্টেইনার উপচে পড়ছে", "নিরালায় মশার উপদ্রব, ডেঙ্গুর ভয়", "ফুলবাড়ীগেটে তিন দিন ওয়াসার পানি নেই",
+    "ডাকবাংলো মোড়ে বিদ্যুতের তারের জট", "খান জাহান আলী রোডে কার্পেটিং উঠে গেছে"]) {
+    await expect(page.getByText(title)).toBeVisible();
+  }
   await page.goto(`${C}/`);
   await expect(page.getByText("খুলনায় বর্ষার প্রস্তুতি")).toBeVisible();
   await expect(page.getByText("খালিশপুর হাউজিং: এসি ক্লিনিং গ্রুপ ডিল")).toBeVisible();

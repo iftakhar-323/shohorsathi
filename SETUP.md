@@ -66,8 +66,8 @@ This one command:
 You should end with lines like:
 
 ```
-  ✓ Khulna: 5 orders (2 done and reviewed, 1 confirmed, 1 waiting for a provider, 1 products)
-  ✓ Khulna: City Corporation + WASA with feed links, 5 photo issues, 4 community posts
+  ✓ Khulna: 14 orders across every service type (6 done and reviewed, 3 confirmed, 3 waiting for a provider, 2 product orders)
+  ✓ Khulna: 5 authorities with feed links, 16 photo issues of all 8 kinds in 15 areas, 9 community posts
   ✓ analytics history: ... synthetic facts over 8 weeks
 Demo data ready. Password for every account: demo1234
 backend is up on http://localhost:8088
@@ -97,8 +97,8 @@ pnpm dev              # starts all three apps; Ctrl+C stops them
 
 | App | Open | Log in with (password `demo1234`) |
 |---|---|---|
-| Customer site | http://localhost:5173 | Dhaka: `01711000001` রহিম · `01711000002` নুসরাত · `01711000003` তানভীর<br>Khulna: `01711000004` ফারহানা · `01711000005` আরিফ · `01711000006` সুমাইয়া |
-| Provider portal | http://localhost:5174 | Dhaka: `01811000001` করিম (electrician) · `01811000002` সালমা (cleaner) · `01811000003` জামাল (AC)<br>Khulna: `01811000004` মাসুদ (electrician) · `01811000005` রেহানা (cleaner) · `01811000006` সাইফুল (AC & plumbing) |
+| Customer site | http://localhost:5173 | Dhaka: `01711000001` রহিম · `01711000002` নুসরাত · `01711000003` তানভীর<br>Khulna: `01711000004` ফারহানা · `01711000005` আরিফ · `01711000006` সুমাইয়া · `01711000007` রাকিব · `01711000008` তাসলিমা |
+| Provider portal | http://localhost:5174 | Dhaka: `01811000001` করিম (electrician) · `01811000002` সালমা (cleaner) · `01811000003` জামাল (AC)<br>Khulna: `01811000004` মাসুদ (electrician) · `01811000005` রেহানা (cleaner) · `01811000006` সাইফুল (AC & plumbing) · `01811000007` নাজমুল (painter & shifting) |
 | Admin panel | http://localhost:5175 | `01700000000` |
 
 One app only: `pnpm dev:customer`, `pnpm dev:provider` or `pnpm dev:admin`.
@@ -110,7 +110,7 @@ A walkthrough for presenting is in [DEMO.md](DEMO.md).
 
 - http://localhost:5173 shows the Bangla home page with photos; the `English` button switches language.
 - The city picker in the header lists ঢাকা, চট্টগ্রাম, খুলনা.
-- http://localhost:5173/transparency lists Dhaka and Khulna authorities.
+- http://localhost:5173/issues lists Dhaka and Khulna reports with photos; http://localhost:5173/transparency lists the authorities.
 - Log in at http://localhost:5175 as `01700000000` → *অ্যানালিটিক্স* shows charts.
 
 **Automated checks:**

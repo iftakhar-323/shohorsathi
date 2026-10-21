@@ -40,3 +40,6 @@ Stock photos used only as demo content. Pexels and Unsplash licenses allow free 
 | issues/khulna-streetlight.jpg | [10504093](https://www.pexels.com/photo/10504093/) | Pexels License |
 | issues/khulna-drain.jpg | [333650](https://www.pexels.com/photo/333650/) | Pexels License |
 | banners/khulna-river.jpg | [33337866](https://www.pexels.com/photo/33337866/) | Pexels License |
+| issues/khulna-mosquito.jpg | [10451829](https://www.pexels.com/photo/10451829/) | Pexels License |
+| issues/khulna-water-supply.jpg | [8814613](https://www.pexels.com/photo/8814613/) | Pexels License |
+| issues/khulna-wires.jpg | [20320345](https://www.pexels.com/photo/20320345/) | Pexels License |

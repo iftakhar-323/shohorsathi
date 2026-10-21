@@ -16,8 +16,8 @@ For fresh demo data before a presentation: `docker compose down -v && scripts/up
 
 | App | URL | Log in as (password `demo1234` for all) |
 |---|---|---|
-| Customer site | http://localhost:5173 | Dhaka: `01711000001` রহিম (tenant, Dhanmondi) · `01711000002` নুসরাত · `01711000003` তানভীর · Khulna: `01711000004` ফারহানা · `01711000005` আরিফ · `01711000006` সুমাইয়া |
-| Provider portal | http://localhost:5174 | Dhaka: `01811000001` করিম · `01811000002` সালমা · `01811000003` জামাল · Khulna: `01811000004` মাসুদ · `01811000005` রেহানা · `01811000006` সাইফুল |
+| Customer site | http://localhost:5173 | Dhaka: `01711000001` রহিম (tenant, Dhanmondi) · `01711000002` নুসরাত · `01711000003` তানভীর · Khulna: `01711000004` ফারহানা · `01711000005` আরিফ · `01711000006` সুমাইয়া · `01711000007` রাকিব · `01711000008` তাসলিমা |
+| Provider portal | http://localhost:5174 | Dhaka: `01811000001` করিম · `01811000002` সালমা · `01811000003` জামাল · Khulna: `01811000004` মাসুদ · `01811000005` রেহানা · `01811000006` সাইফুল · `01811000007` নাজমুল |
 | Admin panel | http://localhost:5175 | `01700000000` |
 
 New sign-ups need an OTP: in development it is printed in `docker compose logs auth` (search for `OTP for`).
@@ -33,11 +33,19 @@ New sign-ups need an OTP: in development it is printed in `docker compose logs a
 4. **AI quote**: type "বাথরুমের পাইপ থেকে পানি পড়ছে" or upload a photo → suggested service and price range.
    With `ANTHROPIC_API_KEY` in `.env` Claude looks at the photo; without it a keyword match answers (the page says which).
 5. **Home profile**: health score, upkeep reminders, tenant mode with the landlord's number.
-6. **Khulna**: the city picker in the header has ঢাকা, চট্টগ্রাম and **খুলনা** (Sonadanga, Khalishpur, Daulatpur, Boyra,
-   Gollamari). Khulna has its own providers, finished and upcoming jobs, a cleaning subscription, an IPS quote,
-   five photo reports handled by Khulna City Corporation and Khulna WASA, a monsoon package and a Khalishpur group
-   deal. Sign in as আরিফ (`01711000005`) for his orders, or as সাইফুল (`01811000006`) to see Arif's plumbing job waiting.
-7. **City problems** → map with 9 photo reports in Dhaka and Khulna → **Transparency dashboard** (public, per authority, no personal data).
+6. **Khulna** (pick খুলনা in the header's city picker): 15 areas — সোনাডাঙ্গা, খালিশপুর, দৌলতপুর, বয়রা, গল্লামারী, নিরালা,
+   শিববাড়ী, ডাকবাংলো, ময়লাপোতা, টুটপাড়া, লবণচরা, রূপসা, খান জাহান আলী, ফুলবাড়ীগেট, রায়েরমহল.
+   - **City problems:** 16 photo reports covering all 8 kinds (garbage, street lights, waterlogging, broken roads, drains,
+     mosquitoes, water supply, other such as hanging power lines), each sent to the right office — KCC Conservancy,
+     KCC Engineering, KCC Health (mosquito control), Khulna WASA, WZPDCL — and in every state from *reported* to
+     *resolved* (one *rejected* with the reason).
+   - **Services:** 14 orders covering every service type — electrician, AC cleaning and gas, cockroach control,
+     fridge repair and sink repair done and reviewed; deep clean, wall painting and house shifting booked; plumbing,
+     mosquito fogging and kitchen cleaning waiting for a provider. Sign in as সাইফুল (`01811000006`) to see the
+     plumbing job in *নতুন কাজ*, or as আরিফ (`01711000005`) for a customer's view.
+   - Also: cleaning subscription, IPS quote, 2 home profiles, 9 community posts, a Khulna monsoon package with a
+     Sundarbans photo, group deals in Khalishpur and Nirala.
+7. **City problems** → map with 20 photo reports in Dhaka and Khulna → **Transparency dashboard** (public, per authority, no personal data).
 8. **Provider portal as করিম**: job inbox, finished job (rate the customer), earnings and instant payout, training,
    insurance. As সালমা: the cleaning job waiting in *নতুন কাজ*, training badge.
 9. **Admin panel**: dashboard; orders; providers; city issues (forward to an authority, CSV export, authority feed link);
