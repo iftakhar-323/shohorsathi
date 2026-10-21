@@ -34,13 +34,18 @@ done
 docker compose up -d
 gateway="http://localhost:$(grep -E '^GATEWAY_PORT=' .env | cut -d= -f2 || true)"
 [ "$gateway" = "http://localhost:" ] && gateway="http://localhost:8088"
-echo "waiting for the services to answer on $gateway ..."
-for _ in $(seq 1 100); do
+echo "waiting for services to complete initial database migrations on $gateway ..."
+for i in $(seq 1 100); do
   ok=1
   for path in /api/services/ /api/areas/ /api/issues/ /api/subscription-plans/ /api/community/posts/; do
-    [ "$(curl -s -o /dev/null -w '%{http_code}' "$gateway$path")" = 200 ] || ok=0
+    code=$(curl -s -o /dev/null -w '%{http_code}' "$gateway$path" 2>/dev/null || echo "000")
+    [ "$code" = "200" ] || ok=0
   done
-  [ $ok = 1 ] && break
+  if [ $ok = 1 ]; then
+    echo ""
+    break
+  fi
+  printf "."
   sleep 3
 done
 [ $ok = 1 ] || { echo "services did not come up; check: docker compose ps; docker compose logs <service>"; exit 1; }
