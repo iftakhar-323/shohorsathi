@@ -1,22 +1,25 @@
-const taka = new Intl.NumberFormat("bn-BD", { maximumFractionDigits: 0 });
-const number = new Intl.NumberFormat("bn-BD");
-const day = new Intl.DateTimeFormat("bn-BD", { day: "numeric", month: "short", year: "numeric" });
-const dayTime = new Intl.DateTimeFormat("bn-BD", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+import { locale, t } from "./i18n";
+
+// Formatters follow the current language (Bangla digits in Bangla mode).
+const taka = () => new Intl.NumberFormat(locale(), { maximumFractionDigits: 0 });
+const number = () => new Intl.NumberFormat(locale());
+const day = () => new Intl.DateTimeFormat(locale(), { day: "numeric", month: "short", year: "numeric" });
+const dayTime = () => new Intl.DateTimeFormat(locale(), { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
 export function formatTaka(amount: string | number | null | undefined) {
-  return `৳ ${taka.format(Number(amount ?? 0))}`;
+  return `৳ ${taka().format(Number(amount ?? 0))}`;
 }
 
 export function formatNumber(n: number | string) {
-  return number.format(Number(n));
+  return number().format(Number(n));
 }
 
 export function formatDate(value: string | Date) {
-  return day.format(typeof value === "string" ? new Date(value) : value);
+  return day().format(typeof value === "string" ? new Date(value) : value);
 }
 
 export function formatDateTime(value: string | Date) {
-  return dayTime.format(typeof value === "string" ? new Date(value) : value);
+  return dayTime().format(typeof value === "string" ? new Date(value) : value);
 }
 
 export function todayISO(offsetDays = 0) {
@@ -34,8 +37,13 @@ export const SLOTS = [
   { value: "20-22", label: "রাত ৮–১০" },
 ];
 
+export function slotOptions() {
+  return SLOTS.map((s) => ({ value: s.value, label: t(s.label) }));
+}
+
 export function slotLabel(value: string) {
-  return SLOTS.find((s) => s.value === value)?.label ?? value;
+  const slot = SLOTS.find((s) => s.value === value);
+  return slot ? t(slot.label) : value;
 }
 
 const STATUS: Record<string, { label: string; tone: Tone }> = {
@@ -81,5 +89,6 @@ const STATUS: Record<string, { label: string; tone: Tone }> = {
 export type Tone = "ok" | "info" | "warn" | "bad" | "muted";
 
 export function statusInfo(status: string) {
-  return STATUS[status] ?? { label: status, tone: "muted" as Tone };
+  const info = STATUS[status];
+  return info ? { label: t(info.label), tone: info.tone } : { label: status, tone: "muted" as Tone };
 }

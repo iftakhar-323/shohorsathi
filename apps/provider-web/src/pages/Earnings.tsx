@@ -1,4 +1,4 @@
-import { Button, Card, Empty, ErrorNote, Loading, PageHeader, Stat, StatusBadge, SuccessNote, api, errorMessage, formatDate, formatTaka, type Paginated } from "@shohor/web-core";
+import { api, Button, Card, Empty, errorMessage, ErrorNote, formatDate, formatTaka, Loading, PageHeader, Stat, StatusBadge, SuccessNote, t, type Paginated } from "@shohor/web-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -23,7 +23,7 @@ export default function Earnings() {
     setError("");
     try {
       await api.post("/providers/payouts/");
-      setNotice("পেআউটের অনুরোধ পাঠানো হয়েছে।");
+      setNotice(t("পেআউটের অনুরোধ পাঠানো হয়েছে।"));
       qc.invalidateQueries({ queryKey: ["earnings"] });
       qc.invalidateQueries({ queryKey: ["payouts"] });
     } catch (e) {
@@ -37,31 +37,31 @@ export default function Earnings() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="আয় ও পেআউট"
-        subtitle="প্রতি রবিবার জমা আয় স্বয়ংক্রিয়ভাবে বিকাশ/নগদে পাঠানোর জন্য তৈরি হয়"
+        title={t("আয় ও পেআউট")}
+        subtitle={t("প্রতি রবিবার জমা আয় স্বয়ংক্রিয়ভাবে বিকাশ/নগদে পাঠানোর জন্য তৈরি হয়")}
         actions={
           <Button icon="money" onClick={requestPayout} disabled={Number(s.pending) <= 0}>
-            এখনই পেআউট চান
+            {t("এখনই পেআউট চান")}
           </Button>
         }
       />
       <SuccessNote>{notice}</SuccessNote>
       <ErrorNote>{error}</ErrorNote>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-3">
-        <Stat label="জমা (পেআউট বাকি)" value={formatTaka(s.pending)} />
-        <Stat label="পেআউট প্রক্রিয়াধীন" value={formatTaka(s.in_payout)} />
-        <Stat label="মোট পেয়েছেন" value={formatTaka(s.paid)} />
-        <Stat label="মোট কমিশন" value={formatTaka(s.commission_total)} />
+        <Stat label={t("জমা (পেআউট বাকি)")} value={formatTaka(s.pending)} />
+        <Stat label={t("পেআউট প্রক্রিয়াধীন")} value={formatTaka(s.in_payout)} />
+        <Stat label={t("মোট পেয়েছেন")} value={formatTaka(s.paid)} />
+        <Stat label={t("মোট কমিশন")} value={formatTaka(s.commission_total)} />
       </div>
 
       <Card className="flex flex-col gap-0 p-0">
-        <h2 className="m-0 p-5 pb-3 text-lg font-bold">কাজভিত্তিক আয়</h2>
-        {data.earnings.length === 0 && <div className="p-5"><Empty icon="money" title="এখনো কোনো আয় নেই" /></div>}
+        <h2 className="m-0 p-5 pb-3 text-lg font-bold">{t("কাজভিত্তিক আয়")}</h2>
+        {data.earnings.length === 0 && <div className="p-5"><Empty icon="money" title={t("এখনো কোনো আয় নেই")} /></div>}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] border-collapse text-[15px]">
             <thead>
               <tr className="text-left text-[13px] text-muted">
-                {["কাজ", "মোট", "কমিশন", "বোনাস", "আপনার আয়", "অবস্থা"].map((h) => (
+                {[t("কাজ"), t("মোট"), t("কমিশন"), t("বোনাস"), t("আপনার আয়"), t("অবস্থা")].map((h) => (
                   <th key={h} className="border-b border-line px-5 py-2 font-semibold">{h}</th>
                 ))}
               </tr>
@@ -86,12 +86,12 @@ export default function Earnings() {
       </Card>
 
       <Card className="flex flex-col gap-3">
-        <h2 className="m-0 text-lg font-bold">পেআউট ইতিহাস</h2>
-        {payouts?.results.length === 0 && <p className="m-0 text-muted">এখনো কোনো পেআউট হয়নি।</p>}
+        <h2 className="m-0 text-lg font-bold">{t("পেআউট ইতিহাস")}</h2>
+        {payouts?.results.length === 0 && <p className="m-0 text-muted">{t("এখনো কোনো পেআউট হয়নি।")}</p>}
         {payouts?.results.map((p) => (
           <div key={p.id} className="flex flex-wrap items-center gap-3 border-b border-subtle pb-3 last:border-0">
             <span className="flex-1">
-              {formatDate(p.created_at)} · {p.method === "bkash" ? "বিকাশ" : "নগদ"} {p.account}
+              {formatDate(p.created_at)} · {p.method === "bkash" ? t("বিকাশ") : t("নগদ")} {p.account}
               {p.reference && <span className="block text-[13px] text-muted">TxID: {p.reference}</span>}
             </span>
             <span className="font-bold">{formatTaka(p.amount)}</span>

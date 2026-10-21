@@ -1,4 +1,4 @@
-import { Button, ErrorNote, Modal, PageHeader, StatusBadge, api, errorMessage, formatDate, formatTaka, slotLabel } from "@shohor/web-core";
+import { api, Button, errorMessage, ErrorNote, formatDate, formatTaka, Modal, PageHeader, slotLabel, StatusBadge, t } from "@shohor/web-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -48,30 +48,30 @@ export default function Orders() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title="অর্ডার ও বুকিং" />
+      <PageHeader title={t("অর্ডার ও বুকিং")} />
       <div className="flex flex-wrap items-center gap-3">
         <FilterChips
           value={status}
           onChange={setStatus}
-          options={[{ value: "", label: "সব" }, ...["pending", "confirmed", "on_the_way", "completed", "cancelled"].map((s) => ({ value: s, label: s === "pending" ? "অপেক্ষমাণ" : s === "confirmed" ? "কনফার্মড" : s === "on_the_way" ? "পথে" : s === "completed" ? "সম্পন্ন" : "বাতিল" }))]}
+          options={[{ value: "", label: t("সব") }, ...["pending", "confirmed", "on_the_way", "completed", "cancelled"].map((s) => ({ value: s, label: s === "pending" ? t("অপেক্ষমাণ") : s === "confirmed" ? t("কনফার্মড") : s === "on_the_way" ? t("পথে") : s === "completed" ? t("সম্পন্ন") : t("বাতিল") }))]}
         />
-        <input type="search" aria-label="ফোন বা নাম" placeholder="ফোন বা নাম" value={q} onChange={(e) => setQ(e.target.value)} className="h-10 rounded-xl border border-line px-3" />
+        <input type="search" aria-label={t("ফোন বা নাম")} placeholder={t("ফোন বা নাম")} value={q} onChange={(e) => setQ(e.target.value)} className="h-10 rounded-xl border border-line px-3" />
       </div>
       <DataTable
         loading={isPending}
         rows={data?.results}
         onRowClick={setOpen}
         columns={[
-          { label: "অর্ডার", render: (o) => <span className="font-semibold">{o.number}</span> },
-          { label: "গ্রাহক", render: (o) => <>{o.contact_name}<span className="block text-[13px] text-muted">{o.contact_phone}</span></> },
-          { label: "এলাকা", render: (o) => o.area_name },
-          { label: "আইটেম", render: (o) => `${o.bookings.length} সার্ভিস, ${o.items.length} পণ্য` },
-          { label: "মোট", render: (o) => formatTaka(o.total) },
-          { label: "অবস্থা", render: (o) => <StatusBadge status={o.status} /> },
-          { label: "তারিখ", render: (o) => formatDate(o.created_at) },
+          { label: t("অর্ডার"), render: (o) => <span className="font-semibold">{o.number}</span> },
+          { label: t("গ্রাহক"), render: (o) => <>{o.contact_name}<span className="block text-[13px] text-muted">{o.contact_phone}</span></> },
+          { label: t("এলাকা"), render: (o) => o.area_name },
+          { label: t("আইটেম"), render: (o) => t("{services} সার্ভিস, {products} পণ্য", { services: o.bookings.length, products: o.items.length }) },
+          { label: t("মোট"), render: (o) => formatTaka(o.total) },
+          { label: t("অবস্থা"), render: (o) => <StatusBadge status={o.status} /> },
+          { label: t("তারিখ"), render: (o) => formatDate(o.created_at) },
         ]}
       />
-      <Modal title={`অর্ডার ${open?.number ?? ""}`} open={!!open} onClose={() => setOpen(null)}>
+      <Modal title={t("অর্ডার {number}", { number: open?.number ?? "" })} open={!!open} onClose={() => setOpen(null)}>
         {open && (
           <>
             <div className="flex flex-col gap-1 text-[15px]">
@@ -82,9 +82,9 @@ export default function Orders() {
             {open.bookings.map((b) => (
               <div key={b.id} className="flex items-center justify-between gap-2 rounded-xl border border-line p-3">
                 <span>
-                  {b.is_emergency && <span className="mr-1 text-bad">[জরুরি]</span>}
+                  {b.is_emergency && <span className="mr-1 text-bad">{t("[জরুরি]")}</span>}
                   {b.service_name}
-                  <span className="block text-[13px] text-muted">{formatDate(b.scheduled_date)}, {slotLabel(b.slot)} · {b.provider_name || "প্রোভাইডার নেই"}</span>
+                  <span className="block text-[13px] text-muted">{formatDate(b.scheduled_date)}, {slotLabel(b.slot)} · {b.provider_name || t("প্রোভাইডার নেই")}</span>
                 </span>
                 <StatusBadge status={b.status} />
               </div>
@@ -104,7 +104,7 @@ export default function Orders() {
               <div className="flex flex-wrap gap-2">
                 {(NEXT[open.status] ?? []).map((n) => (
                   <Button key={n.status} variant={n.status === "cancelled" ? "danger" : "primary"} onClick={() => setOrderStatus(n.status)}>
-                    {n.label}
+                    {t(n.label)}
                   </Button>
                 ))}
               </div>

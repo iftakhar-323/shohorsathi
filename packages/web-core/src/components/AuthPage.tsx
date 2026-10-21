@@ -1,3 +1,4 @@
+import { LanguageToggle, t } from "../lib/i18n";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
@@ -52,7 +53,7 @@ export default function AuthPage({
     try {
       await action();
     } catch (e) {
-      setError(e instanceof WrongAppError ? "এই অ্যাপে আপনার প্রবেশাধিকার নেই।" : errorMessage(e, "ফোন নম্বর বা পাসওয়ার্ড ঠিক নেই।"));
+      setError(e instanceof WrongAppError ? t("এই অ্যাপে আপনার প্রবেশাধিকার নেই।") : errorMessage(e, t("ফোন নম্বর বা পাসওয়ার্ড ঠিক নেই।")));
     } finally {
       setBusy(false);
     }
@@ -75,7 +76,7 @@ export default function AuthPage({
       run(async () => {
         await auth.requestOtp(phone, mode === "register" ? "register" : "reset_password");
         setOtpSent(true);
-        setNotice(`${phone} নম্বরে ৬ সংখ্যার কোড পাঠানো হয়েছে।`);
+        setNotice(t("{phone} নম্বরে ৬ সংখ্যার কোড পাঠানো হয়েছে।", { phone }));
       });
       return;
     }
@@ -88,12 +89,12 @@ export default function AuthPage({
       run(async () => {
         await auth.resetPassword({ phone, otp, new_password: password });
         switchTo("login");
-        setNotice("পাসওয়ার্ড বদলানো হয়েছে। এখন লগইন করুন।");
+        setNotice(t("পাসওয়ার্ড বদলানো হয়েছে। এখন লগইন করুন।"));
       });
     }
   }
 
-  const title = mode === "login" ? "লগইন" : mode === "register" ? "নতুন অ্যাকাউন্ট" : "পাসওয়ার্ড ভুলে গেছেন";
+  const title = mode === "login" ? t("লগইন") : mode === "register" ? t("নতুন অ্যাকাউন্ট") : t("পাসওয়ার্ড ভুলে গেছেন");
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center px-4 py-12">
@@ -106,14 +107,15 @@ export default function AuthPage({
             <span className="text-sm text-muted">{appName}</span>
             <h1 className="m-0 text-2xl font-bold">{title}</h1>
           </div>
+          <LanguageToggle className="ml-auto" />
         </div>
 
         <Field
-          label="মোবাইল নম্বর"
+          label={t("মোবাইল নম্বর")}
           type="tel"
           inputMode="numeric"
           pattern={PHONE_PATTERN}
-          title="০১ দিয়ে শুরু ১১ সংখ্যার নম্বর"
+          title={t("০১ দিয়ে শুরু ১১ সংখ্যার নম্বর")}
           placeholder="01XXXXXXXXX"
           value={phone}
           onChange={(e) => setPhone(e.target.value.trim())}
@@ -123,12 +125,12 @@ export default function AuthPage({
         />
 
         {mode === "register" && (
-          <Field label="পুরো নাম" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
+          <Field label={t("পুরো নাম")} value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
         )}
 
         {mode !== "login" && otpSent && (
           <Field
-            label="OTP কোড"
+            label={t("OTP কোড")}
             inputMode="numeric"
             pattern="[0-9]{6}"
             maxLength={6}
@@ -141,14 +143,14 @@ export default function AuthPage({
 
         {(mode === "login" || otpSent) && (
           <Field
-            label={mode === "reset" ? "নতুন পাসওয়ার্ড" : "পাসওয়ার্ড"}
+            label={mode === "reset" ? t("নতুন পাসওয়ার্ড") : t("পাসওয়ার্ড")}
             type="password"
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete={mode === "login" ? "current-password" : "new-password"}
-            hint={mode !== "login" ? "কমপক্ষে ৮ অক্ষর" : undefined}
+            hint={mode !== "login" ? t("কমপক্ষে ৮ অক্ষর") : undefined}
           />
         )}
 
@@ -156,30 +158,30 @@ export default function AuthPage({
         <SuccessNote>{notice}</SuccessNote>
 
         <Button type="submit" loading={busy} className="h-12 text-base">
-          {mode === "login" ? "লগইন" : otpSent ? (mode === "register" ? "অ্যাকাউন্ট খুলুন" : "পাসওয়ার্ড বদলান") : "OTP পাঠান"}
+          {mode === "login" ? t("লগইন") : otpSent ? (mode === "register" ? t("অ্যাকাউন্ট খুলুন") : t("পাসওয়ার্ড বদলান")) : t("OTP পাঠান")}
         </Button>
 
         <div className="flex flex-wrap justify-between gap-2 text-[15px]">
           {mode !== "login" ? (
             <button type="button" className="font-semibold text-brand" onClick={() => switchTo("login")}>
-              লগইনে ফিরে যান
+              {t("লগইনে ফিরে যান")}
             </button>
           ) : (
             <>
               {allowRegister && (
                 <button type="button" className="font-semibold text-brand" onClick={() => switchTo("register")}>
-                  নতুন অ্যাকাউন্ট খুলুন
+                  {t("নতুন অ্যাকাউন্ট খুলুন")}
                 </button>
               )}
               <button type="button" className="text-muted" onClick={() => switchTo("reset")}>
-                পাসওয়ার্ড ভুলে গেছেন?
+                {t("পাসওয়ার্ড ভুলে গেছেন?")}
               </button>
             </>
           )}
         </div>
         {mode === "login" && (
           <Link to="/" className="text-center text-sm text-muted">
-            হোমে ফিরে যান
+            {t("হোমে ফিরে যান")}
           </Link>
         )}
       </form>

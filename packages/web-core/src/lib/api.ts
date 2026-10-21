@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 // Every app talks to the gateway; in dev Vite proxies /api and /media to it.
@@ -73,7 +74,7 @@ api.interceptors.response.use(undefined, async (error: AxiosError) => {
 });
 
 /** Turns a DRF error response into one readable line. */
-export function errorMessage(error: unknown, fallback = "কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।"): string {
+export function errorMessage(error: unknown, fallback = t("কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।")): string {
   const data = (error as AxiosError)?.response?.data as unknown;
   if (!data) return fallback;
   if (typeof data === "string") return fallback;

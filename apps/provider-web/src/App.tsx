@@ -1,4 +1,4 @@
-import { AuthPage, Icon, Loading, RequireAuth, useAuth, type IconName } from "@shohor/web-core";
+import { AuthPage, Icon, LanguageToggle, Loading, RequireAuth, t, type IconName, useAuth } from "@shohor/web-core";
 import type { ReactNode } from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
@@ -24,10 +24,10 @@ function Shell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-wrap">
       <aside className="flex w-full flex-col gap-1 bg-night p-4 text-night-text md:sticky md:top-0 md:h-screen md:w-60">
         <div className="flex items-center gap-2 px-2 pb-4">
-          <span className="text-xl font-bold text-white">শহরসাথী</span>
-          <span className="rounded-full bg-alert px-2 py-0.5 text-xs font-semibold text-ink">পার্টনার</span>
+          <span className="text-xl font-bold text-white">{t("শহরসাথী")}</span>
+          <span className="rounded-full bg-alert px-2 py-0.5 text-xs font-semibold text-ink">{t("পার্টনার")}</span>
         </div>
-        <nav aria-label="প্রোভাইডার মেনু" className="flex gap-1 overflow-x-auto md:flex-col">
+        <nav aria-label={t("প্রোভাইডার মেনু")} className="flex gap-1 overflow-x-auto md:flex-col">
           {NAV.map((n) => (
             <NavLink
               key={n.to}
@@ -35,14 +35,15 @@ function Shell({ children }: { children: ReactNode }) {
               end={n.to === "/"}
               className={({ isActive }) => `flex shrink-0 items-center gap-2 rounded-xl px-3 py-3 no-underline ${isActive ? "bg-night-raised font-semibold text-white" : "text-night-text"}`}
             >
-              <Icon name={n.icon} size={18} /> {n.label}
+              <Icon name={n.icon} size={18} /> {t(n.label)}
             </NavLink>
           ))}
         </nav>
         <div className="mt-auto hidden flex-col gap-2 px-2 pt-6 text-sm md:flex">
+          <LanguageToggle className="self-start" />
           <span>{user?.name}</span>
           <button type="button" onClick={() => { logout(); navigate("/login"); }} className="flex items-center gap-2 text-left text-night-text">
-            <Icon name="logout" size={16} /> লগআউট
+            <Icon name="logout" size={16} /> {t("লগআউট")}
           </button>
         </div>
       </aside>
@@ -62,7 +63,7 @@ function Gate({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<AuthPage appName="শহরসাথী পার্টনার" roles={["customer", "provider"]} />} />
+      <Route path="/login" element={<AuthPage appName={t("শহরসাথী পার্টনার")} roles={["customer", "provider"]} />} />
       <Route
         path="/*"
         element={

@@ -1,25 +1,4 @@
-import {
-  Button,
-  Card,
-  Empty,
-  ErrorNote,
-  Field,
-  Loading,
-  Modal,
-  PageHeader,
-  PhotoUpload,
-  Select,
-  StatusBadge,
-  TextArea,
-  Timeline,
-  api,
-  errorMessage,
-  formatDate,
-  formatTaka,
-  todayISO,
-  useAreas,
-  type Paginated,
-} from "@shohor/web-core";
+import { api, Button, Card, Empty, errorMessage, ErrorNote, Field, formatDate, formatTaka, Loading, localName, Modal, PageHeader, PhotoUpload, Select, StatusBadge, t, TextArea, Timeline, todayISO, type Paginated, useAreas } from "@shohor/web-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -62,7 +41,7 @@ export function NewCustomRequest() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     const area = areas?.find((a) => a.id === Number(form.area_id));
-    if (!area) return setError("এলাকা বাছুন।");
+    if (!area) return setError(t("এলাকা বাছুন।"));
     setBusy(true);
     setError("");
     try {
@@ -84,30 +63,30 @@ export function NewCustomRequest() {
 
   return (
     <section className="mx-auto flex max-w-[760px] flex-col gap-6 px-4 py-8 sm:px-6">
-      <PageHeader title="কাস্টম রিকোয়েস্ট" subtitle="ক্যাটালগে নেই এমন যেকোনো কাজ। অ্যাডমিন দেখে খরচের হিসাবসহ কোট দেবেন।" />
+      <PageHeader title={t("কাস্টম রিকোয়েস্ট")} subtitle={t("ক্যাটালগে নেই এমন যেকোনো কাজ। অ্যাডমিন দেখে খরচের হিসাবসহ কোট দেবেন।")} />
       <form onSubmit={submit} className="flex flex-col gap-4 rounded-[20px] border border-line bg-surface p-6">
-        <Field label="কী কাজ?" required value={form.service_type} onChange={set("service_type")} placeholder="যেমন: ২ রুমের দেয়াল রং" />
+        <Field label={t("কী কাজ?")} required value={form.service_type} onChange={set("service_type")} placeholder={t("যেমন: ২ রুমের দেয়াল রং")} />
         <div className="flex flex-wrap gap-2">
           {EXAMPLES.map((x) => (
-            <button key={x} type="button" onClick={() => setForm({ ...form, service_type: x })} className="rounded-full border border-line px-3 py-1.5 text-sm">
-              {x}
+            <button key={x} type="button" onClick={() => setForm({ ...form, service_type: t(x) })} className="rounded-full border border-line px-3 py-1.5 text-sm">
+              {t(x)}
             </button>
           ))}
         </div>
-        <TextArea label="বিস্তারিত" required rows={4} value={form.description} onChange={set("description")} placeholder="মাপ, অবস্থা, কী কী লাগবে" />
-        <PhotoUpload label="ছবি" value={media} onChange={setMedia} purpose="problem_photo" max={5} />
+        <TextArea label={t("বিস্তারিত")} required rows={4} value={form.description} onChange={set("description")} placeholder={t("মাপ, অবস্থা, কী কী লাগবে")} />
+        <PhotoUpload label={t("ছবি")} value={media} onChange={setMedia} purpose="problem_photo" max={5} />
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select label="এলাকা" required value={form.area_id} onChange={set("area_id")} options={[{ value: "", label: "এলাকা বাছুন" }, ...(areas ?? []).map((a) => ({ value: a.id, label: a.name_bn }))]} />
-          <Field label="ঠিকানা" required value={form.address_line} onChange={set("address_line")} />
-          <Field label="পছন্দের তারিখ" type="date" min={todayISO()} required value={form.preferred_date} onChange={set("preferred_date")} />
+          <Select label={t("এলাকা")} required value={form.area_id} onChange={set("area_id")} options={[{ value: "", label: t("এলাকা বাছুন") }, ...(areas ?? []).map((a) => ({ value: a.id, label: localName(a) }))]} />
+          <Field label={t("ঠিকানা")} required value={form.address_line} onChange={set("address_line")} />
+          <Field label={t("পছন্দের তারিখ")} type="date" min={todayISO()} required value={form.preferred_date} onChange={set("preferred_date")} />
           <div className="grid grid-cols-2 gap-2">
-            <Field label="বাজেট (কম)" type="number" min={0} value={form.budget_min} onChange={set("budget_min")} />
-            <Field label="বাজেট (বেশি)" type="number" min={0} value={form.budget_max} onChange={set("budget_max")} />
+            <Field label={t("বাজেট (কম)")} type="number" min={0} value={form.budget_min} onChange={set("budget_min")} />
+            <Field label={t("বাজেট (বেশি)")} type="number" min={0} value={form.budget_max} onChange={set("budget_max")} />
           </div>
         </div>
         <ErrorNote>{error}</ErrorNote>
         <Button type="submit" loading={busy} className="h-12 text-base">
-          রিকোয়েস্ট পাঠান
+          {t("রিকোয়েস্ট পাঠান")}
         </Button>
       </form>
     </section>
@@ -121,9 +100,9 @@ export function CustomRequestList() {
   });
   return (
     <section className="mx-auto flex max-w-[960px] flex-col gap-6 px-4 py-8 sm:px-6">
-      <PageHeader title="আমার কাস্টম রিকোয়েস্ট" actions={<Link to="/custom-requests/new" className="flex h-11 items-center rounded-xl bg-brand px-4 font-semibold text-white no-underline">নতুন রিকোয়েস্ট</Link>} />
+      <PageHeader title={t("আমার কাস্টম রিকোয়েস্ট")} actions={<Link to="/custom-requests/new" className="flex h-11 items-center rounded-xl bg-brand px-4 font-semibold text-white no-underline">{t("নতুন রিকোয়েস্ট")}</Link>} />
       {isPending && <Loading />}
-      {data?.results.length === 0 && <Empty icon="send" title="এখনো কোনো রিকোয়েস্ট নেই" />}
+      {data?.results.length === 0 && <Empty icon="send" title={t("এখনো কোনো রিকোয়েস্ট নেই")} />}
       {data?.results.map((r) => (
         <Link key={r.id} to={`/custom-requests/${r.id}`} className="text-ink no-underline">
           <Card className="flex flex-wrap items-center gap-4 hover:border-brand">
@@ -186,19 +165,19 @@ export function CustomRequestDetail() {
           )}
           {(req.budget_min || req.budget_max) && (
             <span className="text-sm text-muted">
-              আপনার বাজেট: {formatTaka(req.budget_min)} – {formatTaka(req.budget_max)}
+              {t("আপনার বাজেট:")} {formatTaka(req.budget_min)} – {formatTaka(req.budget_max)}
             </span>
           )}
         </Card>
 
         {q && (
           <Card className="flex flex-col gap-3 border-brand">
-            <h2 className="m-0 text-lg font-bold">খরচের হিসাব</h2>
+            <h2 className="m-0 text-lg font-bold">{t("খরচের হিসাব")}</h2>
             {[
-              ["মজুরি", q.labor],
-              ["উপকরণ", q.materials],
-              ["যাতায়াত", q.transport],
-              ["প্ল্যাটফর্ম ফি", q.platform_fee],
+              [t("মজুরি"), q.labor],
+              [t("উপকরণ"), q.materials],
+              [t("যাতায়াত"), q.transport],
+              [t("প্ল্যাটফর্ম ফি"), q.platform_fee],
             ].map(([label, value]) => (
               <div key={label} className="flex justify-between text-muted">
                 <span>{label}</span>
@@ -206,25 +185,25 @@ export function CustomRequestDetail() {
               </div>
             ))}
             <div className="flex justify-between border-t border-line pt-2 text-xl font-bold">
-              <span>মোট</span>
+              <span>{t("মোট")}</span>
               <span>{formatTaka(q.total)}</span>
             </div>
-            <span className="text-sm text-muted">সময় লাগবে: {q.timeline_days} দিন</span>
+            <span className="text-sm text-muted">{t("সময় লাগবে:")} {q.timeline_days} {t("দিন")}</span>
             {q.note && <p className="m-0 rounded-xl bg-subtle p-3 text-[15px]">{q.note}</p>}
-            {req.counter && <span className="text-sm text-muted">আপনার পাল্টা প্রস্তাব ছিল {formatTaka(req.counter.amount)}</span>}
+            {req.counter && <span className="text-sm text-muted">{t("আপনার পাল্টা প্রস্তাব ছিল")} {formatTaka(req.counter.amount)}</span>}
             <ErrorNote>{error}</ErrorNote>
             {req.status === "quote_sent" && (
               <div className="flex flex-wrap gap-2">
                 <Button loading={busy} onClick={() => act("accept")}>
-                  কোট গ্রহণ করুন
+                  {t("কোট গ্রহণ করুন")}
                 </Button>
                 {!req.counter && (
                   <Button variant="ghost" onClick={() => setCounterOpen(true)}>
-                    পাল্টা প্রস্তাব
+                    {t("পাল্টা প্রস্তাব")}
                   </Button>
                 )}
-                <Button variant="danger" onClick={() => confirm("কোটটি বাতিল করবেন?") && act("reject")}>
-                  বাতিল
+                <Button variant="danger" onClick={() => confirm(t("কোটটি বাতিল করবেন?")) && act("reject")}>
+                  {t("বাতিল")}
                 </Button>
               </div>
             )}
@@ -233,36 +212,36 @@ export function CustomRequestDetail() {
 
         {req.final_amount && (
           <Card className="flex flex-col gap-2">
-            <span className="font-semibold">চূড়ান্ত মূল্য {formatTaka(req.final_amount)}</span>
+            <span className="font-semibold">{t("চূড়ান্ত মূল্য")} {formatTaka(req.final_amount)}</span>
             <span className="text-sm text-muted">
-              অগ্রিম {formatTaka(req.advance_amount)} {req.advance_paid ? "(পরিশোধিত)" : "— কাজ শুরুর আগে"}
+              {t("অগ্রিম")} {formatTaka(req.advance_amount)} {req.advance_paid ? t("(পরিশোধিত)") : t("— কাজ শুরুর আগে")}
             </span>
             {req.provider_name && (
               <span>
-                প্রোভাইডার: <strong>{req.provider_name}</strong> {req.provider_phone && <a href={`tel:${req.provider_phone}`}>{req.provider_phone}</a>}
+                {t("প্রোভাইডার:")} <strong>{req.provider_name}</strong> {req.provider_phone && <a href={`tel:${req.provider_phone}`}>{req.provider_phone}</a>}
               </span>
             )}
           </Card>
         )}
 
-        {req.status === "rejected" && req.rejection_reason && <ErrorNote>কারণ: {req.rejection_reason}</ErrorNote>}
+        {req.status === "rejected" && req.rejection_reason && <ErrorNote>{t("কারণ:")} {req.rejection_reason}</ErrorNote>}
         {["submitted", "under_review", "quote_sent", "countered"].includes(req.status) && (
-          <Button variant="ghost" className="self-start" onClick={() => confirm("রিকোয়েস্ট বাতিল করবেন?") && act("cancel")}>
-            রিকোয়েস্ট বাতিল করুন
+          <Button variant="ghost" className="self-start" onClick={() => confirm(t("রিকোয়েস্ট বাতিল করবেন?")) && act("cancel")}>
+            {t("রিকোয়েস্ট বাতিল করুন")}
           </Button>
         )}
       </div>
       <Card className="flex h-fit flex-col gap-4">
-        <h2 className="m-0 text-lg font-bold">অগ্রগতি</h2>
+        <h2 className="m-0 text-lg font-bold">{t("অগ্রগতি")}</h2>
         <Timeline events={[...req.logs].reverse()} />
       </Card>
 
-      <Modal title="পাল্টা প্রস্তাব (একবারই)" open={counterOpen} onClose={() => setCounterOpen(false)}>
-        <Field label="আপনার প্রস্তাবিত মোট (৳)" type="number" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} />
-        <TextArea label="বার্তা" value={message} onChange={(e) => setMessage(e.target.value)} />
+      <Modal title={t("পাল্টা প্রস্তাব (একবারই)")} open={counterOpen} onClose={() => setCounterOpen(false)}>
+        <Field label={t("আপনার প্রস্তাবিত মোট (৳)")} type="number" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} />
+        <TextArea label={t("বার্তা")} value={message} onChange={(e) => setMessage(e.target.value)} />
         <ErrorNote>{error}</ErrorNote>
         <Button loading={busy} disabled={!amount} onClick={() => act("counter", { amount, message })}>
-          পাঠান
+          {t("পাঠান")}
         </Button>
       </Modal>
     </section>

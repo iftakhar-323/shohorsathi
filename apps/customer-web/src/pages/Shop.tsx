@@ -1,4 +1,4 @@
-import { Button, Empty, ErrorNote, Icon, Loading, PageHeader, errorMessage, formatTaka, useAuth, useCategories, useProducts } from "@shohor/web-core";
+import { Button, Empty, errorMessage, ErrorNote, formatTaka, Icon, Loading, localName, PageHeader, t, useAuth, useCategories, useProducts } from "@shohor/web-core";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -29,22 +29,22 @@ export default function Shop() {
 
   return (
     <section className="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 py-8 sm:px-6">
-      <PageHeader title="শপ" subtitle="ঘরের দরকারি জিনিস, ইলেকট্রিক ও প্লাম্বিং সামগ্রী" />
+      <PageHeader title={t("শপ")} subtitle={t("ঘরের দরকারি জিনিস, ইলেকট্রিক ও প্লাম্বিং সামগ্রী")} />
       <div className="flex flex-wrap gap-2">
-        {[{ slug: "", name_bn: "সব" }, ...(categories ?? [])].map((c) => (
+        {[{ slug: "", name_bn: t("সব"), name_en: t("সব") }, ...(categories ?? [])].map((c) => (
           <button
             key={c.slug}
             type="button"
             onClick={() => setParams(c.slug ? { category: c.slug } : {})}
             className={`h-11 rounded-full border px-4 text-[15px] ${category === c.slug ? "border-brand bg-brand text-white" : "border-line bg-surface"}`}
           >
-            {c.name_bn}
+            {localName(c)}
           </button>
         ))}
       </div>
       <ErrorNote>{error}</ErrorNote>
       {isPending && <Loading />}
-      {data?.results.length === 0 && <Empty icon="bag" title="এই ক্যাটাগরিতে এখন কোনো পণ্য নেই" />}
+      {data?.results.length === 0 && <Empty icon="bag" title={t("এই ক্যাটাগরিতে এখন কোনো পণ্য নেই")} />}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
         {data?.results.map((p) => (
           <article key={p.id} className="flex flex-col overflow-hidden rounded-[20px] border border-line bg-surface">
@@ -56,12 +56,12 @@ export default function Shop() {
               </div>
             )}
             <div className="flex flex-1 flex-col gap-1.5 p-4">
-              <h3 className="m-0 text-base font-bold">{p.name_bn}</h3>
+              <h3 className="m-0 text-base font-bold">{localName(p)}</h3>
               {p.shop_name && <span className="text-sm text-muted">{p.shop_name}</span>}
               <span className="text-lg font-bold">
                 {formatTaka(p.price)} <span className="text-sm font-normal text-muted">/ {p.unit}</span>
               </span>
-              <span className={`text-sm ${p.stock > 0 ? "text-brand-strong" : "text-bad"}`}>{p.stock > 0 ? "স্টকে আছে" : "স্টক শেষ"}</span>
+              <span className={`text-sm ${p.stock > 0 ? "text-brand-strong" : "text-bad"}`}>{p.stock > 0 ? t("স্টকে আছে") : t("স্টক শেষ")}</span>
               <Button
                 variant={added === p.slug ? "secondary" : "primary"}
                 icon={added === p.slug ? "check" : "cart"}
@@ -70,7 +70,7 @@ export default function Shop() {
                 onClick={() => add(p.slug)}
                 className="mt-auto"
               >
-                {added === p.slug ? "কার্টে যোগ হয়েছে" : "কার্টে যোগ করুন"}
+                {added === p.slug ? t("কার্টে যোগ হয়েছে") : t("কার্টে যোগ করুন")}
               </Button>
             </div>
           </article>

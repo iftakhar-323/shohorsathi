@@ -1,4 +1,4 @@
-import { Badge, Button, Card, ErrorNote, Loading, PageHeader, SuccessNote, api, errorMessage } from "@shohor/web-core";
+import { api, Badge, Button, Card, errorMessage, ErrorNote, Loading, PageHeader, SuccessNote, t } from "@shohor/web-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -28,7 +28,7 @@ export default function Profile() {
     setSaved("");
     try {
       await api.patch("/providers/me/", Object.fromEntries(WORK_FIELDS.map((k) => [k, form[k]])));
-      setSaved("সেভ হয়েছে।");
+      setSaved(t("সেভ হয়েছে।"));
       qc.invalidateQueries({ queryKey: ["provider-me"] });
     } catch (err) {
       setError(errorMessage(err));
@@ -38,11 +38,11 @@ export default function Profile() {
   return (
     <form onSubmit={save} className="flex max-w-[860px] flex-col gap-6">
       <PageHeader
-        title="প্রোফাইল"
+        title={t("প্রোফাইল")}
         subtitle={`${provider.full_name} · ${provider.phone}`}
         actions={provider.badges.map((b) => (
           <Badge key={b} tone="ok">
-            {BADGES[b] ?? b}
+            {t(BADGES[b] ?? b)}
           </Badge>
         ))}
       />
@@ -52,7 +52,7 @@ export default function Profile() {
       <SuccessNote>{saved}</SuccessNote>
       <ErrorNote>{error}</ErrorNote>
       <Button type="submit" className="self-start">
-        সেভ করুন
+        {t("সেভ করুন")}
       </Button>
     </form>
   );

@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Empty, ErrorNote, Icon, Loading, PageHeader, Stat, StatusBadge, Tabs, api, errorMessage, formatDate, formatTaka, slotLabel } from "@shohor/web-core";
+import { api, Badge, Button, Card, Empty, errorMessage, ErrorNote, formatDate, formatTaka, Icon, Loading, PageHeader, slotLabel, Stat, StatusBadge, t, Tabs } from "@shohor/web-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -38,7 +38,7 @@ function JobRow({ job, tab }: { job: Job; tab: Tab }) {
     <Card className="flex flex-wrap items-center gap-4">
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          {job.is_emergency ? <Badge tone="bad">জরুরি</Badge> : <Badge tone="ok">{SOURCE[job.source] ?? job.source}</Badge>}
+          {job.is_emergency ? <Badge tone="bad">{t("জরুরি")}</Badge> : <Badge tone="ok">{t(SOURCE[job.source] ?? job.source)}</Badge>}
           <span className="text-sm text-muted">
             {formatDate(job.scheduled_date)}, {slotLabel(job.slot)}
           </span>
@@ -54,20 +54,20 @@ function JobRow({ job, tab }: { job: Job; tab: Tab }) {
       </div>
       {tab === "available" ? (
         <Button loading={busy} onClick={() => act("accept")}>
-          গ্রহণ করুন
+          {t("গ্রহণ করুন")}
         </Button>
       ) : job.status === "assigned" ? (
         <div className="flex gap-2">
           <Button variant="ghost" loading={busy} onClick={() => act("reject")}>
-            বাতিল
+            {t("বাতিল")}
           </Button>
           <Button loading={busy} onClick={() => act("accept")}>
-            গ্রহণ করুন
+            {t("গ্রহণ করুন")}
           </Button>
         </div>
       ) : (
         <Link to={`/jobs/${job.id}`} className="flex h-11 items-center gap-1 rounded-xl border border-line px-4 font-semibold text-ink no-underline">
-          খুলুন <Icon name="next" size={16} />
+          {t("খুলুন")} <Icon name="next" size={16} />
         </Link>
       )}
     </Card>
@@ -92,33 +92,33 @@ export default function Jobs() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="জব ইনবক্স"
-        subtitle={`${provider?.full_name} · যাচাইকৃত`}
+        title={t("জব ইনবক্স")}
+        subtitle={`${provider?.full_name} · ${t("যাচাইকৃত")}`}
         actions={
           <Button variant={provider?.is_online ? "primary" : "ghost"} icon={provider?.is_online ? "check" : "clock"} onClick={toggleOnline}>
-            {provider?.is_online ? "অনলাইন" : "অফলাইন"}
+            {provider?.is_online ? t("অনলাইন") : t("অফলাইন")}
           </Button>
         }
       />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-3">
-        <Stat label="সম্পন্ন কাজ" value={provider?.jobs_completed ?? 0} icon="check" />
-        <Stat label="এই সপ্তাহের আয়" value={formatTaka(earnings?.summary.this_week as string)} icon="money" />
-        <Stat label="রেটিং" value={provider?.rating_count ? `${provider.rating_avg} ★` : "নতুন"} icon="star" />
-        <Stat label="ট্রাস্ট স্কোর" value={provider?.trust_score ?? "-"} icon="shield" />
+        <Stat label={t("সম্পন্ন কাজ")} value={provider?.jobs_completed ?? 0} icon="check" />
+        <Stat label={t("এই সপ্তাহের আয়")} value={formatTaka(earnings?.summary.this_week as string)} icon="money" />
+        <Stat label={t("রেটিং")} value={provider?.rating_count ? `${provider.rating_avg} ★` : t("নতুন")} icon="star" />
+        <Stat label={t("ট্রাস্ট স্কোর")} value={provider?.trust_score ?? "-"} icon="shield" />
       </div>
       <Tabs
         value={tab}
         onChange={setTab}
         tabs={[
-          { value: "active", label: "আমার কাজ" },
-          { value: "available", label: "নতুন কাজ" },
-          { value: "history", label: "ইতিহাস" },
+          { value: "active", label: t("আমার কাজ") },
+          { value: "available", label: t("নতুন কাজ") },
+          { value: "history", label: t("ইতিহাস") },
         ]}
       />
       {isPending && <Loading />}
       {data?.results.length === 0 && (
-        <Empty icon="list" title={tab === "available" ? "আপনার এলাকায় এখন নতুন কাজ নেই" : "কোনো কাজ নেই"}>
-          {tab === "available" && "অনলাইন থাকুন, নতুন কাজ এলে এখানে দেখাবে।"}
+        <Empty icon="list" title={tab === "available" ? t("আপনার এলাকায় এখন নতুন কাজ নেই") : t("কোনো কাজ নেই")}>
+          {tab === "available" && t("অনলাইন থাকুন, নতুন কাজ এলে এখানে দেখাবে।")}
         </Empty>
       )}
       <div className="flex flex-col gap-3">

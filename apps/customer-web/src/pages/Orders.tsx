@@ -1,4 +1,4 @@
-import { Card, Empty, Loading, PageHeader, StatusBadge, formatDate, formatTaka } from "@shohor/web-core";
+import { Card, Empty, formatDate, formatTaka, Loading, PageHeader, StatusBadge, t } from "@shohor/web-core";
 import { Link } from "react-router-dom";
 
 import { useOrders } from "../api/orders";
@@ -8,11 +8,11 @@ export default function Orders() {
 
   return (
     <section className="mx-auto flex max-w-[960px] flex-col gap-6 px-4 py-8 sm:px-6">
-      <PageHeader title="আমার অর্ডার" />
+      <PageHeader title={t("আমার অর্ডার")} />
       {isPending && <Loading />}
       {data?.results.length === 0 && (
-        <Empty icon="list" title="এখনো কোনো অর্ডার নেই">
-          <Link to="/services">একটি সার্ভিস বুক করুন</Link>
+        <Empty icon="list" title={t("এখনো কোনো অর্ডার নেই")}>
+          <Link to="/services">{t("একটি সার্ভিস বুক করুন")}</Link>
         </Empty>
       )}
       <div className="flex flex-col gap-3">

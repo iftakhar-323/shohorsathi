@@ -1,3 +1,4 @@
+import { t } from "../lib/i18n";
 import { useId, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 
 import { upload } from "../lib/api";
@@ -133,7 +134,7 @@ export function Spinner({ size = 24 }: { size?: number }) {
   );
 }
 
-export function Loading({ label = "লোড হচ্ছে…" }: { label?: string }) {
+export function Loading({ label = t("লোড হচ্ছে…") }: { label?: string }) {
   return (
     <div role="status" className="flex items-center gap-3 py-10 text-muted">
       <Spinner /> {label}
@@ -232,7 +233,7 @@ export function PhotoUpload({
       for (const f of Array.from(files).slice(0, max - value.length)) urls.push(await upload(f, purpose, visibility));
       onChange([...value, ...urls]);
     } catch {
-      setError("ছবি আপলোড করা যায়নি। ১০ MB-এর ছোট JPG/PNG দিন।");
+      setError(t("ছবি আপলোড করা যায়নি। ১০ MB-এর ছোট JPG/PNG দিন।"));
     } finally {
       setBusy(false);
     }
@@ -247,11 +248,11 @@ export function PhotoUpload({
             {visibility === "public" ? (
               <img src={url} alt="" className="size-20 rounded-xl border border-line object-cover" />
             ) : (
-              <span className="flex size-20 items-center justify-center rounded-xl border border-line bg-subtle text-xs text-muted">আপলোড হয়েছে</span>
+              <span className="flex size-20 items-center justify-center rounded-xl border border-line bg-subtle text-xs text-muted">{t("আপলোড হয়েছে")}</span>
             )}
             <button
               type="button"
-              aria-label="ছবি সরান"
+              aria-label={t("ছবি সরান")}
               onClick={() => onChange(value.filter((u) => u !== url))}
               className="absolute -top-2 -right-2 flex size-7 items-center justify-center rounded-full border border-line bg-surface"
             >
@@ -265,7 +266,7 @@ export function PhotoUpload({
             className="flex size-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-[1.5px] border-dashed border-brand/50 bg-surface text-xs text-brand-strong"
           >
             {busy ? <Spinner size={18} /> : <Icon name="camera" />}
-            ছবি দিন
+            {t("ছবি দিন")}
           </label>
         )}
         <input id={id} type="file" accept="image/*" multiple={max > 1} className="sr-only" onChange={(e) => pick(e.target.files)} />
@@ -300,7 +301,7 @@ export function Modal({ title, open, onClose, children }: { title: string; open:
       >
         <div className="flex items-center justify-between gap-4">
           <h2 className="m-0 text-xl font-bold">{title}</h2>
-          <button type="button" aria-label="বন্ধ করুন" onClick={onClose} className="flex size-10 items-center justify-center rounded-xl border border-line">
+          <button type="button" aria-label={t("বন্ধ করুন")} onClick={onClose} className="flex size-10 items-center justify-center rounded-xl border border-line">
             <Icon name="x" size={18} />
           </button>
         </div>

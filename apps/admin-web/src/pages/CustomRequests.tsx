@@ -1,4 +1,4 @@
-import { Button, Card, ErrorNote, Field, Modal, PageHeader, StatusBadge, TextArea, Timeline, api, errorMessage, formatDate, formatTaka, useCategories } from "@shohor/web-core";
+import { api, Button, Card, errorMessage, ErrorNote, Field, formatDate, formatTaka, localName, Modal, PageHeader, StatusBadge, t, TextArea, Timeline, useCategories } from "@shohor/web-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -45,25 +45,25 @@ function QuoteForm({ req, onDone }: { req: Req; onDone: () => void }) {
 
   return (
     <Card className="flex flex-col gap-3 bg-brand-tint">
-      <span className="font-bold">খরচের হিসাব পাঠান</span>
+      <span className="font-bold">{t("খরচের হিসাব পাঠান")}</span>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="মজুরি" type="number" min={0} value={q.labor} onChange={set("labor")} required />
-        <Field label="উপকরণ" type="number" min={0} value={q.materials} onChange={set("materials")} />
-        <Field label="যাতায়াত" type="number" min={0} value={q.transport} onChange={set("transport")} />
-        <Field label="প্ল্যাটফর্ম ফি" type="number" min={0} value={q.platform_fee} onChange={set("platform_fee")} />
-        <Field label="সময় (দিন)" type="number" min={1} value={q.timeline_days} onChange={set("timeline_days")} />
+        <Field label={t("মজুরি")} type="number" min={0} value={q.labor} onChange={set("labor")} required />
+        <Field label={t("উপকরণ")} type="number" min={0} value={q.materials} onChange={set("materials")} />
+        <Field label={t("যাতায়াত")} type="number" min={0} value={q.transport} onChange={set("transport")} />
+        <Field label={t("প্ল্যাটফর্ম ফি")} type="number" min={0} value={q.platform_fee} onChange={set("platform_fee")} />
+        <Field label={t("সময় (দিন)")} type="number" min={1} value={q.timeline_days} onChange={set("timeline_days")} />
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="cat" className="text-[15px] font-semibold">প্রোভাইডার ক্যাটাগরি</label>
+          <label htmlFor="cat" className="text-[15px] font-semibold">{t("প্রোভাইডার ক্যাটাগরি")}</label>
           <select id="cat" value={q.category_slug} onChange={set("category_slug")} className="h-11 rounded-xl border border-line px-3">
-            <option value="">বাছুন</option>
-            {categories?.map((c) => <option key={c.slug} value={c.slug}>{c.name_bn}</option>)}
+            <option value="">{t("বাছুন")}</option>
+            {categories?.map((c) => <option key={c.slug} value={c.slug}>{localName(c)}</option>)}
           </select>
         </div>
       </div>
-      <TextArea label="নোট" value={q.note} onChange={set("note")} />
-      <span className="text-lg font-bold">মোট {formatTaka(total)}</span>
+      <TextArea label={t("নোট")} value={q.note} onChange={set("note")} />
+      <span className="text-lg font-bold">{t("মোট")} {formatTaka(total)}</span>
       <ErrorNote>{error}</ErrorNote>
-      <Button onClick={send} disabled={!q.labor || !q.category_slug}>কোট পাঠান</Button>
+      <Button onClick={send} disabled={!q.labor || !q.category_slug}>{t("কোট পাঠান")}</Button>
     </Card>
   );
 }
@@ -97,17 +97,17 @@ export default function CustomRequests() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title="কাস্টম রিকোয়েস্ট" />
+      <PageHeader title={t("কাস্টম রিকোয়েস্ট")} />
       <FilterChips
         value={status}
         onChange={setStatus}
         options={[
-          { value: "submitted,under_review,countered", label: "অ্যাকশন দরকার" },
-          { value: "quote_sent", label: "কোট পাঠানো" },
-          { value: "accepted,provider_assigned,in_progress", label: "চলমান" },
-          { value: "completed", label: "সম্পন্ন" },
-          { value: "rejected,cancelled", label: "বাতিল" },
-          { value: "", label: "সব" },
+          { value: "submitted,under_review,countered", label: t("অ্যাকশন দরকার") },
+          { value: "quote_sent", label: t("কোট পাঠানো") },
+          { value: "accepted,provider_assigned,in_progress", label: t("চলমান") },
+          { value: "completed", label: t("সম্পন্ন") },
+          { value: "rejected,cancelled", label: t("বাতিল") },
+          { value: "", label: t("সব") },
         ]}
       />
       <DataTable
@@ -115,19 +115,19 @@ export default function CustomRequests() {
         rows={data?.results}
         onRowClick={(r) => setOpenId(r.id)}
         columns={[
-          { label: "কাজ", render: (r) => <span className="font-semibold">{r.service_type}</span> },
-          { label: "গ্রাহক", render: (r) => r.customer_name },
-          { label: "এলাকা", render: (r) => r.area_name },
-          { label: "বাজেট", render: (r) => (r.budget_max ? `${formatTaka(r.budget_min)}–${formatTaka(r.budget_max)}` : "—") },
-          { label: "কোট", render: (r) => (r.quote ? formatTaka(r.quote.total) : "—") },
-          { label: "অবস্থা", render: (r) => <StatusBadge status={r.status} /> },
-          { label: "তারিখ", render: (r) => formatDate(r.created_at) },
+          { label: t("কাজ"), render: (r) => <span className="font-semibold">{r.service_type}</span> },
+          { label: t("গ্রাহক"), render: (r) => r.customer_name },
+          { label: t("এলাকা"), render: (r) => r.area_name },
+          { label: t("বাজেট"), render: (r) => (r.budget_max ? `${formatTaka(r.budget_min)}–${formatTaka(r.budget_max)}` : "—") },
+          { label: t("কোট"), render: (r) => (r.quote ? formatTaka(r.quote.total) : "—") },
+          { label: t("অবস্থা"), render: (r) => <StatusBadge status={r.status} /> },
+          { label: t("তারিখ"), render: (r) => formatDate(r.created_at) },
         ]}
       />
       {trends && trends.length > 0 && (
         <Card className="flex flex-col gap-2">
-          <h2 className="m-0 text-lg font-bold">বেশি চাওয়া কাজ</h2>
-          <p className="m-0 text-sm text-muted">বারবার আসা রিকোয়েস্টগুলো নিয়মিত ক্যাটালগে যোগ করার কথা ভাবুন।</p>
+          <h2 className="m-0 text-lg font-bold">{t("বেশি চাওয়া কাজ")}</h2>
+          <p className="m-0 text-sm text-muted">{t("বারবার আসা রিকোয়েস্টগুলো নিয়মিত ক্যাটালগে যোগ করার কথা ভাবুন।")}</p>
           <div className="flex flex-wrap gap-2">
             {trends.slice(0, 10).map((t) => (
               <span key={t.name} className="rounded-full border border-line px-3 py-1 text-sm">{t.name} · {t.count}</span>
@@ -143,21 +143,21 @@ export default function CustomRequests() {
               <span className="text-muted">{open.address_line}, {open.area_name} · {formatDate(open.preferred_date)}</span>
               <p className="m-0 rounded-xl bg-subtle p-3 whitespace-pre-line">{open.description}</p>
               {open.media_urls.length > 0 && <div className="flex flex-wrap gap-2">{open.media_urls.map((u) => <img key={u} src={u} alt="" className="size-20 rounded-xl object-cover" />)}</div>}
-              {open.counter && <span className="font-semibold text-alert-strong">গ্রাহকের পাল্টা প্রস্তাব: {formatTaka(open.counter.amount)} {open.counter.message && `— ${open.counter.message}`}</span>}
+              {open.counter && <span className="font-semibold text-alert-strong">{t("গ্রাহকের পাল্টা প্রস্তাব:")} {formatTaka(open.counter.amount)} {open.counter.message && `— ${open.counter.message}`}</span>}
             </div>
             <ErrorNote>{error}</ErrorNote>
-            {open.status === "submitted" && <Button variant="secondary" onClick={() => act("review")}>রিভিউ শুরু করুন</Button>}
+            {open.status === "submitted" && <Button variant="secondary" onClick={() => act("review")}>{t("রিভিউ শুরু করুন")}</Button>}
             {["submitted", "under_review", "countered"].includes(open.status) && (
               <>
                 <QuoteForm req={open} onDone={refresh} />
-                <Button variant="danger" onClick={() => { const reason = prompt("কেন বাতিল করছেন?"); if (reason) act("decline", { reason }); }}>
-                  রিকোয়েস্ট বাতিল
+                <Button variant="danger" onClick={() => { const reason = prompt(t("কেন বাতিল করছেন?")); if (reason) act("decline", { reason }); }}>
+                  {t("রিকোয়েস্ট বাতিল")}
                 </Button>
               </>
             )}
             {open.quotes.length > 0 && (
               <div className="flex flex-col gap-1 text-sm text-muted">
-                {open.quotes.map((q) => <span key={q.id}>{formatDate(q.created_at)}: {formatTaka(q.total)} {q.is_current && "(বর্তমান)"}</span>)}
+                {open.quotes.map((q) => <span key={q.id}>{formatDate(q.created_at)}: {formatTaka(q.total)} {q.is_current && t("(বর্তমান)")}</span>)}
               </div>
             )}
             <Timeline events={[...open.logs].reverse()} />

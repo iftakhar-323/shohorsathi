@@ -1,4 +1,4 @@
-import { Empty, Loading, api, type Paginated } from "@shohor/web-core";
+import { api, Empty, Loading, t, type Paginated } from "@shohor/web-core";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -9,7 +9,7 @@ export function DataTable<T extends { id: number | string }>({
   columns,
   onRowClick,
   loading,
-  empty = "কিছু পাওয়া যায়নি",
+  empty = t("কিছু পাওয়া যায়নি"),
 }: {
   rows: T[] | undefined;
   columns: Column<T>[];
@@ -75,13 +75,13 @@ export function PrivateImage({ url, alt }: { url: string; alt: string }) {
       if (revoke) URL.revokeObjectURL(revoke);
     };
   }, [url]);
-  if (!url) return <span className="text-sm text-muted">দেওয়া হয়নি</span>;
+  if (!url) return <span className="text-sm text-muted">{t("দেওয়া হয়নি")}</span>;
   return src ? (
     <a href={src} target="_blank" rel="noreferrer">
       <img src={src} alt={alt} className="h-32 w-48 rounded-xl border border-line object-cover" />
     </a>
   ) : (
-    <span className="flex h-32 w-48 items-center justify-center rounded-xl bg-subtle text-sm text-muted">লোড হচ্ছে…</span>
+    <span className="flex h-32 w-48 items-center justify-center rounded-xl bg-subtle text-sm text-muted">{t("লোড হচ্ছে…")}</span>
   );
 }
 

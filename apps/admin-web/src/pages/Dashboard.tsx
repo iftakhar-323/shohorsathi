@@ -1,4 +1,4 @@
-import { Card, PageHeader, Stat, StatusBadge, api, formatDate, formatTaka, statusInfo } from "@shohor/web-core";
+import { api, Card, formatDate, formatTaka, PageHeader, Stat, StatusBadge, statusInfo, t } from "@shohor/web-core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
@@ -23,7 +23,7 @@ function Breakdown({ title, data }: { title: string; data: Record<string, number
           </div>
         </div>
       ))}
-      {!Object.keys(data ?? {}).length && <span className="text-muted">এখনো ডেটা নেই</span>}
+      {!Object.keys(data ?? {}).length && <span className="text-muted">{t("এখনো ডেটা নেই")}</span>}
     </Card>
   );
 }
@@ -36,21 +36,21 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="আজকের অবস্থা" />
+      <PageHeader title={t("আজকের অবস্থা")} />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
-        <Stat label="আজকের অর্ডার" value={orders?.orders_today ?? "–"} icon="cart" />
-        <Stat label="আজকের অর্ডার মূল্য" value={formatTaka(orders?.revenue_today)} icon="money" />
-        <Stat label="অনলাইন প্রোভাইডার" value={providers?.online_now ?? "–"} icon="user" />
-        <Stat label="যাচাইয়ের অপেক্ষায়" value={providers?.providers_by_status.pending ?? 0} icon="shield" />
-        <Stat label="পেআউট অনুরোধ" value={providers?.payouts_requested ?? 0} icon="money" />
-        <Stat label="খোলা ওয়ারেন্টি দাবি" value={orders?.open_warranty_claims ?? 0} icon="refresh" />
+        <Stat label={t("আজকের অর্ডার")} value={orders?.orders_today ?? "–"} icon="cart" />
+        <Stat label={t("আজকের অর্ডার মূল্য")} value={formatTaka(orders?.revenue_today)} icon="money" />
+        <Stat label={t("অনলাইন প্রোভাইডার")} value={providers?.online_now ?? "–"} icon="user" />
+        <Stat label={t("যাচাইয়ের অপেক্ষায়")} value={providers?.providers_by_status.pending ?? 0} icon="shield" />
+        <Stat label={t("পেআউট অনুরোধ")} value={providers?.payouts_requested ?? 0} icon="money" />
+        <Stat label={t("খোলা ওয়ারেন্টি দাবি")} value={orders?.open_warranty_claims ?? 0} icon="refresh" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="m-0 text-lg font-bold">কাস্টম রিকোয়েস্ট কিউ</h2>
-            <Link to="/custom-requests" className="font-semibold">সব দেখুন</Link>
+            <h2 className="m-0 text-lg font-bold">{t("কাস্টম রিকোয়েস্ট কিউ")}</h2>
+            <Link to="/custom-requests" className="font-semibold">{t("সব দেখুন")}</Link>
           </div>
           {requests?.results.slice(0, 6).map((r) => (
             <div key={r.id} className="flex items-center gap-3 border-b border-subtle pb-2 last:border-0">
@@ -61,12 +61,12 @@ export default function Dashboard() {
               <StatusBadge status={r.status} />
             </div>
           ))}
-          {requests?.results.length === 0 && <span className="text-muted">কিউ খালি।</span>}
+          {requests?.results.length === 0 && <span className="text-muted">{t("কিউ খালি।")}</span>}
         </Card>
         <Card className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="m-0 text-lg font-bold">প্রোভাইডার ছাড়া জব</h2>
-            <Link to="/jobs" className="font-semibold">অ্যাসাইন করুন</Link>
+            <h2 className="m-0 text-lg font-bold">{t("প্রোভাইডার ছাড়া জব")}</h2>
+            <Link to="/jobs" className="font-semibold">{t("অ্যাসাইন করুন")}</Link>
           </div>
           {openJobs?.results.slice(0, 6).map((j) => (
             <div key={j.id} className="flex items-center gap-3 border-b border-subtle pb-2 last:border-0">
@@ -74,13 +74,13 @@ export default function Dashboard() {
                 <span className="font-semibold">{j.title}</span>
                 <span className="block text-sm text-muted">{j.area_name} · {formatDate(j.scheduled_date)}</span>
               </span>
-              {j.is_emergency && <span className="rounded-full bg-bad-soft px-2 py-1 text-xs font-semibold text-bad">জরুরি</span>}
+              {j.is_emergency && <span className="rounded-full bg-bad-soft px-2 py-1 text-xs font-semibold text-bad">{t("জরুরি")}</span>}
             </div>
           ))}
-          {openJobs?.results.length === 0 && <span className="text-muted">সব জবে প্রোভাইডার আছে।</span>}
+          {openJobs?.results.length === 0 && <span className="text-muted">{t("সব জবে প্রোভাইডার আছে।")}</span>}
         </Card>
-        <Breakdown title="অর্ডারের অবস্থা" data={orders?.orders_by_status} />
-        <Breakdown title="জবের অবস্থা" data={providers?.jobs_by_status} />
+        <Breakdown title={t("অর্ডারের অবস্থা")} data={orders?.orders_by_status} />
+        <Breakdown title={t("জবের অবস্থা")} data={providers?.jobs_by_status} />
       </div>
     </div>
   );

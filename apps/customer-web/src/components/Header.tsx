@@ -1,4 +1,4 @@
-import { Icon, useAuth } from "@shohor/web-core";
+import { Icon, LanguageToggle, t, useAuth } from "@shohor/web-core";
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 
@@ -26,25 +26,26 @@ export default function Header() {
           <span className="flex size-9 items-center justify-center rounded-[10px] bg-brand text-white">
             <Icon name="home" />
           </span>
-          <span className="text-[22px] font-bold">শহরসাথী</span>
+          <span className="text-[22px] font-bold">{t("শহরসাথী")}</span>
         </Link>
 
-        <nav aria-label="প্রধান মেনু" className="order-last flex w-full gap-x-5 overflow-x-auto font-medium lg:order-none lg:w-auto lg:flex-auto">
+        <nav aria-label={t("প্রধান মেনু")} className="order-last flex w-full gap-x-5 overflow-x-auto font-medium lg:order-none lg:w-auto lg:flex-auto">
           {nav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) => `shrink-0 py-2 no-underline ${isActive ? "text-brand-strong" : "text-ink"}`}
             >
-              {item.label}
+              {t(item.label)}
             </NavLink>
           ))}
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <LanguageToggle />
           <Link
             to="/cart"
-            aria-label={`কার্ট, ${count}টি আইটেম`}
+            aria-label={t("কার্ট, {count}টি আইটেম", { count })}
             className="relative flex size-11 items-center justify-center rounded-full border border-line bg-surface text-ink"
           >
             <Icon name="cart" />
@@ -68,13 +69,13 @@ export default function Header() {
               {menu && (
                 <div className="absolute right-0 mt-2 flex w-56 flex-col rounded-2xl border border-line bg-surface p-2 shadow-lg" onClick={() => setMenu(false)}>
                   {[
-                    ["/orders", "আমার অর্ডার"],
-                    ["/subscriptions/mine", "আমার সাবস্ক্রিপশন"],
-                    ["/custom-requests", "কাস্টম রিকোয়েস্ট"],
-                    ["/issues/mine", "আমার রিপোর্ট"],
-                    ["/wallet", "ওয়ালেট ও পয়েন্ট"],
-                    ["/notifications", "নোটিফিকেশন"],
-                    ["/profile", "প্রোফাইল ও ঠিকানা"],
+                    ["/orders", t("আমার অর্ডার")],
+                    ["/subscriptions/mine", t("আমার সাবস্ক্রিপশন")],
+                    ["/custom-requests", t("কাস্টম রিকোয়েস্ট")],
+                    ["/issues/mine", t("আমার রিপোর্ট")],
+                    ["/wallet", t("ওয়ালেট ও পয়েন্ট")],
+                    ["/notifications", t("নোটিফিকেশন")],
+                    ["/profile", t("প্রোফাইল ও ঠিকানা")],
                   ].map(([to, label]) => (
                     <Link key={to} to={to} className="rounded-xl px-3 py-2.5 text-ink no-underline hover:bg-subtle">
                       {label}
@@ -88,14 +89,14 @@ export default function Header() {
                     }}
                     className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-left text-bad hover:bg-bad-soft"
                   >
-                    <Icon name="logout" size={18} /> লগআউট
+                    <Icon name="logout" size={18} /> {t("লগআউট")}
                   </button>
                 </div>
               )}
             </div>
           ) : (
             <Link to="/login" className="flex h-11 items-center rounded-full bg-brand px-5 text-[15px] font-semibold text-white no-underline">
-              লগইন
+              {t("লগইন")}
             </Link>
           )}
         </div>

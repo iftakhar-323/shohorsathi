@@ -1,4 +1,4 @@
-import { Card, Empty, Loading, PageHeader, StatusBadge, formatDate, slotLabel } from "@shohor/web-core";
+import { Card, Empty, formatDate, Loading, PageHeader, slotLabel, StatusBadge, t } from "@shohor/web-core";
 import { Link } from "react-router-dom";
 
 import { useJobs, type Job } from "../api";
@@ -14,9 +14,9 @@ export default function Schedule() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="ক্যালেন্ডার" subtitle="সামনের সব কাজ, সাবস্ক্রিপশন ভিজিট ও মিল ডেলিভারি" />
+      <PageHeader title={t("ক্যালেন্ডার")} subtitle={t("সামনের সব কাজ, সাবস্ক্রিপশন ভিজিট ও মিল ডেলিভারি")} />
       {isPending && <Loading />}
-      {!isPending && days.length === 0 && <Empty icon="calendar" title="সামনে কোনো কাজ নির্ধারিত নেই" />}
+      {!isPending && days.length === 0 && <Empty icon="calendar" title={t("সামনে কোনো কাজ নির্ধারিত নেই")} />}
       {days.map((day) => (
         <section key={day} className="flex flex-col gap-2">
           <h2 className="m-0 text-lg font-bold">{formatDate(day)}</h2>

@@ -1,4 +1,4 @@
-import { Field, PhotoUpload, Select, TextArea, useAreas, useCategories } from "@shohor/web-core";
+import { Field, localName, PhotoUpload, Select, t, TextArea, useAreas, useCategories } from "@shohor/web-core";
 
 import { DAYS, PROVIDER_TYPES, type Provider } from "../api";
 
@@ -59,36 +59,36 @@ export default function ProviderFields({ form, setForm, identity = true }: { for
   return (
     <div className="flex flex-col gap-5">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Select label="কাজের ধরন" value={form.provider_type} onChange={(e) => set("provider_type", e.target.value)} options={PROVIDER_TYPES} />
-        <Field label="অভিজ্ঞতা (বছর)" type="number" min={0} max={60} value={form.experience_years} onChange={(e) => set("experience_years", Number(e.target.value))} />
+        <Select label={t("কাজের ধরন")} value={form.provider_type} onChange={(e) => set("provider_type", e.target.value)} options={PROVIDER_TYPES.map((o) => ({ ...o, label: t(o.label) }))} />
+        <Field label={t("অভিজ্ঞতা (বছর)")} type="number" min={0} max={60} value={form.experience_years} onChange={(e) => set("experience_years", Number(e.target.value))} />
       </div>
-      <Chips label="কোন কোন কাজ পারেন" options={(categories ?? []).map((c) => ({ value: c.slug, label: c.name_bn }))} value={form.skills} onChange={(v) => set("skills", v)} />
-      <Chips label="কোন এলাকায় কাজ করবেন" options={(areas ?? []).map((a) => ({ value: a.id, label: a.name_bn }))} value={form.area_ids} onChange={(v) => set("area_ids", v)} />
-      <TextArea label="নিজের সম্পর্কে" value={form.bio} onChange={(e) => set("bio", e.target.value)} placeholder="কী কী কাজে দক্ষ, কোথায় কাজ করেছেন" />
+      <Chips label={t("কোন কোন কাজ পারেন")} options={(categories ?? []).map((c) => ({ value: c.slug, label: localName(c) }))} value={form.skills} onChange={(v) => set("skills", v)} />
+      <Chips label={t("কোন এলাকায় কাজ করবেন")} options={(areas ?? []).map((a) => ({ value: a.id, label: localName(a) }))} value={form.area_ids} onChange={(v) => set("area_ids", v)} />
+      <TextArea label={t("নিজের সম্পর্কে")} value={form.bio} onChange={(e) => set("bio", e.target.value)} placeholder={t("কী কী কাজে দক্ষ, কোথায় কাজ করেছেন")} />
 
       {identity && (
         <>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="NID নম্বর" required value={form.nid_number} onChange={(e) => set("nid_number", e.target.value)} inputMode="numeric" />
-            <Select label="লিঙ্গ (ঐচ্ছিক)" value={form.gender} onChange={(e) => set("gender", e.target.value)} options={[{ value: "", label: "বলতে চাই না" }, { value: "female", label: "মহিলা" }, { value: "male", label: "পুরুষ" }]} />
+            <Field label={t("NID নম্বর")} required value={form.nid_number} onChange={(e) => set("nid_number", e.target.value)} inputMode="numeric" />
+            <Select label={t("লিঙ্গ (ঐচ্ছিক)")} value={form.gender} onChange={(e) => set("gender", e.target.value)} options={[{ value: "", label: t("বলতে চাই না") }, { value: "female", label: t("মহিলা") }, { value: "male", label: t("পুরুষ") }]} />
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
-            <PhotoUpload label="নিজের ছবি" value={form.photo_url ? [form.photo_url] : []} onChange={(u) => set("photo_url", u[0] ?? "")} purpose="profile_photo" max={1} />
-            <PhotoUpload label="NID সামনের দিক" value={form.nid_front_url ? [form.nid_front_url] : []} onChange={(u) => set("nid_front_url", u[0] ?? "")} purpose="nid" max={1} visibility="private" />
-            <PhotoUpload label="NID পেছনের দিক" value={form.nid_back_url ? [form.nid_back_url] : []} onChange={(u) => set("nid_back_url", u[0] ?? "")} purpose="nid" max={1} visibility="private" />
+            <PhotoUpload label={t("নিজের ছবি")} value={form.photo_url ? [form.photo_url] : []} onChange={(u) => set("photo_url", u[0] ?? "")} purpose="profile_photo" max={1} />
+            <PhotoUpload label={t("NID সামনের দিক")} value={form.nid_front_url ? [form.nid_front_url] : []} onChange={(u) => set("nid_front_url", u[0] ?? "")} purpose="nid" max={1} visibility="private" />
+            <PhotoUpload label={t("NID পেছনের দিক")} value={form.nid_back_url ? [form.nid_back_url] : []} onChange={(u) => set("nid_back_url", u[0] ?? "")} purpose="nid" max={1} visibility="private" />
           </div>
           {form.provider_type === "home_chef" && (
-            <PhotoUpload label="রান্নাঘরের ছবি (হাইজিন চেকের জন্য)" value={form.kitchen_photo_urls} onChange={(u) => set("kitchen_photo_urls", u)} purpose="kitchen" max={5} />
+            <PhotoUpload label={t("রান্নাঘরের ছবি (হাইজিন চেকের জন্য)")} value={form.kitchen_photo_urls} onChange={(u) => set("kitchen_photo_urls", u)} purpose="kitchen" max={5} />
           )}
         </>
       )}
 
-      <Chips label="কাজের দিন" options={DAYS.map((d, i) => ({ value: i, label: d }))} value={form.working_days} onChange={(v) => set("working_days", v)} />
+      <Chips label={t("কাজের দিন")} options={DAYS.map((d, i) => ({ value: i, label: t(d) }))} value={form.working_days} onChange={(v) => set("working_days", v)} />
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="কাজ শুরু" type="time" value={form.work_start.slice(0, 5)} onChange={(e) => set("work_start", e.target.value)} />
-        <Field label="কাজ শেষ" type="time" value={form.work_end.slice(0, 5)} onChange={(e) => set("work_end", e.target.value)} />
-        <Select label="পেমেন্ট নেবেন" value={form.payout_method} onChange={(e) => set("payout_method", e.target.value)} options={[{ value: "bkash", label: "বিকাশ" }, { value: "nagad", label: "নগদ" }]} />
-        <Field label="বিকাশ/নগদ নম্বর" pattern="01[3-9][0-9]{8}" value={form.payout_account} onChange={(e) => set("payout_account", e.target.value)} />
+        <Field label={t("কাজ শুরু")} type="time" value={form.work_start.slice(0, 5)} onChange={(e) => set("work_start", e.target.value)} />
+        <Field label={t("কাজ শেষ")} type="time" value={form.work_end.slice(0, 5)} onChange={(e) => set("work_end", e.target.value)} />
+        <Select label={t("পেমেন্ট নেবেন")} value={form.payout_method} onChange={(e) => set("payout_method", e.target.value)} options={[{ value: "bkash", label: t("বিকাশ") }, { value: "nagad", label: t("নগদ") }]} />
+        <Field label={t("বিকাশ/নগদ নম্বর")} pattern="01[3-9][0-9]{8}" value={form.payout_account} onChange={(e) => set("payout_account", e.target.value)} />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Icon, useServices, type IconName } from "@shohor/web-core";
+import { Icon, t, type IconName, useServices } from "@shohor/web-core";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -55,15 +55,15 @@ function Hero() {
     <section className="mx-auto flex max-w-[1200px] flex-wrap items-stretch gap-8 px-6 pt-12 pb-8">
       <div className="flex min-w-0 flex-[999_1_560px] flex-col justify-center gap-5">
         <span className="self-start rounded-full bg-brand-soft px-3.5 py-1.5 text-sm font-semibold text-brand-strong">
-          পণ্য · সার্ভিস · শহরের সমস্যা — এক অ্যাপে
+          {t("পণ্য · সার্ভিস · শহরের সমস্যা — এক অ্যাপে")}
         </span>
         <h1 className="m-0 text-4xl leading-tight font-bold tracking-tight sm:text-[52px]">
-          শহরের প্রতিদিনের সমস্যার
+          {t("শহরের প্রতিদিনের সমস্যার")}
           <br />
-          ভরসাযোগ্য সমাধান
+          {t("ভরসাযোগ্য সমাধান")}
         </h1>
         <p className="m-0 max-w-[560px] text-lg leading-relaxed text-muted">
-          যাচাইকৃত ইলেকট্রিশিয়ান, প্লাম্বার, ক্লিনার — নির্দিষ্ট দামে। ঘরের দরকারি জিনিস কিনুন, আর এলাকার সমস্যা রিপোর্ট করুন।
+          {t("যাচাইকৃত ইলেকট্রিশিয়ান, প্লাম্বার, ক্লিনার — নির্দিষ্ট দামে। ঘরের দরকারি জিনিস কিনুন, আর এলাকার সমস্যা রিপোর্ট করুন।")}
         </p>
 
         <form
@@ -75,25 +75,25 @@ function Hero() {
           }}
         >
           <label htmlFor="hero-search" className="sr-only">
-            সার্ভিস বা পণ্য খুঁজুন
+            {t("সার্ভিস বা পণ্য খুঁজুন")}
           </label>
           <input
             id="hero-search"
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="কী সমস্যা? যেমন: ফ্যান চলছে না"
+            placeholder={t("কী সমস্যা? যেমন: ফ্যান চলছে না")}
             className="h-12 min-w-0 flex-auto bg-transparent px-3 text-[17px] outline-none"
           />
           <button
             type="button"
-            aria-label="ভয়েস সার্চ"
+            aria-label={t("ভয়েস সার্চ")}
             className="flex size-12 items-center justify-center rounded-xl bg-brand-soft text-brand-strong"
           >
             <Icon name="mic" />
           </button>
           <button type="submit" className="h-12 rounded-xl bg-brand px-6 font-semibold text-white">
-            খুঁজুন
+            {t("খুঁজুন")}
           </button>
         </form>
 
@@ -102,10 +102,10 @@ function Hero() {
             <button
               key={label}
               type="button"
-              onClick={() => navigate(`/services?q=${encodeURIComponent(label)}`)}
+              onClick={() => navigate(`/services?q=${encodeURIComponent(t(label))}`)}
               className="rounded-full border border-line bg-surface px-4 py-2.5 text-[15px]"
             >
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
@@ -116,9 +116,9 @@ function Hero() {
           <span className="flex size-10 items-center justify-center rounded-xl bg-alert text-ink">
             <Icon name="alert" size={22} />
           </span>
-          <h2 className="m-0 text-[22px] font-bold">জরুরি সাহায্য</h2>
+          <h2 className="m-0 text-[22px] font-bold">{t("জরুরি সাহায্য")}</h2>
         </div>
-        <p className="m-0 leading-relaxed text-night-text">এক ট্যাপে কাছের প্রোভাইডারকে অ্যালার্ট। প্রায়োরিটি চার্জ প্রযোজ্য।</p>
+        <p className="m-0 leading-relaxed text-night-text">{t("এক ট্যাপে কাছের প্রোভাইডারকে অ্যালার্ট। প্রায়োরিটি চার্জ প্রযোজ্য।")}</p>
         <div className="grid grid-cols-2 gap-2.5">
           {emergencies.map((e) => (
             <Link
@@ -126,12 +126,12 @@ function Hero() {
               to={`/services?category=${e.category}&emergency=1`}
               className="flex min-h-13 items-center justify-center rounded-2xl border border-night-line bg-night-raised text-[15px] font-medium text-white no-underline"
             >
-              {e.label}
+              {t(e.label)}
             </Link>
           ))}
         </div>
         <Link to="/services?emergency=1" className="mt-auto flex h-13 items-center justify-center rounded-2xl bg-alert text-[17px] font-bold text-ink no-underline">
-          এখনই সাহায্য চাই
+          {t("এখনই সাহায্য চাই")}
         </Link>
       </aside>
     </section>
@@ -151,8 +151,8 @@ function Layers() {
             <span className={`flex size-12 items-center justify-center rounded-[14px] ${layer.tone}`}>
               <Icon name={layer.icon} size={24} />
             </span>
-            <span className="text-xl font-bold">{layer.title}</span>
-            <span className="text-[15px] leading-normal text-muted">{layer.body}</span>
+            <span className="text-xl font-bold">{t(layer.title)}</span>
+            <span className="text-[15px] leading-normal text-muted">{t(layer.body)}</span>
           </Link>
         ))}
       </div>
@@ -166,13 +166,13 @@ function PopularServices() {
   return (
     <section className="mx-auto flex max-w-[1200px] flex-col gap-5 px-6 pt-6 pb-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 className="m-0 text-3xl font-bold">জনপ্রিয় সার্ভিস</h2>
+        <h2 className="m-0 text-3xl font-bold">{t("জনপ্রিয় সার্ভিস")}</h2>
         <Link to="/services" className="font-semibold text-brand">
-          সব সার্ভিস দেখুন
+          {t("সব সার্ভিস দেখুন")}
         </Link>
       </div>
 
-      {isError && <p className="m-0 text-muted">সার্ভিস লোড করা যায়নি। একটু পরে আবার চেষ্টা করুন।</p>}
+      {isError && <p className="m-0 text-muted">{t("সার্ভিস লোড করা যায়নি। একটু পরে আবার চেষ্টা করুন।")}</p>}
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
         {isPending &&
@@ -190,16 +190,16 @@ function CustomRequestCta() {
     <section className="mx-auto max-w-[1200px] px-6 pb-12">
       <div className="flex flex-wrap items-center justify-between gap-6 rounded-3xl bg-brand-soft p-7">
         <div className="flex max-w-[640px] flex-col gap-2">
-          <h2 className="m-0 text-2xl font-bold text-brand-strong">ক্যাটালগে নেই? কাস্টম রিকোয়েস্ট পাঠান</h2>
+          <h2 className="m-0 text-2xl font-bold text-brand-strong">{t("ক্যাটালগে নেই? কাস্টম রিকোয়েস্ট পাঠান")}</h2>
           <p className="m-0 leading-relaxed text-brand-strong">
-            দেয়াল রং, বাসা বদল, বিয়েবাড়ি পরিষ্কার — লিখে পাঠান। অ্যাডমিন দেখে খরচের হিসাবসহ কোট দেবে।
+            {t("দেয়াল রং, বাসা বদল, বিয়েবাড়ি পরিষ্কার — লিখে পাঠান। অ্যাডমিন দেখে খরচের হিসাবসহ কোট দেবে।")}
           </p>
         </div>
         <Link
           to="/custom-requests/new"
           className="flex h-[50px] items-center rounded-2xl bg-brand px-6 font-semibold text-white no-underline"
         >
-          রিকোয়েস্ট পাঠান
+          {t("রিকোয়েস্ট পাঠান")}
         </Link>
       </div>
     </section>

@@ -48,6 +48,15 @@ apps/admin-web    ─┘                          ├─► order           ─�
 - **Provider onboarding:** apply with NID/photos (kitchen photos for home chefs) → admin approves → `provider.approved`
   makes the user a provider (picked up on the next token refresh).
 
+## Languages (Bangla + English)
+
+All three apps are Bangla-first with an English switch (header / sidebar / login page; the choice is remembered per
+browser). Write UI text in Bangla wrapped in `t()` from `@shohor/web-core` — the Bangla text is the key — and add the
+English line to `packages/web-core/src/i18n/en.ts`. Placeholders: `t("{n} দিনের ওয়ারেন্টি", { n: 7 })`.
+Catalog items and areas have `name_bn`/`name_en`; render them with `localName(item)`. Dates, numbers and Taka amounts
+follow the selected language. CI runs `node packages/web-core/scripts/check-i18n.mjs`, which fails on a Bangla string
+without an English translation or Bangla JSX text that is not wrapped in `t()`.
+
 ## Run locally
 
 ```bash

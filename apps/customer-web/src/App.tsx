@@ -1,4 +1,4 @@
-import { AuthPage, RequireAuth } from "@shohor/web-core";
+import { AuthPage, RequireAuth, t } from "@shohor/web-core";
 import { Route, Routes } from "react-router-dom";
 
 import Footer from "./components/Footer";
@@ -26,8 +26,8 @@ export default function App() {
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<AuthPage appName="শহরসাথী" />} />
-          <Route path="/register" element={<AuthPage appName="শহরসাথী" initialMode="register" />} />
+          <Route path="/login" element={<AuthPage appName={t("শহরসাথী")} />} />
+          <Route path="/register" element={<AuthPage appName={t("শহরসাথী")} initialMode="register" />} />
           <Route path="/services" element={<Services />} />
           <Route path="/services/:slug" element={<ServiceDetail />} />
           <Route path="/shop" element={<Shop />} />
