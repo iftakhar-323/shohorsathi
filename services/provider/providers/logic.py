@@ -9,7 +9,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from shohor_common import events, internal
 
-from .models import Earning, Job, JobLog, Payout, Provider
+from .models import Earning, Job, JobLog, Payout, Provider, Review
 
 S = Job.Status
 # status -> statuses a provider may move the job to
@@ -293,8 +293,23 @@ def weekly_payouts():
     return created
 
 
+@transaction.atomic
+def create_review(user_id, source, source_id, rating, comment=""):
+    """A customer rates a completed job once; the provider's average and badges follow."""
+    job = Job.objects.select_related("provider").filter(source=source, source_id=source_id, user_id=user_id).first()
+    if job is None or job.status != S.COMPLETED or job.provider is None:
+        raise ValidationError({"job": "You can review a completed job only."})
+    if Review.objects.filter(job=job).exists():
+        raise ValidationError({"job": "You already reviewed this job."})
+    if not 1 <= int(rating) <= 5:
+        raise ValidationError({"rating": "Rate from 1 to 5."})
+    review = Review.objects.create(job=job, provider=job.provider, user_id=user_id, rating=rating, comment=comment)
+    apply_review({"provider_user_id": job.provider.user_id, "rating": rating})
+    return review
+
+
 def apply_review(payload):
-    """A customer rated a job: keep the provider's running average."""
+    """Keep the provider's running average."""
     provider = Provider.objects.filter(user_id=payload["provider_user_id"]).first()
     if provider is None:
         return

@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [auth, catalog, order, provider, custom_request, media]
+        service: [auth, catalog, order, provider, custom_request, media, subscription, payment, chat, notification]
     services:
       postgres:
         image: postgres:16-alpine

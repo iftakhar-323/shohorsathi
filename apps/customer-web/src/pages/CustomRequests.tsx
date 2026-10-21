@@ -1,4 +1,4 @@
-import { api, Button, Card, Empty, errorMessage, ErrorNote, Field, formatDate, formatTaka, Loading, localName, Modal, PageHeader, PhotoUpload, Select, StatusBadge, t, TextArea, Timeline, todayISO, type Paginated, useAreas } from "@shohor/web-core";
+import { api, Button, Card, Empty, errorMessage, ErrorNote, Field, formatDate, formatTaka, Loading, localName, Modal, PageHeader, payOnline, PhotoUpload, Select, StatusBadge, t, TextArea, Timeline, todayISO, type Paginated, useAreas } from "@shohor/web-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -216,6 +216,9 @@ export function CustomRequestDetail() {
             <span className="text-sm text-muted">
               {t("অগ্রিম")} {formatTaka(req.advance_amount)} {req.advance_paid ? t("(পরিশোধিত)") : t("— কাজ শুরুর আগে")}
             </span>
+            {!req.advance_paid && ["accepted", "provider_assigned", "in_progress"].includes(req.status) && (
+              <Button className="self-start" onClick={() => payOnline("custom_request_advance", req.id)}>{t("অগ্রিম পরিশোধ করুন")}</Button>
+            )}
             {req.provider_name && (
               <span>
                 {t("প্রোভাইডার:")} <strong>{req.provider_name}</strong> {req.provider_phone && <a href={`tel:${req.provider_phone}`}>{req.provider_phone}</a>}

@@ -1,7 +1,7 @@
-import { api, Button, Card, errorMessage, ErrorNote, Field, formatDate, formatTaka, Icon, Loading, PageHeader, PhotoUpload, slotLabel, StatusBadge, t, TextArea, Timeline } from "@shohor/web-core";
+import { api, Button, Card, errorMessage, ErrorNote, Field, formatDate, formatTaka, Icon, Loading, openJobChat, PageHeader, PhotoUpload, slotLabel, StatusBadge, t, TextArea, Timeline } from "@shohor/web-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import type { Job } from "../api";
 
@@ -37,6 +37,7 @@ export default function JobDetail() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sharing, setSharing] = useShareLocation(!!job && ["on_the_way", "working"].includes(job.status));
+  const navigate = useNavigate();
 
   if (isPending || !job) return <Loading />;
 
@@ -74,6 +75,11 @@ export default function JobDetail() {
                 {job.area_name}
               </span>
             </div>
+            {job.customer_phone && (
+              <Button variant="ghost" icon="chat" onClick={async () => navigate(`/chat/${await openJobChat(job.source, job.source_id)}`)}>
+                {t("বার্তা")}
+              </Button>
+            )}
             {job.customer_phone && (
               <a href={`tel:${job.customer_phone}`} className="flex h-11 items-center gap-2 rounded-xl bg-brand px-4 font-semibold text-white no-underline">
                 <Icon name="phone" size={16} /> {t("কল")}

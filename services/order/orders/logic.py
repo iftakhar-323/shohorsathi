@@ -148,9 +148,31 @@ def checkout(user_id, data):
             "items": [{"slug": c.slug, "quantity": c.quantity} for c, _ in products],
         },
     )
-    for booking in bookings:
-        events.publish("booking.created", booking_payload(booking))
+    # Online orders reach providers only after the payment goes through (see payment_succeeded).
+    if order.payment_method == Order.PaymentMethod.COD:
+        for booking in bookings:
+            events.publish("booking.created", booking_payload(booking))
     return order
+
+
+@transaction.atomic
+def payment_succeeded(payload):
+    if payload.get("purpose") != "order":
+        return
+    order = Order.objects.select_for_update().filter(pk=payload["reference_id"]).first()
+    if order is None or order.payment_status == Order.PaymentStatus.PAID:
+        return
+    order.payment_status = Order.PaymentStatus.PAID
+    order.save(update_fields=["payment_status", "updated_at"])
+    log(order, "paid", f"Paid online ৳{payload['amount']}")
+    if order.status != Order.Status.CANCELLED and order.payment_method == Order.PaymentMethod.ONLINE:
+        for booking in order.bookings.filter(status=Booking.Status.PENDING):
+            events.publish("booking.created", booking_payload(booking))
+
+
+def payment_refunded(payload):
+    if payload.get("purpose") == "order" and payload.get("full"):
+        Order.objects.filter(pk=payload["reference_id"]).update(payment_status=Order.PaymentStatus.REFUNDED)
 
 
 def refresh_order_status(order):

@@ -11,7 +11,7 @@ from shohor_common.internal import IsInternal
 from shohor_common.permissions import IsAdmin
 
 from . import logic
-from .models import Earning, Job, Payout, Provider
+from .models import Earning, Job, Payout, Provider, Review
 from .serializers import (
     AdvanceSerializer,
     EarningSerializer,
@@ -22,6 +22,7 @@ from .serializers import (
     ProviderSerializer,
     PublicProviderSerializer,
     RegisterProviderSerializer,
+    ReviewSerializer,
 )
 
 S = Job.Status
@@ -282,3 +283,40 @@ class InternalProviderView(APIView):
     def get(self, request, user_id):
         provider = get_object_or_404(Provider, user_id=user_id)
         return Response(PublicProviderSerializer(provider).data | {"user_id": provider.user_id, "phone": provider.phone})
+
+
+class ReviewView(APIView):
+    def get(self, request):
+        """Has the current customer reviewed this job? ?source=&source_id="""
+        review = Review.objects.filter(
+            user_id=request.user.id, job__source=request.query_params.get("source"), job__source_id=request.query_params.get("source_id")
+        ).first()
+        return Response(ReviewSerializer(review).data if review else None)
+
+    def post(self, request):
+        data = ReviewSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        v = data.validated_data
+        review = logic.create_review(request.user.id, v["source"], v["source_id"], v["rating"], v.get("comment", ""))
+        return Response(ReviewSerializer(review).data, status=status.HTTP_201_CREATED)
+
+
+class PublicReviewsView(generics.ListAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        return Review.objects.filter(provider_id=self.kwargs["pk"], provider__status=Provider.Status.APPROVED).select_related("job")
+
+
+class InternalJobBySourceView(APIView):
+    """Who are the customer and provider of a job? Used by chat to decide who may talk."""
+
+    permission_classes = [IsInternal]
+    authentication_classes = []
+
+    def get(self, request, source, source_id):
+        job = get_object_or_404(Job.objects.select_related("provider"), source=source, source_id=source_id)
+        return Response({"job_id": job.id, "title": job.title, "status": job.status, "customer_user_id": job.user_id,
+                         "provider_user_id": job.provider.user_id if job.provider else None,
+                         "provider_name": job.provider.full_name if job.provider else ""})

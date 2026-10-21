@@ -8,6 +8,6 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5174,
-    proxy: { "/api": gateway, "/media": gateway },
+    proxy: { "/api": { target: gateway, ws: true }, "/media": gateway },
   },
 });

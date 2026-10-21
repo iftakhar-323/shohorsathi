@@ -1,4 +1,4 @@
-import { api, Button, Card, errorMessage, ErrorNote, Field, formatTaka, Loading, localName, PageHeader, Select, slotOptions, SLOTS, t, TextArea, todayISO, useAreas, useAuth } from "@shohor/web-core";
+import { api, Button, Card, errorMessage, ErrorNote, Field, formatTaka, Loading, localName, PageHeader, payOnline, Select, slotOptions, SLOTS, t, TextArea, todayISO, useAreas, useAuth } from "@shohor/web-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -20,6 +20,7 @@ export default function Checkout() {
   const [contactName, setContactName] = useState(user?.name ?? "");
   const [contactPhone, setContactPhone] = useState(user?.phone ?? "");
   const [note, setNote] = useState("");
+  const [payment, setPayment] = useState<"cod" | "online">("cod");
   const [schedules, setSchedules] = useState<Record<number, BookingDraft>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -76,13 +77,14 @@ export default function Checkout() {
         latitude,
         longitude,
         note,
-        payment_method: "cod",
+        payment_method: payment,
         service_details: schedules,
       });
       clearDrafts();
       qc.invalidateQueries({ queryKey: ["cart"] });
       qc.invalidateQueries({ queryKey: ["orders"] });
-      navigate(`/orders/${data.id}`, { replace: true });
+      if (payment === "online") await payOnline("order", data.id);
+      else navigate(`/orders/${data.id}`, { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -168,10 +170,15 @@ export default function Checkout() {
           <span>{formatTaka(cart.subtotal)}</span>
         </div>
         <p className="m-0 text-sm text-muted">{t("পণ্য থাকলে ডেলিভারি চার্জ যোগ হতে পারে। যন্ত্রাংশ লাগলে আলাদা দেখানো হবে।")}</p>
-        <div className="rounded-xl border border-brand bg-brand-tint p-3 text-[15px]">
-          <span className="font-semibold">{t("ক্যাশ অন ডেলিভারি")}</span>
-          <span className="block text-sm text-muted">{t("পণ্য পেয়ে বা কাজ শেষে টাকা দিন")}</span>
-        </div>
+        {([["cod", "ক্যাশ অন ডেলিভারি", "পণ্য পেয়ে বা কাজ শেষে টাকা দিন"], ["online", "বিকাশ / নগদ / কার্ড", "টাকা কাজ শেষ হওয়া পর্যন্ত নিরাপদে জমা থাকে"]] as const).map(([value, title, hint]) => (
+          <label key={value} className={`flex items-start gap-3 rounded-xl border p-3 text-[15px] ${payment === value ? "border-brand bg-brand-tint" : "border-line"}`}>
+            <input type="radio" name="payment" checked={payment === value} onChange={() => setPayment(value)} className="mt-1 accent-brand" />
+            <span>
+              <span className="font-semibold">{t(title)}</span>
+              <span className="block text-sm text-muted">{t(hint)}</span>
+            </span>
+          </label>
+        ))}
         <ErrorNote>{error}</ErrorNote>
         <Button type="submit" loading={busy} className="h-12 text-base">
           {t("অর্ডার কনফার্ম করুন")}

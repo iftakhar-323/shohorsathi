@@ -1,4 +1,4 @@
-import { AuthPage, Icon, LanguageToggle, Loading, RequireAuth, t, type IconName, useAuth } from "@shohor/web-core";
+import { AuthPage, ChatPage, Icon, LanguageToggle, Loading, NotificationsPage, RequireAuth, t, type IconName, useAuth } from "@shohor/web-core";
 import type { ReactNode } from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
@@ -14,6 +14,8 @@ const NAV: { to: string; label: string; icon: IconName }[] = [
   { to: "/", label: "জব ইনবক্স", icon: "list" },
   { to: "/schedule", label: "ক্যালেন্ডার", icon: "calendar" },
   { to: "/earnings", label: "আয় ও পেআউট", icon: "money" },
+  { to: "/chat", label: "চ্যাট", icon: "chat" },
+  { to: "/notifications", label: "নোটিফিকেশন", icon: "bell" },
   { to: "/profile", label: "প্রোফাইল", icon: "user" },
 ];
 
@@ -26,6 +28,7 @@ function Shell({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-2 px-2 pb-4">
           <span className="text-xl font-bold text-white">{t("শহরসাথী")}</span>
           <span className="rounded-full bg-alert px-2 py-0.5 text-xs font-semibold text-ink">{t("পার্টনার")}</span>
+          <span className="ml-auto md:hidden"><LanguageToggle /></span>
         </div>
         <nav aria-label={t("প্রোভাইডার মেনু")} className="flex gap-1 overflow-x-auto md:flex-col">
           {NAV.map((n) => (
@@ -75,6 +78,9 @@ export default function App() {
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/earnings" element={<Earnings />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/chat" element={<ChatPage />} />
+                <Route path="/chat/:id" element={<ChatPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Gate>

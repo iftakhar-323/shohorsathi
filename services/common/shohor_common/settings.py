@@ -119,6 +119,9 @@ SERVICE_URLS = {
     "catalog": env("CATALOG_URL", "http://catalog:8000"),
     "provider": env("PROVIDER_URL", "http://provider:8000"),
     "order": env("ORDER_URL", "http://order:8000"),
+    "subscription": env("SUBSCRIPTION_URL", "http://subscription:8000"),
+    "custom_request": env("CUSTOM_REQUEST_URL", "http://custom-request:8000"),
+    "chat": env("CHAT_URL", "http://chat:8000"),
 }
 # Shared secret for service-to-service calls that are not made on behalf of a user.
 INTERNAL_API_TOKEN = env("INTERNAL_API_TOKEN", "dev-internal-token")

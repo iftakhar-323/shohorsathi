@@ -31,6 +31,8 @@ function Breakdown({ title, data }: { title: string; data: Record<string, number
 export default function Dashboard() {
   const { data: orders } = useQuery({ queryKey: ["order-stats"], queryFn: async () => (await api.get<OrderStats>("/admin/order-stats/")).data, refetchInterval: 30_000 });
   const { data: providers } = useQuery({ queryKey: ["provider-stats"], queryFn: async () => (await api.get<ProviderStats>("/admin/provider-stats/")).data, refetchInterval: 30_000 });
+  const { data: subs } = useQuery({ queryKey: ["sub-stats"], queryFn: async () => (await api.get<{ active_total: number }>("/admin/subscription-stats/")).data });
+  const { data: balances } = useQuery({ queryKey: ["balances"], queryFn: async () => (await api.get<Record<string, string>>("/admin/payments/balances/")).data });
   const { data: requests } = usePaged<{ id: number; service_type: string; area_name: string; status: string; created_at: string }>(["admin-cr"], "/admin/custom-requests/", { status: "submitted,under_review,countered" });
   const { data: openJobs } = usePaged<{ id: number; title: string; area_name: string; scheduled_date: string; is_emergency: boolean }>(["admin-jobs"], "/admin/jobs/", { status: "open" });
 
@@ -44,6 +46,8 @@ export default function Dashboard() {
         <Stat label={t("যাচাইয়ের অপেক্ষায়")} value={providers?.providers_by_status.pending ?? 0} icon="shield" />
         <Stat label={t("পেআউট অনুরোধ")} value={providers?.payouts_requested ?? 0} icon="money" />
         <Stat label={t("খোলা ওয়ারেন্টি দাবি")} value={orders?.open_warranty_claims ?? 0} icon="refresh" />
+        <Stat label={t("চালু সাবস্ক্রাইবার")} value={subs?.active_total ?? "–"} icon="repeat" />
+        <Stat label={t("এসক্রোতে জমা")} value={formatTaka(balances?.escrow)} icon="shield" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

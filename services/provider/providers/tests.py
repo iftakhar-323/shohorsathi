@@ -162,6 +162,22 @@ def test_rating_updates_average_and_badges(approved):
 
 
 @pytest.mark.django_db
+def test_customer_reviews_completed_job_once(approved):
+    job = logic.create_job(BOOKING)
+    customer = auth_client("customer", user_id=7)
+    body = {"source": "booking", "source_id": 10, "rating": 4, "comment": "Good"}
+    assert customer.post("/api/providers/reviews/", body, format="json").status_code == 400  # not completed yet
+    Job.objects.filter(pk=job.pk).update(status="completed", provider=approved)
+    assert auth_client("customer", user_id=8).post("/api/providers/reviews/", body, format="json").status_code == 400
+    assert customer.post("/api/providers/reviews/", body, format="json").status_code == 201
+    assert customer.post("/api/providers/reviews/", body, format="json").status_code == 400
+    approved.refresh_from_db()
+    assert approved.rating_avg == 4 and approved.rating_count == 1
+    public = auth_client().get(f"/api/providers/public/{approved.id}/reviews/").data
+    assert public["results"][0]["comment"] == "Good"
+
+
+@pytest.mark.django_db
 def test_emergency_job_alerts_online_providers(approved, captured_events):
     Provider.objects.filter(pk=approved.pk).update(is_online=True)
     logic.create_job({**BOOKING, "is_emergency": True})

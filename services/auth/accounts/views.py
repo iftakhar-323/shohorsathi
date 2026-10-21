@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenViewBase
+from shohor_common.internal import IsInternal
 from shohor_common.permissions import IsAdmin
 
 from . import otp
@@ -165,3 +166,27 @@ class AdminUserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
         user.is_active = active
         user.save(update_fields=["is_active"])
         return Response(AdminUserSerializer(user).data)
+
+
+class InternalUserView(APIView):
+    permission_classes = [IsInternal]
+    authentication_classes = []
+
+    def get(self, request, pk):
+        user = User.objects.filter(pk=pk).first()
+        if user is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response({"id": user.id, "phone": user.phone, "full_name": user.full_name, "email": user.email, "role": user.role})
+
+
+class InternalUserIdsView(APIView):
+    """Active user ids by role, for broadcasts."""
+
+    permission_classes = [IsInternal]
+    authentication_classes = []
+
+    def get(self, request):
+        qs = User.objects.filter(is_active=True)
+        if role := request.query_params.get("role"):
+            qs = qs.filter(role__in=role.split(","))
+        return Response({"ids": list(qs.values_list("id", flat=True))})

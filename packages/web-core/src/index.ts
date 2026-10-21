@@ -6,3 +6,5 @@ export * from "./lib/shared-api";
 export * from "./components/ui";
 export { default as Icon, type IconName } from "./components/Icon";
 export { default as AuthPage } from "./components/AuthPage";
+export * from "./components/Chat";
+export * from "./components/Notifications";

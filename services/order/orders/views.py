@@ -202,3 +202,17 @@ class VerifyArrivalView(generics.GenericAPIView):
     def get(self, request, pk):
         booking = get_object_or_404(Booking, pk=pk)
         return Response({"ok": booking.arrival_code == request.query_params.get("code", "")})
+
+
+class OrderPayableView(generics.GenericAPIView):
+    permission_classes = [IsInternal]
+    authentication_classes = []
+
+    def get(self, request, pk):
+        order = get_object_or_404(Order, pk=pk)
+        payable = (
+            order.payment_method == Order.PaymentMethod.ONLINE
+            and order.payment_status == Order.PaymentStatus.UNPAID
+            and order.status != Order.Status.CANCELLED
+        )
+        return Response({"user_id": order.user_id, "amount": str(order.total), "payable": payable})

@@ -173,3 +173,20 @@ def test_verify_arrival_needs_internal_token(customer):
 @pytest.mark.django_db
 def test_customer_cannot_use_admin_endpoints(customer):
     assert customer.get("/api/admin/orders/").status_code == 403
+
+
+@pytest.mark.django_db
+def test_online_order_waits_for_payment(customer, captured_events):
+    service_item = fill_cart(customer)
+    details = {str(service_item): {"scheduled_date": timezone.localdate().isoformat(), "slot": "09-11"}}
+    order = customer.post("/api/orders/", {**ADDRESS, "service_details": details, "payment_method": "online"}, format="json").data
+    assert [e for e, _ in captured_events] == ["order.placed"]
+    from rest_framework.test import APIClient
+
+    payable = APIClient().get(f"/api/internal/orders/{order['id']}/payable/", HTTP_X_INTERNAL_TOKEN="dev-internal-token").data
+    assert payable == {"user_id": 7, "amount": "660.00", "payable": True}
+    logic.payment_succeeded({"purpose": "order", "reference_id": order["id"], "amount": "660.00"})
+    assert Order.objects.get().payment_status == "paid"
+    assert [e for e, _ in captured_events][-1] == "booking.created"
+    logic.payment_succeeded({"purpose": "order", "reference_id": order["id"], "amount": "660.00"})
+    assert [e for e, _ in captured_events].count("booking.created") == 1

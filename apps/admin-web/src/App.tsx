@@ -8,8 +8,11 @@ import CustomRequests from "./pages/CustomRequests";
 import Dashboard from "./pages/Dashboard";
 import Jobs from "./pages/Jobs";
 import Orders from "./pages/Orders";
+import Payments from "./pages/Payments";
 import Payouts from "./pages/Payouts";
 import Providers from "./pages/Providers";
+import Subscriptions from "./pages/Subscriptions";
+import { Broadcast, SupportInbox } from "./pages/Support";
 import Users from "./pages/Users";
 import Warranty from "./pages/Warranty";
 
@@ -18,6 +21,10 @@ export const NAV: { to: string; label: string; icon: IconName }[] = [
   { to: "/orders", label: "অর্ডার ও বুকিং", icon: "cart" },
   { to: "/jobs", label: "জব ও অ্যাসাইন", icon: "wrench" },
   { to: "/custom-requests", label: "কাস্টম রিকোয়েস্ট", icon: "send" },
+  { to: "/subscriptions", label: "সাবস্ক্রিপশন", icon: "repeat" },
+  { to: "/payments", label: "পেমেন্ট ও রিফান্ড", icon: "money" },
+  { to: "/support", label: "সাপোর্ট চ্যাট", icon: "chat" },
+  { to: "/broadcast", label: "নোটিফিকেশন পাঠান", icon: "bell" },
   { to: "/providers", label: "প্রোভাইডার যাচাই", icon: "shield" },
   { to: "/catalog", label: "ক্যাটালগ", icon: "bag" },
   { to: "/payouts", label: "পেআউট", icon: "money" },
@@ -35,6 +42,7 @@ function Shell({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-2 px-2 pb-4">
           <span className="text-xl font-bold">{t("শহরসাথী")}</span>
           <span className="rounded-full bg-ink px-2 py-0.5 text-xs font-semibold text-white">{t("অ্যাডমিন")}</span>
+          <span className="ml-auto md:hidden"><LanguageToggle /></span>
         </div>
         <nav aria-label={t("অ্যাডমিন মেনু")} className="flex gap-1 overflow-x-auto md:flex-col">
           {NAV.map((n) => (
@@ -77,6 +85,10 @@ export default function App() {
                 <Route path="/custom-requests" element={<CustomRequests />} />
                 <Route path="/providers" element={<Providers />} />
                 <Route path="/catalog" element={<Catalog />} />
+                <Route path="/subscriptions" element={<Subscriptions />} />
+                <Route path="/payments" element={<Payments />} />
+                <Route path="/support" element={<SupportInbox />} />
+                <Route path="/broadcast" element={<Broadcast />} />
                 <Route path="/payouts" element={<Payouts />} />
                 <Route path="/warranty" element={<Warranty />} />
                 <Route path="/areas" element={<Areas />} />

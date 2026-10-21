@@ -119,6 +119,61 @@ services:
       - ./.keys:/keys:ro
       - media:/data/media
 
+  # ---- subscriptions ----------------------------------------------------------
+  subscription:
+    <<: *django
+    build: { context: ./services, dockerfile: subscription/Dockerfile }
+    environment: &subscription-env
+      POSTGRES_DB: subscription_db
+      DJANGO_SECRET_KEY: ${SUBSCRIPTION_SECRET_KEY}
+      JWT_PUBLIC_KEY_PATH: /keys/jwt_public.pem
+  subscription-worker:
+    <<: *django
+    build: { context: ./services, dockerfile: subscription/Dockerfile }
+    depends_on: [subscription]
+    environment: *subscription-env
+    # -B: nightly dispatch of tomorrow's visits and the daily renewals
+    command: celery -A config worker -B -Q subscription -l info --concurrency 2
+
+  # ---- payments ---------------------------------------------------------------
+  payment:
+    <<: *django
+    build: { context: ./services, dockerfile: payment/Dockerfile }
+    environment: &payment-env
+      POSTGRES_DB: payment_db
+      DJANGO_SECRET_KEY: ${PAYMENT_SECRET_KEY}
+      JWT_PUBLIC_KEY_PATH: /keys/jwt_public.pem
+  payment-worker:
+    <<: *django
+    build: { context: ./services, dockerfile: payment/Dockerfile }
+    depends_on: [payment]
+    environment: *payment-env
+    command: celery -A config worker -Q payment -l info --concurrency 2
+
+  # ---- chat (ASGI + WebSocket) ------------------------------------------------
+  chat:
+    <<: *django
+    build: { context: ./services, dockerfile: chat/Dockerfile }
+    environment:
+      POSTGRES_DB: chat_db
+      DJANGO_SECRET_KEY: ${CHAT_SECRET_KEY}
+      JWT_PUBLIC_KEY_PATH: /keys/jwt_public.pem
+
+  # ---- notifications ----------------------------------------------------------
+  notification:
+    <<: *django
+    build: { context: ./services, dockerfile: notification/Dockerfile }
+    environment: &notification-env
+      POSTGRES_DB: notification_db
+      DJANGO_SECRET_KEY: ${NOTIFICATION_SECRET_KEY}
+      JWT_PUBLIC_KEY_PATH: /keys/jwt_public.pem
+  notification-worker:
+    <<: *django
+    build: { context: ./services, dockerfile: notification/Dockerfile }
+    depends_on: [notification]
+    environment: *notification-env
+    command: celery -A config worker -Q notification -l info --concurrency 2
+
   gateway:
     image: nginx:1.27-alpine
     ports:
@@ -126,7 +181,7 @@ services:
     volumes:
       - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - media:/data/media:ro
-    depends_on: [auth, catalog, order, provider, custom-request, media]
+    depends_on: [auth, catalog, order, provider, custom-request, media, subscription, payment, chat, notification]
 
 volumes:
   pgdata:

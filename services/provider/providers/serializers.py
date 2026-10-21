@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Earning, Job, JobLog, Payout, Provider
+from .models import Earning, Job, JobLog, Payout, Provider, Review
 
 
 class ProviderSerializer(serializers.ModelSerializer):
@@ -100,3 +100,14 @@ class PayoutSerializer(serializers.ModelSerializer):
 class LocationSerializer(serializers.Serializer):
     latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
     longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    job_title = serializers.CharField(source="job.title", read_only=True)
+    source = serializers.CharField(write_only=True)
+    source_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = Review
+        fields = ["id", "job_title", "rating", "comment", "created_at", "source", "source_id"]
+        read_only_fields = ["id", "job_title", "created_at"]

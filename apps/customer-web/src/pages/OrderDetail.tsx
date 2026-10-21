@@ -1,9 +1,10 @@
-import { api, Button, Card, errorMessage, ErrorNote, Field, formatDate, formatTaka, Icon, Loading, Modal, PageHeader, PhotoUpload, Select, slotOptions, StatusBadge, SuccessNote, t, TextArea, Timeline, todayISO } from "@shohor/web-core";
+import { api, Button, Card, errorMessage, ErrorNote, Field, formatDate, formatTaka, Icon, Loading, Modal, PageHeader, payOnline, PhotoUpload, Select, slotOptions, StatusBadge, SuccessNote, t, TextArea, Timeline, todayISO } from "@shohor/web-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { useOrder, useTracking, type Booking } from "../api/orders";
+import { BookingExtras, RefundRequest } from "../components/BookingExtras";
 
 function BookingCard({ booking, onChanged }: { booking: Booking; onChanged: () => void }) {
   const [dialog, setDialog] = useState<"reschedule" | "warranty" | null>(null);
@@ -76,6 +77,8 @@ function BookingCard({ booking, onChanged }: { booking: Booking; onChanged: () =
           <Icon name="shield" size={16} /> {t("ওয়ারেন্টি")} {formatDate(booking.warranty_until)} {t("পর্যন্ত")}
         </p>
       )}
+
+      <BookingExtras booking={booking} />
 
       <SuccessNote>{notice}</SuccessNote>
       <ErrorNote>{!dialog && error}</ErrorNote>
@@ -204,6 +207,10 @@ export default function OrderDetail() {
             <span className="text-muted">{order.payment_method === "cod" ? t("ক্যাশ অন ডেলিভারি") : t("অনলাইন পেমেন্ট")}</span>
             <StatusBadge status={order.payment_status} />
           </div>
+          {order.payment_method === "online" && order.payment_status === "unpaid" && order.status !== "cancelled" && (
+            <Button onClick={() => payOnline("order", order.id)}>{t("এখনই পরিশোধ করুন")}</Button>
+          )}
+          {order.payment_method === "online" && <RefundRequest orderId={order.id} />}
         </Card>
         <Card className="flex flex-col gap-4">
           <h2 className="m-0 text-lg font-bold">{t("টাইমলাইন")}</h2>

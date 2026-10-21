@@ -20,6 +20,10 @@ apps/admin-web    ─┘                          ├─► order           ─�
                                               ├─► provider        ─► provider_db
                                               ├─► custom-request  ─► custom_request_db
                                               └─► media           ─► media_db (+ files volume)
+                                              ├─► subscription    ─► subscription_db
+                                              ├─► payment         ─► payment_db
+                                              ├─► chat (ASGI/WS)  ─► chat_db
+                                              └─► notification    ─► notification_db
             each service ◄──── events (Celery workers, Redis) ────► each service
 ```
 
@@ -32,6 +36,10 @@ apps/admin-web    ─┘                          ├─► order           ─�
 | `services/provider` | Provider onboarding & verification, job inbox, smart matching, earnings, weekly payouts, trust score |
 | `services/custom_request` | Custom service requests, admin quotes with cost breakdown, one counter-offer round |
 | `services/media` | Photo/document uploads; NID files are always private |
+| `services/subscription` | 7/15/30-day cleaning, meal and household plans: schedules, skip (10 PM cutoff), pause, cancel, renew, upgrade, same-cleaner pin, 48h re-clean, group meals, student discount, meal menu |
+| `services/payment` | SSLCommerz (bKash/Nagad/cards) or a dev mock gateway; escrow ledger (held → released / refunded), refund & complaint requests |
+| `services/chat` | Django Channels: customer ↔ provider job chats, customer ↔ support with FAQ auto-reply; REST + WebSocket |
+| `services/notification` | In-app notifications (Bangla + English) and SMS from events; admin broadcasts |
 | `packages/web-core` | Shared React code: API client with token refresh, auth, UI components, Bangla formatting |
 | `apps/customer-web` | Customer site (:5173) |
 | `apps/provider-web` | Provider portal (:5174) |
@@ -45,6 +53,12 @@ apps/admin-web    ─┘                          ├─► order           ─�
   `job.status_changed` updates the booking/order → earning recorded (commission deducted) → weekly payout.
 - **Custom request:** submit → admin reviews and quotes (labor/materials/transport/platform fee) → customer accepts,
   rejects or counters once → accepted request becomes a provider job; job progress flows back to the request.
+- **Subscription:** subscribe (quote with prepay/student/add-on/group pricing) → pay cash or online → visits/meals are
+  scheduled → every night at the cutoff tomorrow's visits become provider jobs (`subscription.visit_due`), pinned to
+  the home's regular provider after the first visit → ratings feed the provider's score; skipped/paused/bad meals
+  become credit for the next renewal, which runs automatically.
+- **Online payment:** the amount is always fetched from the owning service; the gateway's callback/IPN is validated
+  and moves money into escrow; completion of the order/request releases it, cancellation refunds it automatically.
 - **Provider onboarding:** apply with NID/photos (kitchen photos for home chefs) → admin approves → `provider.approved`
   makes the user a provider (picked up on the next token refresh).
 
@@ -66,12 +80,17 @@ docker compose up --build          # postgres :5433, redis, all services + worke
 
 docker compose exec auth python manage.py createsuperuser     # admin login for admin-web
 docker compose exec catalog python manage.py seed_catalog     # sample categories/services/products
+docker compose exec subscription python manage.py seed_plans  # sample subscription plans/prices/add-ons
 
 pnpm install
 pnpm --filter customer-web dev     # http://localhost:5173
 pnpm --filter provider-web dev     # http://localhost:5174
 pnpm --filter admin-web dev        # http://localhost:5175
 ```
+
+Payments use a local test checkout page (`PAYMENT_GATEWAY=mock`); set `PAYMENT_GATEWAY=sslcommerz` with store
+credentials for real bKash/Nagad/card payments. SMS texts are logged (`SMS_BACKEND=console`) until an SMS gateway is set.
+After editing `gateway/nginx.conf`, run `docker compose exec gateway nginx -s reload`.
 
 In development OTP codes are written to the auth service log (`docker compose logs auth | grep OTP`).
 Adding a database to an existing Postgres volume: run the new `CREATE DATABASE` line from `infra/postgres/init.sql`
@@ -83,7 +102,8 @@ API docs per service: `http://localhost:8088/api/<service>/docs/` (auth, catalog
 
 ```bash
 docker compose exec <service> pytest    # each Django service
-python3 scripts/e2e_phase1.py           # full flow through the gateway with real events (stack must be running)
+python3 scripts/e2e_phase1.py           # Phase 1 flow through the gateway with real events (stack must be running)
+python3 scripts/e2e_phase2.py           # subscriptions, payments/escrow, reviews, chat, notifications
 pnpm -r build                           # type-check and build all web apps
 ```
 
@@ -93,6 +113,6 @@ pnpm -r build                           # type-check and build all web apps
 |---|---|---|
 | 0 — Foundation | Monorepo, Docker, gateway, auth + catalog services, customer home | done |
 | 1 — MVP | Cart & orders (COD), service booking, provider portal, custom requests, admin panel | done |
-| 2 — Subscriptions & Trust | 7/15/30-day cleaning & meal plans, online payment, reviews, chat, notifications | |
+| 2 — Subscriptions & Trust | 7/15/30-day cleaning & meal plans, online payment + escrow, reviews, chat, notifications | done |
 | 3 — City Layer | Issue reporting, live map, emergency request, community hub | |
 | 4 — Scale | Loyalty, B2B, analytics, multi-city | |

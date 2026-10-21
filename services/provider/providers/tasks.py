@@ -37,7 +37,13 @@ def subscription_status_changed(payload):
 
 @shared_task(name="provider.review.created")
 def review_created(payload):
-    logic.apply_review(payload)
+    """Ratings given elsewhere (subscription visits) become reviews of the job."""
+    from rest_framework.exceptions import ValidationError
+
+    try:
+        logic.create_review(payload["user_id"], payload["source"], payload["source_id"], payload["rating"], payload.get("comment", ""))
+    except ValidationError:
+        pass
 
 
 @shared_task(name="provider.weekly_payouts")

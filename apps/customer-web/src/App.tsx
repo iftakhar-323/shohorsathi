@@ -1,4 +1,4 @@
-import { AuthPage, RequireAuth, t } from "@shohor/web-core";
+import { AuthPage, ChatPage, NotificationsPage, RequireAuth, t } from "@shohor/web-core";
 import { Route, Routes } from "react-router-dom";
 
 import Footer from "./components/Footer";
@@ -10,10 +10,12 @@ import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import OrderDetail from "./pages/OrderDetail";
 import Orders from "./pages/Orders";
+import PaymentResult from "./pages/PaymentResult";
 import Profile from "./pages/Profile";
 import ServiceDetail from "./pages/ServiceDetail";
 import Services from "./pages/Services";
 import Shop from "./pages/Shop";
+import { MySubscriptions, Subscribe, SubscriptionDetail, SubscriptionPlans } from "./pages/Subscriptions";
 
 function Private({ children }: { children: React.ReactNode }) {
   return <RequireAuth>{children}</RequireAuth>;
@@ -39,6 +41,14 @@ export default function App() {
           <Route path="/custom-requests/new" element={<Private><NewCustomRequest /></Private>} />
           <Route path="/custom-requests/:id" element={<Private><CustomRequestDetail /></Private>} />
           <Route path="/profile" element={<Private><Profile /></Private>} />
+          <Route path="/subscriptions" element={<SubscriptionPlans />} />
+          <Route path="/subscriptions/new/:slug" element={<Subscribe />} />
+          <Route path="/subscriptions/mine" element={<Private><MySubscriptions /></Private>} />
+          <Route path="/subscriptions/:id" element={<Private><SubscriptionDetail /></Private>} />
+          <Route path="/payment/result" element={<PaymentResult />} />
+          <Route path="/chat" element={<Private><div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6"><ChatPage /></div></Private>} />
+          <Route path="/chat/:id" element={<Private><div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6"><ChatPage /></div></Private>} />
+          <Route path="/notifications" element={<Private><div className="px-4 py-8 sm:px-6"><NotificationsPage /></div></Private>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

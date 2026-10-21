@@ -1,6 +1,9 @@
 from django.db.models import Count
 from django.db.models.functions import Lower
+from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
+from rest_framework.views import APIView
+from shohor_common.internal import IsInternal
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from shohor_common.permissions import IsAdmin
@@ -94,3 +97,13 @@ class AdminCustomRequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin
             .order_by("-count")[:20]
         )
         return Response(list(rows))
+
+
+class AdvancePayableView(APIView):
+    permission_classes = [IsInternal]
+    authentication_classes = []
+
+    def get(self, request, pk):
+        req = get_object_or_404(CustomRequest, pk=pk)
+        payable = req.status in (S.ACCEPTED, S.PROVIDER_ASSIGNED, S.IN_PROGRESS) and not req.advance_paid
+        return Response({"user_id": req.user_id, "amount": str(req.advance_amount or 0), "payable": payable})
