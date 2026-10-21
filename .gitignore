@@ -29,3 +29,6 @@ dist/
 # playwright
 test-results/
 playwright-report/
+
+# generated website walkthrough (scripts/report)
+/report-out/
