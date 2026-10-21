@@ -79,3 +79,14 @@ def test_community_post_like_comment(reporter):
     assert other.delete(f"/api/community/posts/{post['id']}/").status_code == 403
     auth_client("admin").post(f"/api/admin/community/posts/{post['id']}/hide/")
     assert APIClient().get("/api/community/posts/").data["count"] == 0
+
+
+@pytest.mark.django_db
+def test_user_deleted_keeps_issue_but_drops_posts(reporter):
+    from city_app.models import Post
+    from city_app.tasks import user_deleted
+
+    reporter.post("/api/issues/", SPOT, format="json")
+    reporter.post("/api/community/posts/", {"area_id": 3, "area_name": "Mirpur", "kind": "tip", "body": "x"}, format="json")
+    user_deleted({"user_id": 7})
+    assert Issue.objects.get().reporter_name == "" and not Post.objects.exists()

@@ -52,7 +52,7 @@ def test_quote_accept_creates_job_event(customer, admin, captured_events):
     assert res.data["status"] == "quote_sent" and res.data["quote"]["total"] == "7500.00"
 
     accepted = customer.post(f"/api/custom-requests/{rid}/accept/").data
-    assert accepted["final_amount"] == "7500.00" and accepted["advance_amount"] == "2250.00"
+    assert accepted["final_amount"] == "7500.00" and accepted["advance_amount"] == "750.00"
     event, payload = [e for e in captured_events if e[0] == "custom_request.accepted"][0]
     assert payload["category_slug"] == "painting" and payload["commission_override"] == "700.00"
 

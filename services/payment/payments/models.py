@@ -12,7 +12,6 @@ class Payment(models.Model):
         ORDER = "order"
         SUBSCRIPTION = "subscription"
         CUSTOM_REQUEST_ADVANCE = "custom_request_advance"
-        WALLET_TOPUP = "wallet_topup"
 
     class Status(models.TextChoices):
         INITIATED = "initiated"

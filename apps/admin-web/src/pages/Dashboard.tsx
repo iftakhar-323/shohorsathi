@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 import { usePaged } from "../components";
 
-type OrderStats = { orders_today: number; revenue_today: string; revenue_completed: string; orders_by_status: Record<string, number>; bookings_by_status: Record<string, number>; open_warranty_claims: number };
+type OrderStats = { orders_today: number; revenue_today: string; revenue_completed: string; orders_by_status: Record<string, number>; bookings_by_status: Record<string, number>; open_warranty_claims: number; overdue_deliveries: number };
 type ProviderStats = { providers_by_status: Record<string, number>; jobs_by_status: Record<string, number>; online_now: number; payouts_requested: number };
 
 function Breakdown({ title, data }: { title: string; data: Record<string, number> | undefined }) {
@@ -46,6 +46,7 @@ export default function Dashboard() {
         <Stat label={t("যাচাইয়ের অপেক্ষায়")} value={providers?.providers_by_status.pending ?? 0} icon="shield" />
         <Stat label={t("পেআউট অনুরোধ")} value={providers?.payouts_requested ?? 0} icon="money" />
         <Stat label={t("খোলা ওয়ারেন্টি দাবি")} value={orders?.open_warranty_claims ?? 0} icon="refresh" />
+        <Link to="/orders?overdue=1" className="text-ink no-underline"><Stat label={t("সময় পেরোনো ডেলিভারি")} value={orders?.overdue_deliveries ?? 0} icon="alert" /></Link>
         <Stat label={t("চালু সাবস্ক্রাইবার")} value={subs?.active_total ?? "–"} icon="repeat" />
         <Stat label={t("এসক্রোতে জমা")} value={formatTaka(balances?.escrow)} icon="shield" />
       </div>

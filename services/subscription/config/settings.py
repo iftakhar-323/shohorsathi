@@ -1,6 +1,6 @@
 from shohor_common.settings import *  # noqa: F401,F403
 from celery.schedules import crontab
-from shohor_common.settings import INSTALLED_APPS, SPECTACULAR_SETTINGS, env
+from shohor_common.settings import CELERY_BEAT_SCHEDULE, INSTALLED_APPS, SPECTACULAR_SETTINGS, env
 
 SERVICE_NAME = "subscription"
 ROOT_URLCONF = "config.urls"
@@ -20,6 +20,7 @@ RECLEAN_WINDOW_HOURS = 48
 RENEWAL_REMINDER_DAYS = 2
 
 CELERY_BEAT_SCHEDULE = {
+    **CELERY_BEAT_SCHEDULE,
     "dispatch-tomorrow": {"task": "subscription.dispatch_tomorrow", "schedule": crontab(hour=SUBSCRIPTION_CUTOFF_HOUR, minute=5)},
     "daily-housekeeping": {"task": "subscription.daily_housekeeping", "schedule": crontab(hour=0, minute=30)},
 }

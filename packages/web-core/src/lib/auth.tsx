@@ -20,7 +20,7 @@ type AuthValue = {
   user: SessionUser | null;
   login: (phone: string, password: string) => Promise<SessionUser | null>;
   requestOtp: (phone: string, purpose?: "register" | "reset_password") => Promise<void>;
-  register: (data: { phone: string; full_name: string; password: string; otp: string; email?: string }) => Promise<void>;
+  register: (data: { phone: string; full_name: string; password: string; otp: string; email?: string; accept_terms: boolean; marketing_opt_in?: boolean }) => Promise<void>;
   resetPassword: (data: { phone: string; otp: string; new_password: string }) => Promise<void>;
   logout: () => void;
 };

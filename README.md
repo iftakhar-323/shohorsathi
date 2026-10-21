@@ -90,6 +90,17 @@ Catalog items and areas have `name_bn`/`name_en`; render them with `localName(it
 follow the selected language. CI runs `node packages/web-core/scripts/check-i18n.mjs`, which fails on a Bangla string
 without an English translation or Bangla JSX text that is not wrapped in `t()`.
 
+## Compliance and production
+
+- `docs/compliance.md` — ShohorSathi Credit (closed-loop, no cash top-up), advance/escrow limits, and how the Personal
+  Data Protection Ordinance 2025 duties are met (consent record, encrypted NID with access log, 90-day purge of
+  rejected applicants' documents, data export, account deletion across services). Items marked "confirm with
+  counsel" must be checked before launch.
+- `docs/deploy.md` — production deploy (`docker-compose.prod.yml`, TLS gateway serving the built apps), backups
+  (`scripts/backup.sh` / `restore.sh`), monitoring (`/api/<service>/health/`, Sentry) and breach response.
+- Events go through a transactional outbox in every service and are retried by a beat task; Celery consumers retry
+  with backoff.
+
 ## Run locally
 
 ```bash
@@ -125,7 +136,9 @@ docker compose exec <service> pytest    # each Django service
 python3 scripts/e2e_phase1.py           # Phase 1 flow through the gateway with real events (stack must be running)
 python3 scripts/e2e_phase2.py           # subscriptions, payments/escrow, reviews, chat, notifications
 python3 scripts/e2e_phase3.py           # city issues, community, emergency request, live tracking
-python3 scripts/e2e_phase4.py           # wallet & points, referrals, B2B portal, analytics, multi-city
+python3 scripts/e2e_phase4.py           # credit & points, referrals, B2B portal, analytics, multi-city
+python3 scripts/e2e_phase5.py           # consent, encrypted NID, data export, account deletion, outbox
+E2E_ADMIN_PHONE=... E2E_ADMIN_PASSWORD=... pnpm --filter e2e test   # browser tests (Playwright) of the three apps
 pnpm -r build                           # type-check and build all web apps
 ```
 

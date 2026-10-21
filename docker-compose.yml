@@ -43,7 +43,7 @@ services:
     build: { context: ./services, dockerfile: auth/Dockerfile }
     depends_on: [auth]
     environment: *auth-env
-    command: celery -A config worker -Q auth -l info --concurrency 2
+    command: celery -A config worker -B -Q auth -l info --concurrency 2
 
   # ---- catalog ----------------------------------------------------------------
   catalog:
@@ -58,7 +58,7 @@ services:
     build: { context: ./services, dockerfile: catalog/Dockerfile }
     depends_on: [catalog]
     environment: *catalog-env
-    command: celery -A config worker -Q catalog -l info --concurrency 2
+    command: celery -A config worker -B -Q catalog -l info --concurrency 2
 
   # ---- order ------------------------------------------------------------------
   order:
@@ -73,7 +73,7 @@ services:
     build: { context: ./services, dockerfile: order/Dockerfile }
     depends_on: [order]
     environment: *order-env
-    command: celery -A config worker -Q order -l info --concurrency 2
+    command: celery -A config worker -B -Q order -l info --concurrency 2
 
   # ---- provider ---------------------------------------------------------------
   provider:
@@ -104,17 +104,26 @@ services:
     build: { context: ./services, dockerfile: custom_request/Dockerfile }
     depends_on: [custom-request]
     environment: *custom-request-env
-    command: celery -A config worker -Q custom_request -l info --concurrency 2
+    command: celery -A config worker -B -Q custom_request -l info --concurrency 2
 
   # ---- media ------------------------------------------------------------------
   media:
     <<: *django
     build: { context: ./services, dockerfile: media/Dockerfile }
-    environment:
+    environment: &media-env
       POSTGRES_DB: media_db
       DJANGO_SECRET_KEY: ${MEDIA_SECRET_KEY}
       JWT_PUBLIC_KEY_PATH: /keys/jwt_public.pem
       MEDIA_ROOT: /data/media
+    volumes:
+      - ./.keys:/keys:ro
+      - media:/data/media
+  media-worker:
+    <<: *django
+    build: { context: ./services, dockerfile: media/Dockerfile }
+    depends_on: [media]
+    environment: *media-env
+    command: celery -A config worker -B -Q media -l info --concurrency 2
     volumes:
       - ./.keys:/keys:ro
       - media:/data/media
@@ -148,16 +157,22 @@ services:
     build: { context: ./services, dockerfile: payment/Dockerfile }
     depends_on: [payment]
     environment: *payment-env
-    command: celery -A config worker -Q payment -l info --concurrency 2
+    command: celery -A config worker -B -Q payment -l info --concurrency 2
 
   # ---- chat (ASGI + WebSocket) ------------------------------------------------
   chat:
     <<: *django
     build: { context: ./services, dockerfile: chat/Dockerfile }
-    environment:
+    environment: &chat-env
       POSTGRES_DB: chat_db
       DJANGO_SECRET_KEY: ${CHAT_SECRET_KEY}
       JWT_PUBLIC_KEY_PATH: /keys/jwt_public.pem
+  chat-worker:
+    <<: *django
+    build: { context: ./services, dockerfile: chat/Dockerfile }
+    depends_on: [chat]
+    environment: *chat-env
+    command: celery -A config worker -B -Q chat -l info --concurrency 2
 
   # ---- notifications ----------------------------------------------------------
   notification:
@@ -172,16 +187,22 @@ services:
     build: { context: ./services, dockerfile: notification/Dockerfile }
     depends_on: [notification]
     environment: *notification-env
-    command: celery -A config worker -Q notification -l info --concurrency 2
+    command: celery -A config worker -B -Q notification -l info --concurrency 2
 
   # ---- city layer: issues + community -----------------------------------------
   city:
     <<: *django
     build: { context: ./services, dockerfile: city/Dockerfile }
-    environment:
+    environment: &city-env
       POSTGRES_DB: city_db
       DJANGO_SECRET_KEY: ${CITY_SECRET_KEY}
       JWT_PUBLIC_KEY_PATH: /keys/jwt_public.pem
+  city-worker:
+    <<: *django
+    build: { context: ./services, dockerfile: city/Dockerfile }
+    depends_on: [city]
+    environment: *city-env
+    command: celery -A config worker -B -Q city -l info --concurrency 2
 
   # ---- Phase 4: loyalty & wallet, B2B portal, analytics -------------------------
   loyalty:
@@ -196,7 +217,7 @@ services:
     build: { context: ./services, dockerfile: loyalty/Dockerfile }
     depends_on: [loyalty]
     environment: *loyalty-env
-    command: celery -A config worker -Q loyalty -l info --concurrency 2
+    command: celery -A config worker -B -Q loyalty -l info --concurrency 2
 
   b2b:
     <<: *django
@@ -224,7 +245,7 @@ services:
     build: { context: ./services, dockerfile: analytics/Dockerfile }
     depends_on: [analytics]
     environment: *analytics-env
-    command: celery -A config worker -Q analytics -l info --concurrency 2
+    command: celery -A config worker -B -Q analytics -l info --concurrency 2
 
   gateway:
     image: nginx:1.27-alpine

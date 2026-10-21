@@ -78,7 +78,7 @@ export default function Header() {
                     ["/chat", t("চ্যাট ও সাপোর্ট")],
                     ["/business", t("বিল্ডিং ও ব্যবসা পোর্টাল")],
                     ["/issues/mine", t("আমার রিপোর্ট")],
-                    ["/wallet", t("ওয়ালেট ও পয়েন্ট")],
+                    ["/wallet", t("ক্রেডিট ও পয়েন্ট")],
                     ["/notifications", t("নোটিফিকেশন")],
                     ["/profile", t("প্রোফাইল ও ঠিকানা")],
                   ].map(([to, label]) => (

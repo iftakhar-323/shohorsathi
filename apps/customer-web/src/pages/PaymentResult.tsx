@@ -5,7 +5,6 @@ const TARGET: Record<string, (id: string) => string> = {
   order: (id) => `/orders/${id}`,
   subscription: (id) => `/subscriptions/${id}`,
   custom_request_advance: (id) => `/custom-requests/${id}`,
-  wallet_topup: () => "/wallet",
 };
 
 /** The gateway sends customers here after paying (status = held), failing or cancelling. */

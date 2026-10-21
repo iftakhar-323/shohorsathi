@@ -73,3 +73,32 @@ def test_service_rejects_product_category(client):
         format="json",
     )
     assert res.status_code == 400
+
+
+@pytest.mark.django_db(transaction=True)
+def test_outbox_keeps_events_when_broker_is_down(settings, monkeypatch):
+    """Shared outbox (shohor_common): a failed send is kept and relayed later."""
+    from django.db import transaction
+    from shohor_common import events
+    from shohor_common.models import OutboxEvent
+
+    settings.EVENTS_CAPTURE = False
+    calls = []
+
+    def broker_down(event, payload):
+        raise ConnectionError("redis down")
+
+    monkeypatch.setattr(events, "_send", broker_down)
+    with transaction.atomic():
+        events.publish("order.placed", {"order_id": 1})
+    row = OutboxEvent.objects.get()
+    assert row.sent_at is None and row.attempts == 1 and "redis down" in row.last_error
+
+    monkeypatch.setattr(events, "_send", lambda event, payload: calls.append(event))
+    assert events.relay(min_age_seconds=0) == 1
+    assert calls == ["order.placed"] and OutboxEvent.objects.get().sent_at is not None
+
+    with transaction.atomic():
+        events.publish("order.placed", {"order_id": 2})
+        transaction.set_rollback(True)
+    assert OutboxEvent.objects.count() == 1  # rolled back with the change

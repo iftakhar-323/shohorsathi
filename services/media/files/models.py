@@ -31,6 +31,8 @@ class MediaFile(models.Model):
     original_name = models.CharField(max_length=255)
     content_type = models.CharField(max_length=100)
     size = models.PositiveIntegerField()
+    # Private files (NID, ID cards) are stored encrypted; see files/crypto.py.
+    encrypted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
@@ -38,3 +40,16 @@ class MediaFile(models.Model):
         from django.utils import timezone
 
         return self.created_at or timezone.now()
+
+
+class MediaAccess(models.Model):
+    """Who opened a private file, and when (access log for identity documents)."""
+
+    media = models.ForeignKey(MediaFile, on_delete=models.CASCADE, related_name="accesses")
+    user_id = models.PositiveBigIntegerField()
+    role = models.CharField(max_length=10)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]

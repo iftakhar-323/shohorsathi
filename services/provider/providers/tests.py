@@ -228,3 +228,37 @@ def test_emergency_alerts_nearest_first(approved, captured_events):
     Provider.objects.filter(pk=near.pk).update(is_online=True, last_latitude="23.81", last_longitude="90.41")
     logic.create_job({**BOOKING, "is_emergency": True, "latitude": "23.81", "longitude": "90.41"})
     assert captured_events[-1][1]["provider_user_ids"] == [51, 50]
+
+
+@pytest.mark.django_db
+def test_rejected_documents_purged_after_retention(provider_client, monkeypatch):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from providers import privacy
+
+    deleted = []
+    monkeypatch.setattr(internal, "post", lambda service, path, body: deleted.extend(body["urls"]) or (200, {}))
+    provider_client.post("/api/providers/register/", REGISTRATION, format="json")
+    provider = Provider.objects.get()
+    logic.review_provider(provider, "reject", "blurry NID")
+    assert privacy.purge_rejected() == 0  # still within the appeal window
+    Provider.objects.filter(pk=provider.pk).update(reviewed_at=timezone.now() - timedelta(days=91))
+    assert privacy.purge_rejected() == 1
+    provider.refresh_from_db()
+    assert provider.nid_front_url == "" and provider.nid_number == "" and "/media/n.jpg" in deleted
+
+
+@pytest.mark.django_db
+def test_user_deleted_suspends_provider_and_redacts_jobs(approved, monkeypatch):
+    from providers.tasks import user_deleted
+
+    monkeypatch.setattr(internal, "post", lambda *a: (200, {}))
+    job = logic.create_job(BOOKING)
+    user_deleted({"user_id": 50})
+    user_deleted({"user_id": 7})
+    approved.refresh_from_db()
+    job.refresh_from_db()
+    assert approved.status == "suspended" and approved.full_name == "Deleted user" and approved.photo_url == ""
+    assert job.customer_phone == "" and job.customer_name == "Deleted user"

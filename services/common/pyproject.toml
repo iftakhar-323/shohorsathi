@@ -16,6 +16,7 @@ dependencies = [
     "psycopg[binary]>=3.2,<3.3",
     "celery[redis]>=5.4,<5.5",
     "requests>=2.32,<3",
+    "sentry-sdk>=2.18,<3",
 ]
 
 [tool.setuptools.packages.find]

@@ -10,6 +10,9 @@ def new_code():
 class Account(models.Model):
     user_id = models.PositiveBigIntegerField(unique=True)
     points = models.PositiveIntegerField(default=0)
+    # ShohorSathi Credit: closed-loop store credit from refunds, referrals and promotions. It can only be spent on
+    # ShohorSathi; it cannot be topped up with money, withdrawn or transferred. This keeps it apart from e-money
+    # (which needs a Bangladesh Bank PSP licence); confirm the classification with counsel before launch.
     wallet = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     referral_code = models.CharField(max_length=8, unique=True, default=new_code)
     referred_by = models.PositiveBigIntegerField(null=True, blank=True)
@@ -63,9 +66,3 @@ class Redemption(models.Model):
     reversed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
-
-class TopUp(models.Model):
-    user_id = models.PositiveBigIntegerField()
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    paid = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)

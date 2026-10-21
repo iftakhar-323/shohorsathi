@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "drf_spectacular",
+    "shohor_common",
 ]
 
 MIDDLEWARE = [
@@ -89,7 +90,12 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle", "rest_framework.throttling.UserRateThrottle"],
+    "DEFAULT_THROTTLE_RATES": {"anon": env("THROTTLE_ANON", "120/min"), "user": env("THROTTLE_USER", "600/min")},
 }
+
+# Shared cache (rate limits are counted across all of a service's processes).
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache", "LOCATION": env("REDIS_CACHE_URL", "redis://redis:6379/2")}}
 
 SIMPLE_JWT = {
     "ALGORITHM": "RS256",
@@ -112,6 +118,8 @@ CELERY_BROKER_URL = env("REDIS_URL", "redis://redis:6379/0")
 CELERY_TASK_ACKS_LATE = True
 CELERY_TIMEZONE = "Asia/Dhaka"
 EVENTS_CAPTURE = False
+# Every service relays its outbox; services add their own jobs with {**CELERY_BEAT_SCHEDULE, ...}.
+CELERY_BEAT_SCHEDULE = {"relay-outbox": {"task": "shohor.relay_outbox", "schedule": 10.0}}
 
 # Internal service addresses, used for the few synchronous calls between services.
 SERVICE_URLS = {
@@ -124,9 +132,27 @@ SERVICE_URLS = {
     "chat": env("CHAT_URL", "http://chat:8000"),
     "loyalty": env("LOYALTY_URL", "http://loyalty:8000"),
     "b2b": env("B2B_URL", "http://b2b:8000"),
+    "city": env("CITY_URL", "http://city:8000"),
+    "media": env("MEDIA_URL_INTERNAL", "http://media:8000"),
+    "notification": env("NOTIFICATION_URL", "http://notification:8000"),
 }
 # Shared secret for service-to-service calls that are not made on behalf of a user.
 INTERNAL_API_TOKEN = env("INTERNAL_API_TOKEN", "dev-internal-token")
+
+# Production hardening, active when DJANGO_DEBUG=0.
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    CSRF_TRUSTED_ORIGINS = [o for o in env("CSRF_TRUSTED_ORIGINS", "").split(",") if o]
+
+# Error tracking: set SENTRY_DSN to report exceptions from web processes and Celery workers.
+if env("SENTRY_DSN"):
+    import sentry_sdk
+
+    sentry_sdk.init(dsn=env("SENTRY_DSN"), environment=env("SENTRY_ENVIRONMENT", "production"),
+                    traces_sample_rate=float(env("SENTRY_TRACES_RATE", "0.05")), send_default_pii=False)
 
 LOGGING = {
     "version": 1,

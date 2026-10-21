@@ -1,6 +1,7 @@
 import { api, Button, errorMessage, ErrorNote, formatDate, formatTaka, Modal, PageHeader, slotLabel, StatusBadge, t } from "@shohor/web-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { DataTable, FilterChips, usePaged } from "../components";
 
@@ -30,7 +31,9 @@ const NEXT: Record<string, { status: string; label: string }[]> = {
 export default function Orders() {
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
-  const { data, isPending } = usePaged<Order>(["admin-orders"], "/admin/orders/", { status: status || undefined, q: q || undefined });
+  const [params] = useSearchParams();
+  const overdue = params.get("overdue") === "1";
+  const { data, isPending } = usePaged<Order>(["admin-orders"], "/admin/orders/", { status: status || undefined, q: q || undefined, overdue: overdue ? 1 : undefined });
   const [open, setOpen] = useState<Order | null>(null);
   const [error, setError] = useState("");
   const qc = useQueryClient();

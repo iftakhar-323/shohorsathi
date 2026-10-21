@@ -3,7 +3,8 @@
 `publish("booking.created", {...})` sends one Celery task per subscribed service. Each subscriber's worker listens on
 its own queue (named after the service) and registers a task named "<service>.<event>", e.g. "provider.booking.created".
 
-Publishing happens after the surrounding DB transaction commits, so a rolled-back write never emits an event.
+Events are written to the service's outbox table in the same transaction as the change (a rolled-back write never
+emits an event), sent right after commit, and retried by the `shohor.relay_outbox` beat task if the broker was down.
 """
 import logging
 
@@ -15,6 +16,8 @@ log = logging.getLogger(__name__)
 # event -> services that consume it. Adding a consumer means adding its queue name here and a task in that service.
 SUBSCRIBERS = {
     "provider.approved": ["auth", "notification"],
+    # Personal data deletion: every service holding personal data redacts its copy.
+    "user.deleted": ["provider", "media", "order", "subscription", "custom_request", "city", "chat", "b2b", "notification"],
     "provider.suspended": ["auth"],
     "booking.created": ["provider", "notification", "analytics"],
     "booking.cancelled": ["provider", "notification"],
@@ -31,7 +34,7 @@ SUBSCRIBERS = {
     "subscription.status_changed": ["notification", "provider", "payment"],
     "subscription.renewal_reminder": ["notification"],
     "subscription.renewed": ["notification", "analytics", "loyalty"],
-    "payment.succeeded": ["order", "subscription", "custom_request", "loyalty", "notification", "analytics"],
+    "payment.succeeded": ["order", "subscription", "custom_request", "notification", "analytics"],
     "payment.refunded": ["notification", "order"],
     "payment.failed": ["notification"],
     "chat.message": ["notification"],
@@ -60,10 +63,35 @@ def _app():
 
 def _send(event, payload):
     for queue in SUBSCRIBERS.get(event, []):
-        try:
-            _app().send_task(f"{queue}.{event}", args=[payload], queue=queue)
-        except Exception:  # the broker being down must not break the request that caused the event
-            log.exception("could not publish %s to %s", event, queue)
+        _app().send_task(f"{queue}.{event}", args=[payload], queue=queue)
+
+
+def deliver(row):
+    """Send one outbox row; on failure keep it for the relay to retry."""
+    from django.utils import timezone
+
+    from .models import OutboxEvent
+
+    try:
+        _send(row.event, row.payload)
+    except Exception as e:  # broker down: the relay retries later
+        OutboxEvent.objects.filter(pk=row.pk).update(attempts=row.attempts + 1, last_error=str(e)[:255])
+        log.warning("event %s not delivered yet: %s", row.event, e)
+        return False
+    OutboxEvent.objects.filter(pk=row.pk).update(sent_at=timezone.now(), attempts=row.attempts + 1)
+    return True
+
+
+def relay(limit=500, min_age_seconds=5):
+    """Retry events whose first delivery failed (run every few seconds by each service's beat)."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from .models import OutboxEvent
+
+    cutoff = timezone.now() - timedelta(seconds=min_age_seconds)
+    return sum(deliver(row) for row in OutboxEvent.objects.filter(sent_at=None, created_at__lt=cutoff)[:limit])
 
 
 def publish(event, payload):
@@ -73,4 +101,7 @@ def publish(event, payload):
         # Tests run inside a transaction that never commits, so record immediately.
         sent.append((event, payload))
         return
-    transaction.on_commit(lambda: _send(event, payload))
+    from .models import OutboxEvent
+
+    row = OutboxEvent.objects.create(event=event, payload=payload)
+    transaction.on_commit(lambda: deliver(row))

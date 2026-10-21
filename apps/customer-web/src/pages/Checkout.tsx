@@ -191,7 +191,7 @@ export default function Checkout() {
           <Select label={t("কার পক্ষে অর্ডার")} value={orgId} onChange={(e) => setOrgId(e.target.value)}
             options={[{ value: "", label: t("নিজের জন্য") }, ...orgs.filter((o) => o.status === "approved").map((o) => ({ value: o.id, label: o.name }))]} />
         )}
-        {([["cod", "ক্যাশ অন ডেলিভারি", "পণ্য পেয়ে বা কাজ শেষে টাকা দিন"], ["online", "বিকাশ / নগদ / কার্ড", "টাকা কাজ শেষ হওয়া পর্যন্ত নিরাপদে জমা থাকে"], ...(loyalty && Number(loyalty.wallet) > 0 ? [["wallet", "শহরসাথী ওয়ালেট", "ব্যালেন্স"]] : [])] as [ "cod" | "online" | "wallet", string, string][]).map(([value, title, hint]) => (
+        {([["cod", "ক্যাশ অন ডেলিভারি", "পণ্য পেয়ে বা কাজ শেষে টাকা দিন"], ["online", "বিকাশ / নগদ / কার্ড", "টাকা কাজ শেষ হওয়া পর্যন্ত নিরাপদে জমা থাকে"], ...(loyalty && Number(loyalty.wallet) > 0 ? [["wallet", "শহরসাথী ক্রেডিট", "ব্যালেন্স"]] : [])] as [ "cod" | "online" | "wallet", string, string][]).map(([value, title, hint]) => (
           <label key={value} className={`flex items-start gap-3 rounded-xl border p-3 text-[15px] ${payment === value ? "border-brand bg-brand-tint" : "border-line"}`}>
             <input type="radio" name="payment" checked={payment === value} onChange={() => setPayment(value)} className="mt-1 accent-brand" />
             <span>

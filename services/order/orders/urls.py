@@ -1,7 +1,9 @@
 from django.urls import path
 from rest_framework.routers import SimpleRouter
 
-from . import views
+from shohor_common.privacy import export_view
+
+from . import privacy, views
 
 router = SimpleRouter()
 router.register("api/cart/items", views.CartItemViewSet, basename="cart-item")
@@ -12,6 +14,7 @@ router.register("api/admin/bookings", views.AdminBookingViewSet, basename="admin
 router.register("api/admin/warranty-claims", views.AdminWarrantyViewSet, basename="admin-warranty")
 
 urlpatterns = [
+    path("api/internal/export/<int:user_id>/", export_view(privacy.collect)),
     path("api/cart/", views.CartView.as_view()),
     path("api/admin/order-stats/", views.AdminStatsView.as_view()),
     path("api/internal/bookings/<int:pk>/verify-arrival/", views.VerifyArrivalView.as_view()),

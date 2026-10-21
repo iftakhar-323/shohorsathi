@@ -128,6 +128,8 @@ class AdminOrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
             qs = qs.filter(area_id=area)
         if q := params.get("q"):
             qs = qs.filter(Q(contact_phone__contains=q) | Q(contact_name__icontains=q))
+        if params.get("overdue") == "1":
+            qs = qs.filter(pk__in=logic.overdue_deliveries())
         return qs
 
     @action(detail=True, methods=["patch"])
@@ -189,6 +191,7 @@ class AdminStatsView(APIView):
                 "orders_by_status": dict(Order.objects.values_list("status").annotate(n=Count("id"))),
                 "bookings_by_status": dict(Booking.objects.values_list("status").annotate(n=Count("id"))),
                 "open_warranty_claims": WarrantyClaim.objects.filter(status=WarrantyClaim.Status.OPEN).count(),
+                "overdue_deliveries": logic.overdue_deliveries().count(),
             }
         )
 

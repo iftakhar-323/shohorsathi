@@ -1,5 +1,5 @@
 from shohor_common.settings import *  # noqa: F401,F403
-from shohor_common.settings import INSTALLED_APPS, REST_FRAMEWORK, SPECTACULAR_SETTINGS, env_bool
+from shohor_common.settings import INSTALLED_APPS, REST_FRAMEWORK, SPECTACULAR_SETTINGS, env, env_bool
 
 SERVICE_NAME = "auth"
 ROOT_URLCONF = "config.urls"
@@ -21,3 +21,7 @@ OTP_DEBUG = env_bool("OTP_DEBUG")
 OTP_TTL_SECONDS = 300
 OTP_RESEND_SECONDS = 60
 OTP_MAX_ATTEMPTS = 5
+OTP_THROTTLE_RATE = env("OTP_THROTTLE_RATE", "10/hour")
+
+# Bump when the terms or privacy notice change; users accept the current version at sign-up.
+TERMS_VERSION = "2026-10"

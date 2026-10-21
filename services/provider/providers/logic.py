@@ -238,6 +238,7 @@ def review_provider(provider, decision, reason=""):
         provider.is_online = False
         provider.rejection_reason = reason
         events.publish("provider.suspended", {"user_id": provider.user_id, "provider_id": provider.id})
+    provider.reviewed_at = timezone.now()
     provider.save()
     return provider
 

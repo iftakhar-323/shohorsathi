@@ -42,15 +42,10 @@ def test_redeem_capped_and_reversed_on_cancel():
 
 
 @pytest.mark.django_db
-def test_topup_and_wallet_pay():
+def test_credit_pay_and_return_on_cancel():
     me = auth_client(user_id=7)
-    assert me.post("/api/loyalty/topups/", {"amount": "10"}, format="json").status_code == 400
-    topup = me.post("/api/loyalty/topups/", {"amount": "500"}, format="json").data
-    payable = APIClient().get(f"/api/internal/loyalty/topups/{topup['id']}/payable/", **INTERNAL).data
-    assert payable == {"user_id": 7, "amount": "500.00", "payable": True}
-    logic.topup_paid({"purpose": "wallet_topup", "reference_id": topup["id"]})
-    logic.topup_paid({"purpose": "wallet_topup", "reference_id": topup["id"]})
-    assert Account.objects.get(user_id=7).wallet == 500
+    logic.move(7, "wallet", Decimal("500"), "promo", "eid")
+    assert me.post("/api/loyalty/topups/", {"amount": "500"}, format="json").status_code == 404  # no cash top-ups
     short = APIClient().post("/api/internal/loyalty/wallet-pay/", {"user_id": 7, "order_id": 4, "amount": "900"}, format="json", **INTERNAL)
     assert short.status_code == 400
     APIClient().post("/api/internal/loyalty/wallet-pay/", {"user_id": 7, "order_id": 4, "amount": "300"}, format="json", **INTERNAL)

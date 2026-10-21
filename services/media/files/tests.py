@@ -40,3 +40,33 @@ def test_rejects_unknown_type_and_anonymous():
     )
     assert bad.status_code == 400
     assert upload(APIClient()).status_code == 401
+
+
+@pytest.mark.django_db
+def test_private_files_encrypted_at_rest_and_access_logged(settings):
+    from files.models import MediaAccess, MediaFile
+
+    res = upload(auth_client(user_id=1), purpose="nid")
+    media = MediaFile.objects.get()
+    with media.file.open("rb") as f:
+        assert PNG not in f.read()  # stored bytes are ciphertext
+    body = auth_client("admin", user_id=3).get(res.data["url"])
+    assert body.status_code == 200 and body.content == PNG  # decrypted on the way out
+    assert MediaAccess.objects.get().user_id == 3
+
+
+@pytest.mark.django_db
+def test_internal_delete_and_user_deleted():
+    from rest_framework.test import APIClient
+
+    from files.models import MediaFile
+    from files.tasks import user_deleted
+
+    nid = upload(auth_client(user_id=1), purpose="nid").data["url"]
+    pub = upload(auth_client(user_id=1), purpose="problem_photo").data["url"]
+    upload(auth_client(user_id=2), purpose="problem_photo")
+    res = APIClient().post("/api/internal/media/delete/", {"urls": [nid]}, format="json", HTTP_X_INTERNAL_TOKEN="dev-internal-token")
+    assert res.data == {"deleted": 1}
+    assert user_deleted({"user_id": 1}) == 1  # the public photo
+    assert list(MediaFile.objects.values_list("owner_user_id", flat=True)) == [2]
+    assert pub.startswith("/media/public/")

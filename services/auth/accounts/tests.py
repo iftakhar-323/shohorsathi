@@ -17,7 +17,7 @@ def register(client, phone=PHONE):
     code = otp.issue(phone, "register")
     return client.post(
         "/api/auth/register/",
-        {"phone": phone, "full_name": "Rahim", "password": "strong-pass-123", "otp": code},
+        {"phone": phone, "full_name": "Rahim", "password": "strong-pass-123", "otp": code, "accept_terms": True},
         format="json",
     )
 
@@ -35,7 +35,7 @@ def test_register_rejects_wrong_otp(client):
     otp.issue(PHONE, "register")
     res = client.post(
         "/api/auth/register/",
-        {"phone": PHONE, "full_name": "Rahim", "password": "strong-pass-123", "otp": "000000"},
+        {"phone": PHONE, "full_name": "Rahim", "password": "strong-pass-123", "otp": "000000", "accept_terms": True},
         format="json",
     )
     assert res.status_code == 400
@@ -123,3 +123,32 @@ def test_cities_and_area_filter(client):
     Area.objects.create(city="Chattogram", name_en="Agrabad", name_bn="আগ্রাবাদ")
     assert client.get("/api/cities/").data == ["Chattogram", "Dhaka"]
     assert [a["name_en"] for a in client.get("/api/areas/?city=chattogram").data] == ["Agrabad"]
+
+
+@pytest.mark.django_db
+def test_register_records_consent_and_requires_it(client):
+    code = otp.issue(PHONE, "register")
+    res = client.post("/api/auth/register/", {"phone": PHONE, "full_name": "R", "password": "strong-pass-123", "otp": code, "accept_terms": False}, format="json")
+    assert res.status_code == 400 and "accept_terms" in res.data
+    register(client)
+    user = User.objects.get(phone=PHONE)
+    assert user.terms_version == "2026-10" and user.terms_accepted_at is not None
+
+
+@pytest.mark.django_db
+def test_export_and_delete(client, monkeypatch, captured_events):
+    from shohor_common import internal
+
+    monkeypatch.setattr(internal, "get", lambda service, path, **kw: {"service": service})
+    tokens = register(client).data
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
+    data = client.get("/api/me/export/").data
+    assert data["profile"]["phone"] == PHONE and data["order"] == {"service": "order"}
+    assert client.post("/api/me/delete/", {"password": "wrong"}, format="json").status_code == 400
+    assert client.post("/api/me/delete/", {"password": "strong-pass-123"}, format="json").status_code == 204
+    user = User.objects.get(pk=tokens["user"]["id"])
+    assert not user.is_active and user.full_name == "Deleted user" and user.phone != PHONE
+    assert captured_events[-1] == ("user.deleted", {"user_id": user.id})
+    # the number is free to register again
+    client.credentials()
+    assert register(client).status_code == 201

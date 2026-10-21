@@ -36,6 +36,8 @@ export default function AuthPage({
   const [name, setName] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+  const [marketing, setMarketing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -82,7 +84,7 @@ export default function AuthPage({
     }
     if (mode === "register") {
       run(async () => {
-        await auth.register({ phone, full_name: name, password, otp });
+        await auth.register({ phone, full_name: name, password, otp, accept_terms: accepted, marketing_opt_in: marketing });
         navigate(next, { replace: true });
       });
     } else {
@@ -152,6 +154,22 @@ export default function AuthPage({
             autoComplete={mode === "login" ? "current-password" : "new-password"}
             hint={mode !== "login" ? t("কমপক্ষে ৮ অক্ষর") : undefined}
           />
+        )}
+
+        {mode === "register" && otpSent && (
+          <div className="flex flex-col gap-2 text-[15px]">
+            <label className="flex items-start gap-2">
+              <input type="checkbox" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1 size-5 accent-brand" />
+              <span>
+                {t("আমি")} <a href="/terms" target="_blank" rel="noreferrer">{t("ব্যবহারের শর্ত")}</a> {t("ও")}{" "}
+                <a href="/privacy" target="_blank" rel="noreferrer">{t("প্রাইভেসি নীতি")}</a> {t("পড়েছি ও মেনে নিচ্ছি")}
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-muted">
+              <input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} className="mt-1 size-5 accent-brand" />
+              {t("অফার ও প্রচারের বার্তা পেতে চাই (ঐচ্ছিক)")}
+            </label>
+          </div>
         )}
 
         <ErrorNote>{error}</ErrorNote>

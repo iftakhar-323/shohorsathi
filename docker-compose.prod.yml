@@ -1,0 +1,33 @@
+# Production overrides: docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# See docs/deploy.md.
+services:
+  postgres:
+    ports: !reset []          # never expose the database to the internet
+    restart: unless-stopped
+  redis:
+    restart: unless-stopped
+
+  gateway:
+    build: { context: ., dockerfile: gateway/Dockerfile.prod }
+    image: shohorsathi-gateway-prod
+    ports: !override
+      - "80:80"
+      - "443:443"
+    volumes: !override
+      - media:/data/media:ro
+      - ./deploy/letsencrypt:/etc/letsencrypt:ro
+      - ./deploy/certbot-www:/var/www/certbot:ro
+    environment:
+      CUSTOMER_DOMAIN: ${CUSTOMER_DOMAIN}
+      PARTNER_DOMAIN: ${PARTNER_DOMAIN}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN}
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot:v2.11.0
+    volumes:
+      - ./deploy/letsencrypt:/etc/letsencrypt
+      - ./deploy/certbot-www:/var/www/certbot
+    # renew twice a day; issuing the first certificate is a one-off command in docs/deploy.md
+    entrypoint: sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+    restart: unless-stopped

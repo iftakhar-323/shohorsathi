@@ -30,7 +30,7 @@ export const NAV: { to: string; label: string; icon: IconName }[] = [
   { to: "/payments", label: "পেমেন্ট ও রিফান্ড", icon: "money" },
   { to: "/issues", label: "শহরের সমস্যা", icon: "flag" },
   { to: "/business", label: "বিল্ডিং ও ব্যবসা", icon: "building" },
-  { to: "/loyalty", label: "লয়্যালটি ও ওয়ালেট", icon: "gift" },
+  { to: "/loyalty", label: "লয়্যালটি ও ক্রেডিট", icon: "gift" },
   { to: "/support", label: "সাপোর্ট চ্যাট", icon: "chat" },
   { to: "/broadcast", label: "নোটিফিকেশন পাঠান", icon: "bell" },
   { to: "/providers", label: "প্রোভাইডার যাচাই", icon: "shield" },

@@ -22,11 +22,6 @@ def subscription_renewed(payload):
     logic.subscription_bonus({**payload, "subscription_id": payload["subscription_id"]}, renewal=True)
 
 
-@shared_task(name="loyalty.payment.succeeded")
-def payment_succeeded(payload):
-    logic.topup_paid(payload)
-
-
 @shared_task(name="loyalty.order.placed")
 def order_placed(payload):
     logic.account(payload["user_id"])  # make sure every customer has an account (and a referral code)

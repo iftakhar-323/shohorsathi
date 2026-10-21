@@ -1,4 +1,7 @@
+from django.conf import settings
+from django.contrib.auth import authenticate
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import generics, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
@@ -9,7 +12,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenViewBase
 from shohor_common.internal import IsInternal
 from shohor_common.permissions import IsAdmin
 
-from . import otp
+from . import otp, privacy
 from .models import Address, Area, OtpCode, User
 from .serializers import (
     AddressSerializer,
@@ -24,7 +27,10 @@ from .tokens import LoginSerializer, RefreshSerializer, token_pair
 
 
 class OtpThrottle(AnonRateThrottle):
-    rate = "10/hour"
+    """OTP requests per IP; each SMS costs money and invites abuse."""
+
+    def get_rate(self):
+        return settings.OTP_THROTTLE_RATE
 
 
 class OtpRequestView(APIView):
@@ -63,6 +69,9 @@ class RegisterView(APIView):
             full_name=v["full_name"],
             email=v.get("email", ""),
             is_phone_verified=True,
+            terms_version=settings.TERMS_VERSION,
+            terms_accepted_at=timezone.now(),
+            marketing_opt_in=v.get("marketing_opt_in", False),
         )
         return Response({"user": UserSerializer(user).data, **token_pair(user)}, status=status.HTTP_201_CREATED)
 
@@ -97,6 +106,23 @@ class MeView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class ExportView(APIView):
+    """Everything ShohorSathi holds about me, as one JSON file."""
+
+    def get(self, request):
+        response = Response(privacy.export(request.user))
+        response["Content-Disposition"] = 'attachment; filename="shohorsathi-my-data.json"'
+        return response
+
+
+class DeleteAccountView(APIView):
+    def post(self, request):
+        if not authenticate(request, phone=request.user.phone, password=request.data.get("password", "")):
+            return Response({"password": ["Password is incorrect."]}, status=status.HTTP_400_BAD_REQUEST)
+        privacy.delete_account(request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class AreaListView(generics.ListAPIView):

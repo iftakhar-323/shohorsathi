@@ -13,4 +13,11 @@ def _register(event):
 
 
 # One Celery task for every event this service subscribes to.
-TASKS = {event: _register(event) for event, queues in SUBSCRIBERS.items() if "notification" in queues}
+TASKS = {event: _register(event) for event, queues in SUBSCRIBERS.items() if "notification" in queues and event != "user.deleted"}
+
+
+@shared_task(name="notification.user.deleted")
+def user_deleted(payload):
+    from .models import Notification
+
+    Notification.objects.filter(user_id=payload["user_id"]).delete()

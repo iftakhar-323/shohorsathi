@@ -20,7 +20,8 @@ for (const m of readFileSync(DICT, "utf8").matchAll(/^ {2}("(?:[^"\\]|\\.)*"):/g
 const missing = [];
 const unwrapped = [];
 for (const file of ROOTS.flatMap(files)) {
-  if (file.endsWith("i18n/en.ts") || file.endsWith("lib/i18n.tsx")) continue;
+  // content/ holds long-form text written in both languages side by side.
+  if (file.endsWith("i18n/en.ts") || file.endsWith("lib/i18n.tsx") || file.includes("/content/")) continue;
   const src = readFileSync(file, "utf8");
   for (const m of src.matchAll(/"((?:[^"\\\n]|\\.)*)"/g)) {
     const text = JSON.parse(`"${m[1]}"`);

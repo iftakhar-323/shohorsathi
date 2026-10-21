@@ -57,6 +57,8 @@ class Provider(models.Model):
     location_updated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     approved_at = models.DateTimeField(null=True, blank=True)
+    # Last approve/reject/suspend: rejected applicants' documents are purged a while after this.
+    reviewed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]

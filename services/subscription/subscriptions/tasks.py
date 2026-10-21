@@ -21,3 +21,10 @@ def dispatch_tomorrow():
 @shared_task(name="subscription.daily_housekeeping")
 def daily_housekeeping():
     return logic.daily_housekeeping()
+
+
+@shared_task(name="subscription.user.deleted")
+def user_deleted(payload):
+    from .privacy import forget
+
+    forget(payload["user_id"])

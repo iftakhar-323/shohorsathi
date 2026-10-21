@@ -11,6 +11,10 @@ export default function Footer() {
           {t("প্রোভাইডার হিসেবে যোগ দিন")}
         </a>
       </div>
+      <div className="mx-auto flex max-w-[1200px] gap-5 px-6 pb-8 text-sm">
+        <a href="/privacy" className="text-night-text">{t("প্রাইভেসি নীতি")}</a>
+        <a href="/terms" className="text-night-text">{t("ব্যবহারের শর্ত")}</a>
+      </div>
     </footer>
   );
 }

@@ -20,16 +20,17 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { useAddresses } from "../api/orders";
 
-type Me = { id: number; phone: string; email: string; full_name: string; role: string };
+type Me = { id: number; phone: string; email: string; full_name: string; role: string; marketing_opt_in: boolean };
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const qc = useQueryClient();
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: async () => (await api.get<Me>("/me/")).data });
   const { data: addresses } = useAddresses();
   const { data: areas } = useAreas();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [marketing, setMarketing] = useState(false);
   const [saved, setSaved] = useState("");
   const [error, setError] = useState("");
   const [address, setAddress] = useState({ label: t("বাসা"), area: "", line: "" });
@@ -39,6 +40,7 @@ export default function Profile() {
     if (me) {
       setName(me.full_name);
       setEmail(me.email);
+      setMarketing(me.marketing_opt_in);
     }
   }, [me]);
 
@@ -46,7 +48,7 @@ export default function Profile() {
     e.preventDefault();
     setError("");
     try {
-      await api.patch("/me/", { full_name: name, email });
+      await api.patch("/me/", { full_name: name, email, marketing_opt_in: marketing });
       setSaved(t("প্রোফাইল সেভ হয়েছে।"));
       qc.invalidateQueries({ queryKey: ["me"] });
     } catch (err) {
@@ -73,6 +75,28 @@ export default function Profile() {
     }
   }
 
+  async function downloadData() {
+    const { data } = await api.get("/me/export/");
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "shohorsathi-my-data.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function deleteAccount() {
+    const password = prompt(t("অ্যাকাউন্ট মুছতে পাসওয়ার্ড দিন। এটি ফেরানো যাবে না।"));
+    if (!password) return;
+    try {
+      await api.post("/me/delete/", { password });
+      logout();
+      window.location.href = "/";
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  }
+
   async function update(id: number, body: object | null) {
     await (body ? api.patch(`/me/addresses/${id}/`, body) : api.delete(`/me/addresses/${id}/`));
     qc.invalidateQueries({ queryKey: ["addresses"] });
@@ -86,6 +110,10 @@ export default function Profile() {
         <form onSubmit={saveProfile} className="flex flex-col gap-4">
           <Field label={t("নাম")} value={name} onChange={(e) => setName(e.target.value)} required />
           <Field label={t("ইমেইল (ঐচ্ছিক)")} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} className="size-5 accent-brand" />
+            {t("অফার ও প্রচারের বার্তা পেতে চাই (ঐচ্ছিক)")}
+          </label>
           <SuccessNote>{saved}</SuccessNote>
           <Button type="submit" className="self-start">
             {t("সেভ করুন")}
@@ -134,6 +162,16 @@ export default function Profile() {
             {t("ঠিকানা যোগ করুন")}
           </Button>
         </form>
+      </Card>
+      <Card className="flex flex-col gap-3">
+        <h2 className="m-0 text-lg font-bold">{t("আপনার তথ্য ও গোপনীয়তা")}</h2>
+        <p className="m-0 text-sm text-muted">
+          {t("আমরা কী তথ্য রাখি ও কেন, তা")} <a href="/privacy">{t("প্রাইভেসি নীতি")}</a>{t("-তে দেখুন।")}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" icon="list" onClick={downloadData}>{t("আমার সব তথ্য ডাউনলোড")}</Button>
+          <Button variant="danger" icon="trash" onClick={deleteAccount}>{t("অ্যাকাউন্ট মুছে ফেলুন")}</Button>
+        </div>
       </Card>
     </section>
   );

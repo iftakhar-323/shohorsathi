@@ -6,3 +6,4 @@ drf-spectacular<0.28,>=0.27
 psycopg[binary]<3.3,>=3.2
 celery[redis]<5.5,>=5.4
 requests<3,>=2.32
+sentry-sdk<3,>=2.18

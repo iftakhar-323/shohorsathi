@@ -241,3 +241,26 @@ def test_wallet_short_rolls_back_and_reverses(customer, monkeypatch):
     assert res.status_code == 400 and not Order.objects.exists()
     assert calls[-1] == "/api/internal/loyalty/reverse/"
     assert customer.get("/api/cart/").data["items"]  # cart kept
+
+
+@pytest.mark.django_db
+def test_overdue_product_orders_flagged(customer):
+    order_id = place_order(customer).data["id"]
+    Order.objects.filter(pk=order_id).update(created_at=timezone.now() - timedelta(days=6))
+    admin = auth_client("admin", user_id=1)
+    assert admin.get("/api/admin/order-stats/").data["overdue_deliveries"] == 1
+    assert [o["id"] for o in admin.get("/api/admin/orders/?overdue=1").data["results"]] == [order_id]
+
+
+@pytest.mark.django_db
+def test_user_deleted_redacts_orders_but_keeps_totals(customer):
+    from rest_framework.test import APIClient
+
+    from orders.tasks import user_deleted
+
+    order_id = place_order(customer).data["id"]
+    export = APIClient().get("/api/internal/export/7/", HTTP_X_INTERNAL_TOKEN="dev-internal-token").data
+    assert export[0]["address"].startswith("Road 1")
+    user_deleted({"user_id": 7})
+    order = Order.objects.get(pk=order_id)
+    assert (order.contact_name, order.contact_phone, order.address_line) == ("Deleted user", "", "") and order.total > 0

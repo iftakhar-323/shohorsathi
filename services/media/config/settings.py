@@ -16,3 +16,5 @@ MEDIA_URL = "/media/"
 MEDIA_MAX_BYTES = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = MEDIA_MAX_BYTES
 FILE_UPLOAD_PERMISSIONS = 0o644
+# Fernet key for private uploads: generate with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
+MEDIA_ENCRYPTION_KEY = env("MEDIA_ENCRYPTION_KEY", "")

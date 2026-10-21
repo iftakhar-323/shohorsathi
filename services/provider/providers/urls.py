@@ -1,7 +1,9 @@
 from django.urls import path
 from rest_framework.routers import SimpleRouter
 
-from . import views
+from shohor_common.privacy import export_view
+
+from . import privacy, views
 
 router = SimpleRouter()
 router.register("api/providers/jobs", views.JobViewSet, basename="job")
@@ -11,6 +13,7 @@ router.register("api/admin/jobs", views.AdminJobViewSet, basename="admin-job")
 router.register("api/admin/payouts", views.AdminPayoutViewSet, basename="admin-payout")
 
 urlpatterns = [
+    path("api/internal/export/<int:user_id>/", export_view(privacy.collect)),
     path("api/providers/register/", views.RegisterView.as_view()),
     path("api/providers/me/", views.MeView.as_view()),
     path("api/providers/me/location/", views.LocationView.as_view()),

@@ -15,6 +15,13 @@ class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False, allow_blank=True)
     password = serializers.CharField(write_only=True, validators=[validate_password])
     otp = serializers.CharField(min_length=6, max_length=6)
+    accept_terms = serializers.BooleanField()
+    marketing_opt_in = serializers.BooleanField(required=False, default=False)
+
+    def validate_accept_terms(self, value):
+        if not value:
+            raise serializers.ValidationError("Please accept the terms and privacy policy.")
+        return value
 
     def validate_phone(self, value):
         if User.objects.filter(phone=value).exists():
@@ -31,8 +38,8 @@ class PasswordResetSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "phone", "email", "full_name", "role", "is_phone_verified", "date_joined"]
-        read_only_fields = ["id", "phone", "role", "is_phone_verified", "date_joined"]
+        fields = ["id", "phone", "email", "full_name", "role", "is_phone_verified", "date_joined", "terms_version", "terms_accepted_at", "marketing_opt_in"]
+        read_only_fields = ["id", "phone", "role", "is_phone_verified", "date_joined", "terms_version", "terms_accepted_at"]
 
 
 class AdminUserSerializer(serializers.ModelSerializer):

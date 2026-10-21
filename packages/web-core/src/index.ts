@@ -9,3 +9,4 @@ export { default as AuthPage } from "./components/AuthPage";
 export * from "./components/Chat";
 export * from "./components/Notifications";
 export * from "./components/Map";
+export { PRIVACY as LEGAL_PRIVACY, TERMS as LEGAL_TERMS, type LegalSection } from "./content/legal";

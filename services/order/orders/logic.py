@@ -324,6 +324,13 @@ def apply_job_status(payload):
     refresh_order_status(booking.order)
 
 
+def overdue_deliveries():
+    """Product orders not delivered within the promised days (guidelines: 5 days in the same city)."""
+    cutoff = timezone.now() - timedelta(days=int(settings.ORDER_DELIVERY_DEADLINE_DAYS))
+    return Order.objects.filter(items__isnull=False, created_at__lt=cutoff,
+                                status__in=[Order.Status.PENDING, Order.Status.CONFIRMED, Order.Status.ON_THE_WAY]).distinct()
+
+
 def set_product_status(order, status):
     allowed = {
         Order.Status.PENDING: {Order.Status.CONFIRMED, Order.Status.CANCELLED},

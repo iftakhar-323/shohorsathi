@@ -1,4 +1,4 @@
-import { Badge, Button, Card, ErrorNote, Field, Icon, Loading, PageHeader, Stat, SuccessNote, api, errorMessage, formatDateTime, formatTaka, payOnline, t } from "@shohor/web-core";
+import { Badge, Button, Card, ErrorNote, Icon, Loading, PageHeader, Stat, SuccessNote, api, errorMessage, formatDateTime, formatTaka, t } from "@shohor/web-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
@@ -34,7 +34,7 @@ const REASONS: Record<string, string> = {
   redeem_reversed: "বাতিল অর্ডার থেকে ফেরত",
   pay_order: "ওয়ালেট থেকে পেমেন্ট",
   pay_order_reversed: "বাতিল অর্ডার থেকে ফেরত",
-  topup: "টপ-আপ",
+  promo: "অফার ক্রেডিট",
   referral: "রেফারেল বোনাস",
   referral_welcome: "স্বাগত বোনাস",
 };
@@ -42,23 +42,11 @@ const REASONS: Record<string, string> = {
 export default function Wallet() {
   const qc = useQueryClient();
   const { data: acc, isPending } = useLoyalty();
-  const [amount, setAmount] = useState("500");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
   if (isPending || !acc) return <Loading />;
-
-  async function topUp(e: FormEvent) {
-    e.preventDefault();
-    setError("");
-    try {
-      const { data } = await api.post<{ id: number }>("/loyalty/topups/", { amount });
-      await payOnline("wallet_topup", data.id);
-    } catch (err) {
-      setError(errorMessage(err));
-    }
-  }
 
   async function applyCode(e: FormEvent) {
     e.preventDefault();
@@ -76,11 +64,11 @@ export default function Wallet() {
 
   return (
     <section className="mx-auto flex max-w-[960px] flex-col gap-5 px-4 py-8 sm:px-6">
-      <PageHeader title={t("ওয়ালেট ও পয়েন্ট")} subtitle={t("প্রতি ৳১০০-তে {n} পয়েন্ট; চেকআউটে পয়েন্ট দিয়ে ছাড় নিন", { n: acc.rules.points_per_100_taka })} />
+      <PageHeader title={t("ক্রেডিট ও পয়েন্ট")} subtitle={t("প্রতি ৳১০০-তে {n} পয়েন্ট; চেকআউটে পয়েন্ট দিয়ে ছাড় নিন", { n: acc.rules.points_per_100_taka })} />
       <ErrorNote>{error}</ErrorNote>
       <SuccessNote>{notice}</SuccessNote>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
-        <Stat label={t("ওয়ালেট ব্যালেন্স")} value={formatTaka(acc.wallet)} icon="money" />
+        <Stat label={t("শহরসাথী ক্রেডিট")} value={formatTaka(acc.wallet)} icon="money" />
         <Stat label={t("পয়েন্ট")} value={acc.points} icon="star" />
         <Stat label={t("পয়েন্টের মূল্য")} value={formatTaka(acc.points_value)} icon="gift" />
       </div>
@@ -94,15 +82,10 @@ export default function Wallet() {
         </div>
       )}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <form onSubmit={topUp} className="flex flex-col gap-3">
-            <h2 className="m-0 text-lg font-bold">{t("ওয়ালেট টপ-আপ")}</h2>
-            <Field label={t("পরিমাণ (৳)")} type="number" min={50} max={20000} value={amount} onChange={(e) => setAmount(e.target.value)} />
-            <div className="flex flex-wrap gap-2">
-              {["200", "500", "1000", "2000"].map((v) => <button key={v} type="button" onClick={() => setAmount(v)} className="rounded-full border border-line px-3 py-1.5 text-sm">{formatTaka(v)}</button>)}
-            </div>
-            <Button type="submit" icon="money">{t("বিকাশ/নগদ দিয়ে টপ-আপ")}</Button>
-          </form>
+        <Card className="flex flex-col gap-2">
+          <h2 className="m-0 text-lg font-bold">{t("শহরসাথী ক্রেডিট কী?")}</h2>
+          <p className="m-0 text-muted">{t("রিফান্ড, রেফারেল ও অফার থেকে পাওয়া ক্রেডিট দিয়ে শহরসাথীতে যেকোনো অর্ডারের টাকা দিতে পারবেন।")}</p>
+          <p className="m-0 text-sm text-muted">{t("ক্রেডিট নগদে তোলা, টাকা দিয়ে কেনা বা অন্য কাউকে পাঠানো যায় না।")}</p>
         </Card>
         <Card className="flex flex-col gap-3">
           <h2 className="m-0 text-lg font-bold">{t("বন্ধুকে আমন্ত্রণ")}</h2>
@@ -125,7 +108,7 @@ export default function Wallet() {
         {acc.history.length === 0 && <p className="m-0 text-muted">{t("এখনো কিছু নেই।")}</p>}
         {acc.history.map((h, i) => (
           <div key={i} className="flex items-center gap-3 border-b border-subtle py-2 last:border-0">
-            <Badge tone={h.kind === "wallet" ? "info" : "ok"}>{h.kind === "wallet" ? t("ওয়ালেট") : t("পয়েন্ট")}</Badge>
+            <Badge tone={h.kind === "wallet" ? "info" : "ok"}>{h.kind === "wallet" ? t("ক্রেডিট") : t("পয়েন্ট")}</Badge>
             <span className="flex-1">{t(REASONS[h.reason] ?? h.reason)}<span className="block text-[12px] text-muted">{formatDateTime(h.created_at)}</span></span>
             <span className={`font-bold ${Number(h.delta) < 0 ? "text-bad" : "text-brand-strong"}`}>
               {Number(h.delta) > 0 ? "+" : ""}{h.kind === "wallet" ? formatTaka(h.delta) : Number(h.delta)}

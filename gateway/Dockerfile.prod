@@ -1,0 +1,19 @@
+# Production gateway: builds the three React apps and serves them with nginx next to the API proxy.
+FROM node:22-alpine AS web
+RUN corepack enable
+WORKDIR /src
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages ./packages
+COPY apps ./apps
+RUN pnpm install --frozen-lockfile && pnpm -r build
+
+FROM nginx:1.27-alpine
+# nginx's image renders /etc/nginx/templates/*.template with envsubst at start (domains come from the environment).
+COPY gateway/prod/nginx.conf /etc/nginx/templates/default.conf.template
+COPY gateway/routes.map /etc/nginx/snippets/routes.map
+COPY gateway/prod/api.inc /etc/nginx/snippets/api.inc
+COPY gateway/prod/security.inc /etc/nginx/snippets/security.inc
+ENV NGINX_ENVSUBST_FILTER=DOMAIN
+COPY --from=web /src/apps/customer-web/dist /srv/customer
+COPY --from=web /src/apps/provider-web/dist /srv/provider
+COPY --from=web /src/apps/admin-web/dist /srv/admin

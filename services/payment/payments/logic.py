@@ -17,7 +17,6 @@ PAYABLE = {
     Payment.Purpose.ORDER: ("order", "/api/internal/orders/{id}/payable/"),
     Payment.Purpose.SUBSCRIPTION: ("subscription", "/api/internal/subscriptions/{id}/payable/"),
     Payment.Purpose.CUSTOM_REQUEST_ADVANCE: ("custom_request", "/api/internal/custom-requests/{id}/payable/"),
-    Payment.Purpose.WALLET_TOPUP: ("loyalty", "/api/internal/loyalty/topups/{id}/payable/"),
 }
 
 
@@ -74,10 +73,6 @@ def confirm(data):
         "payment.succeeded",
         {"payment_id": payment.id, "user_id": payment.user_id, "purpose": payment.purpose, "reference_id": payment.reference_id, "amount": str(payment.amount)},
     )
-    if payment.purpose == Payment.Purpose.WALLET_TOPUP:
-        # Wallet money is not tied to a job, so nothing to hold it for.
-        release(payment.purpose, payment.reference_id)
-        payment.refresh_from_db()
     return payment
 
 

@@ -24,7 +24,12 @@ def call(method, path, token=None, body=None, expect=None):
             status, data = res.status, res.read()
     except urllib.error.HTTPError as e:
         status, data = e.code, e.read()
-    parsed = json.loads(data) if data else None
+    try:
+        parsed = json.loads(data) if data else None
+    except ValueError:  # e.g. an HTML error page
+        parsed = {"status": status, "text": data[:200].decode(errors="replace")}
+    if isinstance(parsed, dict):
+        parsed.setdefault("_status", status)
     if expect and status != expect:
         raise SystemExit(f"{method} {path} -> {status} (expected {expect}): {parsed}")
     return parsed
@@ -37,7 +42,7 @@ def otp(phone):
 
 
 def register(phone, name):
-    res = call("POST", "/api/auth/register/", body={"phone": phone, "full_name": name, "password": "strong-pass-123", "otp": otp(phone)}, expect=201)
+    res = call("POST", "/api/auth/register/", body={"phone": phone, "full_name": name, "password": "strong-pass-123", "otp": otp(phone), "accept_terms": True}, expect=201)
     return res
 
 

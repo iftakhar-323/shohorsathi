@@ -81,7 +81,7 @@ export function areaName(areas: Area[] | undefined, id: number) {
 }
 
 /** Starts an online payment and sends the browser to the gateway (SSLCommerz or the dev mock page). */
-export async function payOnline(purpose: "order" | "subscription" | "custom_request_advance" | "wallet_topup", referenceId: number) {
+export async function payOnline(purpose: "order" | "subscription" | "custom_request_advance", referenceId: number) {
   const { data } = await api.post<{ tran_id: string; redirect_url: string }>("/payments/initiate/", { purpose, reference_id: referenceId });
   window.location.href = data.redirect_url;
 }

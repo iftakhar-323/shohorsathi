@@ -54,3 +54,17 @@ def weekly_payouts():
 @shared_task(name="provider.b2b.visit_due")
 def b2b_visit_due(payload):
     logic.create_job({**payload, "source": "b2b_visit", "source_id": payload["visit_id"]})
+
+
+@shared_task(name="provider.purge_rejected_documents")
+def purge_rejected_documents():
+    from .privacy import purge_rejected
+
+    return purge_rejected()
+
+
+@shared_task(name="provider.user.deleted")
+def user_deleted(payload):
+    from .privacy import forget
+
+    forget(payload["user_id"])

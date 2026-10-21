@@ -16,3 +16,10 @@ def payment_succeeded(payload):
 @shared_task(name="order.payment.refunded")
 def payment_refunded(payload):
     logic.payment_refunded(payload)
+
+
+@shared_task(name="order.user.deleted")
+def user_deleted(payload):
+    from .privacy import forget
+
+    forget(payload["user_id"])

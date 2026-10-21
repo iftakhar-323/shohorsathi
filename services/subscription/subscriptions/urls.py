@@ -1,7 +1,9 @@
 from django.urls import path
 from rest_framework.routers import SimpleRouter
 
-from . import views
+from shohor_common.privacy import export_view
+
+from . import privacy, views
 
 router = SimpleRouter()
 router.register("api/subscription-plans", views.PlanViewSet, basename="plan")
@@ -14,6 +16,7 @@ router.register("api/admin/plan-prices", views.PlanPriceViewSet, basename="admin
 router.register("api/admin/student-verifications", views.AdminStudentViewSet, basename="admin-student")
 
 urlpatterns = [
+    path("api/internal/export/<int:user_id>/", export_view(privacy.collect)),
     path("api/subscriptions/quote/", views.QuoteView.as_view()),
     path("api/subscriptions/student-verification/", views.StudentVerificationView.as_view()),
     path("api/admin/subscription-stats/", views.AdminStatsView.as_view()),

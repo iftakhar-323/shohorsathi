@@ -5,3 +5,4 @@ from .settings import SIMPLE_JWT
 
 globals().update(overrides(SIMPLE_JWT))
 OTP_DEBUG = False
+OTP_RESEND_SECONDS = 0

@@ -9,6 +9,7 @@ import Checkout from "./pages/Checkout";
 import { CustomRequestDetail, CustomRequestList, NewCustomRequest } from "./pages/CustomRequests";
 import Community from "./pages/Community";
 import Home from "./pages/Home";
+import { Privacy, Terms } from "./pages/Legal";
 import { IssueDetail, IssuesHome, ReportIssue } from "./pages/Issues";
 import NotFound from "./pages/NotFound";
 import OrderDetail from "./pages/OrderDetail";
@@ -55,6 +56,8 @@ export default function App() {
           <Route path="/issues/mine" element={<Private><IssuesHome mine /></Private>} />
           <Route path="/issues/:id" element={<IssueDetail />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/wallet" element={<Private><Wallet /></Private>} />
           <Route path="/business" element={<Private><BusinessHome /></Private>} />
           <Route path="/business/:id" element={<Private><BusinessDetail /></Private>} />

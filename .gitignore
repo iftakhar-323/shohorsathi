@@ -19,3 +19,13 @@ dist/
 .vscode/
 .idea/
 .DS_Store
+
+# backups
+/backups/
+/deploy/letsencrypt/
+/deploy/certbot-www/
+.env.prod
+
+# playwright
+test-results/
+playwright-report/

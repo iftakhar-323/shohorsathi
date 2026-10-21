@@ -16,3 +16,10 @@ def dispatch_tomorrow():
 @shared_task(name="b2b.monthly_invoices")
 def monthly_invoices():
     return logic.monthly_invoices()
+
+
+@shared_task(name="b2b.user.deleted")
+def user_deleted(payload):
+    from .privacy import forget
+
+    forget(payload["user_id"])

@@ -15,6 +15,8 @@ urlpatterns = [
     path("api/auth/token/refresh/", views.RefreshView.as_view()),
     path("api/auth/password/reset/", views.PasswordResetView.as_view()),
     path("api/me/", views.MeView.as_view()),
+    path("api/me/export/", views.ExportView.as_view()),
+    path("api/me/delete/", views.DeleteAccountView.as_view()),
     path("api/areas/", views.AreaListView.as_view()),
     path("api/cities/", views.CityListView.as_view()),
     path("api/internal/users/<int:pk>/", views.InternalUserView.as_view()),

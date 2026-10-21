@@ -5,7 +5,7 @@ from django.db import IntegrityError, transaction
 from rest_framework.exceptions import ValidationError
 from shohor_common import events
 
-from .models import Account, Entry, Redemption, TopUp
+from .models import Account, Entry, Redemption
 
 K = Entry.Kind
 
@@ -125,14 +125,3 @@ def order_cancelled(payload):
     red.reversed = True
     red.save(update_fields=["reversed"])
 
-
-def topup_paid(payload):
-    if payload.get("purpose") != "wallet_topup":
-        return
-    with transaction.atomic():
-        topup = TopUp.objects.select_for_update().filter(pk=payload["reference_id"], paid=False).first()
-        if topup is None:
-            return
-        topup.paid = True
-        topup.save(update_fields=["paid"])
-        move(topup.user_id, K.WALLET, topup.amount, "topup", topup.id)

@@ -10,7 +10,7 @@ from shohor_common.internal import IsInternal
 from shohor_common.permissions import IsAdmin
 
 from . import logic
-from .models import Account, Entry, TopUp
+from .models import Account, Entry
 
 
 class EntrySerializer(serializers.ModelSerializer):
@@ -36,6 +36,7 @@ def account_data(acc):
             "max_redeem_percent": settings.MAX_REDEEM_PERCENT,
             "referral_bonus": settings.REFERRAL_BONUS_TAKA,
             "referral_welcome": settings.REFERRAL_WELCOME_TAKA,
+            "credit_note": "Closed-loop credit: spend on ShohorSathi only; not cash, not withdrawable or transferable.",
         },
     }
 
@@ -52,17 +53,6 @@ class ReferralView(APIView):
         acc = logic.apply_referral(request.user.id, request.data.get("code", ""))
         return Response(account_data(acc))
 
-
-class TopUpView(APIView):
-    def post(self, request):
-        try:
-            amount = Decimal(str(request.data.get("amount", "0")))
-        except Exception:
-            raise ValidationError({"amount": "Enter an amount."})
-        if not Decimal(settings.MIN_TOPUP) <= amount <= Decimal(settings.MAX_TOPUP):
-            raise ValidationError({"amount": f"Top up between ৳{settings.MIN_TOPUP} and ৳{settings.MAX_TOPUP}."})
-        topup = TopUp.objects.create(user_id=request.user.id, amount=amount)
-        return Response({"id": topup.id, "amount": str(topup.amount)}, status=status.HTTP_201_CREATED)
 
 
 # ---- internal (order and payment services) -----------------------------------------------------
@@ -97,14 +87,6 @@ class InternalReverse(APIView):
         logic.order_cancelled({"order_id": int(request.data["order_id"])})
         return Response({"ok": True})
 
-
-class InternalTopUpPayable(APIView):
-    permission_classes = [IsInternal]
-    authentication_classes = []
-
-    def get(self, request, pk):
-        topup = get_object_or_404(TopUp, pk=pk)
-        return Response({"user_id": topup.user_id, "amount": str(topup.amount), "payable": not topup.paid})
 
 
 class AdminAccountsView(APIView):

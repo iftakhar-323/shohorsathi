@@ -95,8 +95,9 @@ EOF
 cat > "$service/config/urls.py" <<EOF
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from shohor_common.health import health_urls
 
-urlpatterns = [
+urlpatterns = health_urls("$service") + [
     path("api/$service/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/$service/docs/", SpectacularSwaggerView.as_view(url_name="schema")),
     path("", include("$app.urls")),

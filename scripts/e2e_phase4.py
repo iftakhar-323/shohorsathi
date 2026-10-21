@@ -5,7 +5,6 @@ import time
 from datetime import date, timedelta
 
 import e2e_phase1 as e1
-from e2e_phase2 import form_post
 
 call, register, wait_for, step = e1.call, e1.register, e1.wait_for, e1.step
 STAMP = str(int(time.time()))[-8:]
@@ -32,12 +31,11 @@ def main():
     customer = register(cust_phone, "Wallet User")["access"]
     call("POST", "/api/loyalty/referral/", customer, {"code": code}, expect=200)
 
-    topup = call("POST", "/api/loyalty/topups/", customer, {"amount": "1000"}, expect=201)
-    start = call("POST", "/api/payments/initiate/", customer, {"purpose": "wallet_topup", "reference_id": topup["id"]}, expect=201)
-    loc = form_post("/api/payments/gateway/success/", {"tran_id": start["tran_id"], "amount": start["amount"], "val_id": f"mock-{start['tran_id']}"})
-    assert "status=released" in loc, loc
-    wait_for(lambda: call("GET", "/api/loyalty/me/", customer)["wallet"] == "1000.00", "wallet top-up credited")
-    step("wallet topped up ৳1000 via mock bKash; referral code applied")
+    assert call("POST", "/api/loyalty/topups/", customer, {"amount": "1000"})["_status"] == 404  # no cash top-ups
+    me = call("GET", "/api/me/", customer, expect=200)
+    call("POST", f"/api/admin/loyalty/accounts/{me['id']}/adjust/", admin, {"wallet": "1000", "reason": "launch promo"}, expect=200)
+    assert call("GET", "/api/loyalty/me/", customer)["wallet"] == "1000.00"
+    step("no cash top-up; ৳1000 promo credit given by admin; referral code applied")
 
     pro_tokens = register(pro_phone, "Pro")
     call("POST", "/api/providers/register/", pro_tokens["access"], {
@@ -64,7 +62,7 @@ def main():
             call("PATCH", f"/api/providers/jobs/{job['id']}/status/", pro, body, expect=200)
         wait_for(lambda: call("GET", f"/api/orders/{order_id}/", customer)["status"] == "completed", "order completed")
 
-    o1 = order(customer, payment_method="wallet")
+    o1 = order(customer, payment_method="wallet")  # paid from ShohorSathi Credit
     assert o1["payment_status"] == "paid"
     complete(o1["id"])
     acc = wait_for(lambda: (lambda a: a if a["points"] > 0 else None)(call("GET", "/api/loyalty/me/", customer)), "points earned")

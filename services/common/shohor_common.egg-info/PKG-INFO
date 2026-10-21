@@ -11,3 +11,4 @@ Requires-Dist: drf-spectacular<0.28,>=0.27
 Requires-Dist: psycopg[binary]<3.3,>=3.2
 Requires-Dist: celery[redis]<5.5,>=5.4
 Requires-Dist: requests<3,>=2.32
+Requires-Dist: sentry-sdk<3,>=2.18

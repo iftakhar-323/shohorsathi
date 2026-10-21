@@ -11,3 +11,10 @@ def job_status_changed(payload):
 @shared_task(name="custom_request.payment.succeeded")
 def payment_succeeded(payload):
     logic.mark_advance_paid(payload)
+
+
+@shared_task(name="custom_request.user.deleted")
+def user_deleted(payload):
+    from .privacy import forget
+
+    forget(payload["user_id"])
