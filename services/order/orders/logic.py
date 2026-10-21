@@ -97,7 +97,16 @@ def checkout(user_id, data):
 
     products = [(c, i) for c, i in priced if c.item_type == "product"]
     services = [(c, i) for c, i in priced if c.item_type == "service"]
-    subtotal = sum((i["unit_price"] * c.quantity for c, i in priced), Decimal("0"))
+    surcharges = {}
+    for cart_item, item in services:
+        d = details[cart_item.id]
+        if d.get("is_emergency"):
+            if not item.get("emergency_available"):
+                raise ValidationError({"service_details": f"{cart_item.name} is not offered as an emergency service."})
+            if d["scheduled_date"] != timezone.localdate():
+                raise ValidationError({"service_details": "Emergency bookings are for today."})
+            surcharges[cart_item.id] = (item["unit_price"] * Decimal(settings.EMERGENCY_SURCHARGE_PERCENT) / 100).quantize(Decimal("1"))
+    subtotal = sum((i["unit_price"] * c.quantity for c, i in priced), Decimal("0")) + sum(surcharges.values(), Decimal("0"))
     delivery_fee = Decimal(settings.ORDER_DELIVERY_FEE) if products else Decimal("0")
 
     order = Order.objects.create(
@@ -125,7 +134,8 @@ def checkout(user_id, data):
                 service_slug=cart_item.slug,
                 service_name=item["name"],
                 category_slug=item.get("category_slug", ""),
-                price=item["unit_price"],
+                price=item["unit_price"] + surcharges.get(cart_item.id, Decimal("0")),
+                surcharge=surcharges.get(cart_item.id, Decimal("0")),
                 warranty_days=item.get("warranty_days", 7),
                 scheduled_date=d["scheduled_date"],
                 slot=d["slot"],

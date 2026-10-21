@@ -11,7 +11,7 @@ from orders.models import Booking, Order, WarrantyClaim
 CATALOG = {
     "/api/services/fan-repair/": {
         "slug": "fan-repair", "name_bn": "ফ্যান মেরামত", "base_price": "300.00", "category_slug": "electrical",
-        "warranty_days": 7, "is_active": True,
+        "warranty_days": 7, "is_active": True, "emergency_available": True,
     },
     "/api/products/led-bulb/": {"slug": "led-bulb", "name_bn": "এলইডি বাল্ব", "price": "180.00", "stock": 5, "is_active": True},
 }
@@ -190,3 +190,15 @@ def test_online_order_waits_for_payment(customer, captured_events):
     assert [e for e, _ in captured_events][-1] == "booking.created"
     logic.payment_succeeded({"purpose": "order", "reference_id": order["id"], "amount": "660.00"})
     assert [e for e, _ in captured_events].count("booking.created") == 1
+
+
+@pytest.mark.django_db
+def test_emergency_booking_today_with_surcharge(customer):
+    item = customer.post("/api/cart/items/", {"item_type": "service", "slug": "fan-repair"}, format="json").data["id"]
+    tomorrow = (timezone.localdate() + timedelta(days=1)).isoformat()
+    bad = customer.post("/api/orders/", {**ADDRESS, "service_details": {str(item): {"scheduled_date": tomorrow, "slot": "09-11", "is_emergency": True}}}, format="json")
+    assert bad.status_code == 400
+    ok = customer.post("/api/orders/", {**ADDRESS, "service_details": {str(item): {"scheduled_date": timezone.localdate().isoformat(), "slot": "09-11", "is_emergency": True}}}, format="json")
+    booking = ok.data["bookings"][0]
+    assert booking["is_emergency"] and booking["surcharge"] == "75.00" and booking["price"] == "375.00"
+    assert ok.data["total"] == "375.00"

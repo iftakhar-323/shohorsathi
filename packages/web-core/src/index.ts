@@ -8,3 +8,4 @@ export { default as Icon, type IconName } from "./components/Icon";
 export { default as AuthPage } from "./components/AuthPage";
 export * from "./components/Chat";
 export * from "./components/Notifications";
+export * from "./components/Map";

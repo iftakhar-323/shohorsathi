@@ -216,3 +216,15 @@ def test_custom_request_job_uses_quoted_platform_fee(approved):
     job.refresh_from_db()
     logic.advance(job, approved, "completed")
     assert Earning.objects.get().net == 6800
+
+
+@pytest.mark.django_db
+def test_emergency_alerts_nearest_first(approved, captured_events):
+    other = auth_client("customer", user_id=51, name="Near", phone="01822222222")
+    other.post("/api/providers/register/", REGISTRATION, format="json")
+    near = Provider.objects.get(user_id=51)
+    logic.review_provider(near, "approve")
+    Provider.objects.filter(pk=approved.pk).update(is_online=True, last_latitude="23.90", last_longitude="90.50")
+    Provider.objects.filter(pk=near.pk).update(is_online=True, last_latitude="23.81", last_longitude="90.41")
+    logic.create_job({**BOOKING, "is_emergency": True, "latitude": "23.81", "longitude": "90.41"})
+    assert captured_events[-1][1]["provider_user_ids"] == [51, 50]

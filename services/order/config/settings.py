@@ -12,3 +12,6 @@ SPECTACULAR_SETTINGS = {**SPECTACULAR_SETTINGS, "TITLE": "ShohorSathi Order API"
 
 # Flat delivery charge added to orders that contain products. Services are priced on their own.
 ORDER_DELIVERY_FEE = env("ORDER_DELIVERY_FEE", "0")
+
+# Priority charge (% of the service price) for one-tap emergency bookings.
+EMERGENCY_SURCHARGE_PERCENT = env("EMERGENCY_SURCHARGE_PERCENT", "25")

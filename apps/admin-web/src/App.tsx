@@ -6,6 +6,7 @@ import Areas from "./pages/Areas";
 import Catalog from "./pages/Catalog";
 import CustomRequests from "./pages/CustomRequests";
 import Dashboard from "./pages/Dashboard";
+import Issues from "./pages/Issues";
 import Jobs from "./pages/Jobs";
 import Orders from "./pages/Orders";
 import Payments from "./pages/Payments";
@@ -23,6 +24,7 @@ export const NAV: { to: string; label: string; icon: IconName }[] = [
   { to: "/custom-requests", label: "কাস্টম রিকোয়েস্ট", icon: "send" },
   { to: "/subscriptions", label: "সাবস্ক্রিপশন", icon: "repeat" },
   { to: "/payments", label: "পেমেন্ট ও রিফান্ড", icon: "money" },
+  { to: "/issues", label: "শহরের সমস্যা", icon: "flag" },
   { to: "/support", label: "সাপোর্ট চ্যাট", icon: "chat" },
   { to: "/broadcast", label: "নোটিফিকেশন পাঠান", icon: "bell" },
   { to: "/providers", label: "প্রোভাইডার যাচাই", icon: "shield" },
@@ -88,6 +90,7 @@ export default function App() {
                 <Route path="/subscriptions" element={<Subscriptions />} />
                 <Route path="/payments" element={<Payments />} />
                 <Route path="/support" element={<SupportInbox />} />
+                <Route path="/issues" element={<Issues />} />
                 <Route path="/broadcast" element={<Broadcast />} />
                 <Route path="/payouts" element={<Payouts />} />
                 <Route path="/warranty" element={<Warranty />} />

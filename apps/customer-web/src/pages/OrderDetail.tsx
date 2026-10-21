@@ -1,4 +1,28 @@
-import { api, Button, Card, errorMessage, ErrorNote, Field, formatDate, formatTaka, Icon, Loading, Modal, PageHeader, payOnline, PhotoUpload, Select, slotOptions, StatusBadge, SuccessNote, t, TextArea, Timeline, todayISO } from "@shohor/web-core";
+import {
+  api,
+  Button,
+  Card,
+  errorMessage,
+  ErrorNote,
+  Field,
+  formatDate,
+  formatTaka,
+  Icon,
+  LiveTracking,
+  Loading,
+  Modal,
+  PageHeader,
+  payOnline,
+  PhotoUpload,
+  Select,
+  slotOptions,
+  StatusBadge,
+  SuccessNote,
+  t,
+  TextArea,
+  Timeline,
+  todayISO,
+} from "@shohor/web-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
@@ -77,6 +101,8 @@ function BookingCard({ booking, onChanged }: { booking: Booking; onChanged: () =
           <Icon name="shield" size={16} /> {t("ওয়ারেন্টি")} {formatDate(booking.warranty_until)} {t("পর্যন্ত")}
         </p>
       )}
+
+      {["on_the_way", "working"].includes(booking.status) && <LiveTracking source="booking" sourceId={booking.id} />}
 
       <BookingExtras booking={booking} />
 

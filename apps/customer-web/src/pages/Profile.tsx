@@ -1,4 +1,20 @@
-import { api, Button, Card, errorMessage, ErrorNote, Field, Icon, localName, PageHeader, Select, SuccessNote, t, useAreas, useAuth } from "@shohor/web-core";
+import {
+  api,
+  Button,
+  Card,
+  errorMessage,
+  ErrorNote,
+  Field,
+  Icon,
+  localName,
+  MapPicker,
+  PageHeader,
+  Select,
+  SuccessNote,
+  t,
+  useAreas,
+  useAuth,
+} from "@shohor/web-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -17,6 +33,7 @@ export default function Profile() {
   const [saved, setSaved] = useState("");
   const [error, setError] = useState("");
   const [address, setAddress] = useState({ label: t("বাসা"), area: "", line: "" });
+  const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     if (me) {
@@ -41,8 +58,15 @@ export default function Profile() {
     e.preventDefault();
     setError("");
     try {
-      await api.post("/me/addresses/", { ...address, area: Number(address.area), is_default: !addresses?.length });
+      await api.post("/me/addresses/", {
+        ...address,
+        area: Number(address.area),
+        is_default: !addresses?.length,
+        latitude: pin ? pin.lat.toFixed(6) : null,
+        longitude: pin ? pin.lng.toFixed(6) : null,
+      });
       setAddress({ label: t("বাসা"), area: "", line: "" });
+      setPin(null);
       qc.invalidateQueries({ queryKey: ["addresses"] });
     } catch (err) {
       setError(errorMessage(err));
@@ -102,6 +126,10 @@ export default function Profile() {
             options={[{ value: "", label: t("বাছুন") }, ...(areas ?? []).map((a) => ({ value: a.id, label: localName(a) }))]}
           />
           <Field label={t("বাসা ও রাস্তা")} required value={address.line} onChange={(e) => setAddress({ ...address, line: e.target.value })} />
+          <div className="flex flex-col gap-1 sm:col-span-3">
+            <span className="text-[15px] font-semibold">{t("ম্যাপে বাসা (ঐচ্ছিক, প্রোভাইডার সহজে খুঁজে পাবেন)")}</span>
+            <MapPicker value={pin} onChange={setPin} height={220} />
+          </div>
           <Button type="submit" variant="secondary" icon="plus" className="sm:col-span-3 sm:justify-self-start">
             {t("ঠিকানা যোগ করুন")}
           </Button>

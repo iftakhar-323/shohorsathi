@@ -6,7 +6,9 @@ import Header from "./components/Header";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import { CustomRequestDetail, CustomRequestList, NewCustomRequest } from "./pages/CustomRequests";
+import Community from "./pages/Community";
 import Home from "./pages/Home";
+import { IssueDetail, IssuesHome, ReportIssue } from "./pages/Issues";
 import NotFound from "./pages/NotFound";
 import OrderDetail from "./pages/OrderDetail";
 import Orders from "./pages/Orders";
@@ -46,6 +48,11 @@ export default function App() {
           <Route path="/subscriptions/mine" element={<Private><MySubscriptions /></Private>} />
           <Route path="/subscriptions/:id" element={<Private><SubscriptionDetail /></Private>} />
           <Route path="/payment/result" element={<PaymentResult />} />
+          <Route path="/issues" element={<IssuesHome />} />
+          <Route path="/issues/new" element={<Private><ReportIssue /></Private>} />
+          <Route path="/issues/mine" element={<Private><IssuesHome mine /></Private>} />
+          <Route path="/issues/:id" element={<IssueDetail />} />
+          <Route path="/community" element={<Community />} />
           <Route path="/chat" element={<Private><div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6"><ChatPage /></div></Private>} />
           <Route path="/chat/:id" element={<Private><div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6"><ChatPage /></div></Private>} />
           <Route path="/notifications" element={<Private><div className="px-4 py-8 sm:px-6"><NotificationsPage /></div></Private>} />

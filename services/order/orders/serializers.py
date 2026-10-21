@@ -78,7 +78,7 @@ class BookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = [
             "id", "order", "order_number", "service_slug", "service_name", "price", "scheduled_date", "slot",
-            "slot_label", "problem_description", "photo_urls", "is_emergency", "status", "provider_id",
+            "slot_label", "problem_description", "photo_urls", "is_emergency", "surcharge", "status", "provider_id",
             "provider_name", "provider_phone", "arrival_code", "warranty_days", "warranty_until", "completed_at",
             "created_at",
         ]

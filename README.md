@@ -23,7 +23,8 @@ apps/admin-web    ─┘                          ├─► order           ─�
                                               ├─► subscription    ─► subscription_db
                                               ├─► payment         ─► payment_db
                                               ├─► chat (ASGI/WS)  ─► chat_db
-                                              └─► notification    ─► notification_db
+                                              ├─► notification    ─► notification_db
+                                              └─► city            ─► city_db
             each service ◄──── events (Celery workers, Redis) ────► each service
 ```
 
@@ -39,6 +40,7 @@ apps/admin-web    ─┘                          ├─► order           ─�
 | `services/subscription` | 7/15/30-day cleaning, meal and household plans: schedules, skip (10 PM cutoff), pause, cancel, renew, upgrade, same-cleaner pin, 48h re-clean, group meals, student discount, meal menu |
 | `services/payment` | SSLCommerz (bKash/Nagad/cards) or a dev mock gateway; escrow ledger (held → released / refunded), refund & complaint requests |
 | `services/chat` | Django Channels: customer ↔ provider job chats, customer ↔ support with FAQ auto-reply; REST + WebSocket |
+| `services/city` | City issue reporting (photo + map pin, duplicate detection, upvotes, forward to authorities, resolve with photos) and the neighbourhood community hub |
 | `services/notification` | In-app notifications (Bangla + English) and SMS from events; admin broadcasts |
 | `packages/web-core` | Shared React code: API client with token refresh, auth, UI components, Bangla formatting |
 | `apps/customer-web` | Customer site (:5173) |
@@ -59,6 +61,11 @@ apps/admin-web    ─┘                          ├─► order           ─�
   become credit for the next renewal, which runs automatically.
 - **Online payment:** the amount is always fetched from the owning service; the gateway's callback/IPN is validated
   and moves money into escrow; completion of the order/request releases it, cancellation refunds it automatically.
+- **City issue:** report with photo and map pin (an open issue of the same kind within 50 m is offered for upvoting
+  instead) → admin forwards it to the matching authority → in progress → resolved with photos; reporter and upvoters
+  are notified at each step.
+- **Emergency:** one tap → emergency-capable services for today with a priority charge → the nearest online providers
+  are alerted first → live provider location on the customer's map while on the way.
 - **Provider onboarding:** apply with NID/photos (kitchen photos for home chefs) → admin approves → `provider.approved`
   makes the user a provider (picked up on the next token refresh).
 
@@ -104,6 +111,7 @@ API docs per service: `http://localhost:8088/api/<service>/docs/` (auth, catalog
 docker compose exec <service> pytest    # each Django service
 python3 scripts/e2e_phase1.py           # Phase 1 flow through the gateway with real events (stack must be running)
 python3 scripts/e2e_phase2.py           # subscriptions, payments/escrow, reviews, chat, notifications
+python3 scripts/e2e_phase3.py           # city issues, community, emergency request, live tracking
 pnpm -r build                           # type-check and build all web apps
 ```
 
@@ -114,5 +122,5 @@ pnpm -r build                           # type-check and build all web apps
 | 0 — Foundation | Monorepo, Docker, gateway, auth + catalog services, customer home | done |
 | 1 — MVP | Cart & orders (COD), service booking, provider portal, custom requests, admin panel | done |
 | 2 — Subscriptions & Trust | 7/15/30-day cleaning & meal plans, online payment + escrow, reviews, chat, notifications | done |
-| 3 — City Layer | Issue reporting, live map, emergency request, community hub | |
+| 3 — City Layer | Issue reporting, live map, emergency request, community hub | done |
 | 4 — Scale | Loyalty, B2B, analytics, multi-city | |

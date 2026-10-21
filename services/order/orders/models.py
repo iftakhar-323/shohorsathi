@@ -113,6 +113,8 @@ class Booking(models.Model):
     problem_description = models.TextField(blank=True)
     photo_urls = models.JSONField(default=list, blank=True)
     is_emergency = models.BooleanField(default=False)
+    # Priority charge included in price for emergency bookings
+    surcharge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     provider_id = models.PositiveBigIntegerField(null=True, blank=True)
     provider_name = models.CharField(max_length=120, blank=True)

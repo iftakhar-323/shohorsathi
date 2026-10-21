@@ -9,6 +9,7 @@ const nav = [
   { to: "/shop", label: "শপ" },
   { to: "/subscriptions", label: "সাবস্ক্রিপশন" },
   { to: "/issues", label: "শহরের সমস্যা" },
+  { to: "/community", label: "কমিউনিটি" },
   { to: "/custom-requests/new", label: "কাস্টম রিকোয়েস্ট" },
 ];
 

@@ -76,16 +76,21 @@ def create_job(payload):
     elif job.is_emergency:
         events.publish(
             "emergency.raised",
-            {
-                "job_id": job.id,
-                "title": job.title,
-                "area_id": job.area_id,
-                "provider_user_ids": list(
-                    available_jobs_providers(job).filter(is_online=True).values_list("user_id", flat=True)[:20]
-                ),
-            },
+            {"job_id": job.id, "title": job.title, "area_id": job.area_id, "provider_user_ids": [p.user_id for p in nearest_online(job)]},
         )
     return job
+
+
+def nearest_online(job, limit=20):
+    """Online providers who can do the job, nearest first when both positions are known."""
+    providers = list(available_jobs_providers(job).filter(is_online=True))
+    if job.latitude is not None and job.longitude is not None:
+        def distance(p):
+            if p.last_latitude is None:
+                return float("inf")
+            return (float(p.last_latitude) - float(job.latitude)) ** 2 + (float(p.last_longitude) - float(job.longitude)) ** 2
+        providers.sort(key=distance)
+    return providers[:limit]
 
 
 def available_jobs_providers(job):
