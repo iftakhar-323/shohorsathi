@@ -26,14 +26,19 @@ TODAY = date.today()
 
 ADMIN = ("01700000000", "শহরসাথী অ্যাডমিন")
 CUSTOMERS = [("01711000001", "রহিম উদ্দিন"), ("01711000002", "নুসরাত জাহান"), ("01711000003", "তানভীর আহমেদ"),
-             ("01711000004", "ফারহানা ইসলাম")]  # lives in Khulna
+             # Khulna
+             ("01711000004", "ফারহানা ইসলাম"), ("01711000005", "আরিফ হাসান"), ("01711000006", "সুমাইয়া আক্তার")]
 PROVIDERS = [
     # phone, name, type, skills, gender
     ("01811000001", "করিম মিয়া", "electrician", ["electrical", "appliance"], "male"),
     ("01811000002", "সালমা বেগম", "cleaner", ["cleaning", "pest-control"], "female"),
     ("01811000003", "জামাল হোসেন", "ac_technician", ["ac", "plumbing"], "male"),
-    ("01811000004", "মাসুদ রানা", "electrician", ["electrical", "ac", "plumbing"], "male"),  # works in Khulna
+    # Khulna
+    ("01811000004", "মাসুদ রানা", "electrician", ["electrical", "appliance"], "male"),
+    ("01811000005", "রেহানা খাতুন", "cleaner", ["cleaning", "pest-control"], "female"),
+    ("01811000006", "সাইফুল ইসলাম", "ac_technician", ["ac", "plumbing"], "male"),
 ]
+KHULNA_PROVIDERS = {"01811000004", "01811000005", "01811000006"}
 AREAS = [
     ("Dhaka", "Dhanmondi", "ধানমন্ডি", "23.746466", "90.376015"),
     ("Dhaka", "Mirpur", "মিরপুর", "23.806920", "90.368650"),
@@ -83,6 +88,34 @@ def role_of(access):
     return json.loads(base64.urlsafe_b64decode(access.split(".")[1] + "=="))["role"]
 
 
+def order(token, phone, name, items, area, when=TODAY, slot="11-13", problem="", address="বাড়ি ১২, রোড ৭"):
+    """Put the items in the customer's cart and check out (cash on delivery)."""
+    for old in call("GET", "/api/cart/", token, expect=200)["items"]:  # a half-finished earlier run
+        call("DELETE", f"/api/cart/items/{old['id']}/", token)
+    details = {}
+    for kind, slug, qty in items:
+        ci = call("POST", "/api/cart/items/", token, {"item_type": kind, "slug": slug, "quantity": qty}, expect=201)
+        if kind == "service":
+            details[str(ci["id"])] = {"scheduled_date": when.isoformat(), "slot": slot, "problem_description": problem}
+    return call("POST", "/api/orders/", token, {
+        "contact_name": name, "contact_phone": phone, "address_line": address, "area_id": area["id"],
+        "area_name": area["name_bn"], "latitude": area["lat"], "longitude": area["lng"], "service_details": details,
+    }, expect=201)
+
+def take(provider, o, finish=True, photo="ai-samples/burnt-socket.jpg", note="সুইচবোর্ড বদলে দেওয়া হয়েছে"):
+    """The provider accepts the booking's job and, unless finish=False, does it with the arrival code and a photo."""
+    b = o["bookings"][0]
+    job = wait_for(lambda: next((j for j in call("GET", "/api/providers/jobs/?tab=available", provider)["results"]
+                                 if j["source"] == "booking" and j["source_id"] == b["id"]), None), "job in inbox", timeout=30)
+    call("POST", f"/api/providers/jobs/{job['id']}/accept/", provider, expect=200)
+    if finish:
+        call("PATCH", f"/api/providers/jobs/{job['id']}/status/", provider, {"status": "on_the_way"}, expect=200)
+        call("PATCH", f"/api/providers/jobs/{job['id']}/status/", provider,
+             {"status": "working", "arrival_code": b["arrival_code"], "photos": [f"{IMG}/{photo}"]}, expect=200)
+        call("PATCH", f"/api/providers/jobs/{job['id']}/status/", provider, {"status": "completed", "note": note}, expect=200)
+    return job, b
+
+
 def main():
     # 0. Photos into the media volume, then catalog and subscription plans
     sh("docker", "compose", "exec", "-T", "media", "mkdir", "-p", "/data/media/public")
@@ -111,7 +144,7 @@ def main():
         tokens = register(p_phone, p_name)
         if role_of(tokens["access"]) != "provider":
             call("POST", "/api/providers/register/", tokens["access"], {
-                "provider_type": p_type, "skills": skills, "area_ids": city_ids["Khulna" if p_phone == "01811000004" else "Dhaka"], "nid_number": "19901234567890",
+                "provider_type": p_type, "skills": skills, "area_ids": city_ids["Khulna" if p_phone in KHULNA_PROVIDERS else "Dhaka"], "nid_number": "19901234567890",
                 "photo_url": f"{IMG}/services/electrician-visit.jpg", "nid_front_url": f"{IMG}/services/electrician-visit.jpg",
                 "payout_method": "bkash", "payout_account": p_phone, "gender": gender, "experience_years": 6,
                 "bio": "৬ বছরের অভিজ্ঞতা, সময়মতো ও যত্নের সাথে কাজ করি।",
@@ -125,36 +158,11 @@ def main():
         call("PATCH", "/api/providers/me/", access, {"is_online": True, "emergency_contact_name": "বাবা",
                                                     "emergency_contact_phone": "01700000009"}, expect=200)
         providers[p_phone] = access
-    step("4 providers approved and online (electrician, female cleaner, AC technician; electrician in Khulna)")
+    step(f"{len(providers)} providers approved and online (3 in Dhaka, 3 in Khulna)")
 
     # 3. Orders: a finished electrician job with review, a confirmed AC booking, a product order, a pending cleaning job
     rahim, nusrat = customers["01711000001"]["access"], customers["01711000002"]["access"]
     dh = areas["Dhanmondi"]
-
-    def order(token, phone, name, items, area, when=TODAY, slot="11-13", problem=""):
-        for old in call("GET", "/api/cart/", token, expect=200)["items"]:  # a half-finished earlier run
-            call("DELETE", f"/api/cart/items/{old['id']}/", token)
-        details = {}
-        for kind, slug, qty in items:
-            ci = call("POST", "/api/cart/items/", token, {"item_type": kind, "slug": slug, "quantity": qty}, expect=201)
-            if kind == "service":
-                details[str(ci["id"])] = {"scheduled_date": when.isoformat(), "slot": slot, "problem_description": problem}
-        return call("POST", "/api/orders/", token, {
-            "contact_name": name, "contact_phone": phone, "address_line": "বাড়ি ১২, রোড ৭", "area_id": area["id"],
-            "area_name": area["name_bn"], "latitude": area["lat"], "longitude": area["lng"], "service_details": details,
-        }, expect=201)
-
-    def take(provider, o, finish=True):
-        b = o["bookings"][0]
-        job = wait_for(lambda: next((j for j in call("GET", "/api/providers/jobs/?tab=available", provider)["results"]
-                                     if j["source"] == "booking" and j["source_id"] == b["id"]), None), "job in inbox", timeout=30)
-        call("POST", f"/api/providers/jobs/{job['id']}/accept/", provider, expect=200)
-        if finish:
-            call("PATCH", f"/api/providers/jobs/{job['id']}/status/", provider, {"status": "on_the_way"}, expect=200)
-            call("PATCH", f"/api/providers/jobs/{job['id']}/status/", provider,
-                 {"status": "working", "arrival_code": b["arrival_code"], "photos": [f"{IMG}/ai-samples/burnt-socket.jpg"]}, expect=200)
-            call("PATCH", f"/api/providers/jobs/{job['id']}/status/", provider, {"status": "completed", "note": "সুইচবোর্ড বদলে দেওয়া হয়েছে"}, expect=200)
-        return job, b
 
     o1 = order(rahim, "01711000001", "রহিম উদ্দিন", [("service", "electrician-visit", 1), ("product", "led-bulb-12w", 2)], dh,
                problem="সুইচবোর্ড থেকে পোড়া গন্ধ আসছে")
@@ -169,14 +177,7 @@ def main():
     o3 = order(nusrat, "01711000002", "নুসরাত জাহান", [("service", "home-deep-clean", 1)], areas["Mirpur"],
                when=TODAY + timedelta(days=1), slot="09-11")
     o4 = order(nusrat, "01711000002", "নুসরাত জাহান", [("product", "floor-cleaner-1l", 3), ("product", "extension-board-4", 1)], areas["Mirpur"])
-    farhana = customers["01711000004"]["access"]
-    o5 = order(farhana, "01711000004", "ফারহানা ইসলাম", [("service", "electrician-visit", 1)], areas["Sonadanga"],
-               problem="ফ্যান ঘুরছে না, রেগুলেটর গরম হয়ে যায়")
-    take(providers["01811000004"], o5)
-    wait_for(lambda: call("GET", f"/api/orders/{o5['id']}/", farhana)["bookings"][0]["status"] == "completed", "Khulna booking completed")
-    call("POST", "/api/providers/reviews/", farhana, {"source": "booking", "source_id": o5["bookings"][0]["id"], "rating": 5,
-                                                     "comment": "খুলনায় এত দ্রুত সার্ভিস আগে পাইনি।"})
-    step(f"orders: {o1['number']} completed + reviewed, {o2['number']} confirmed, {o3['number']} waiting for a cleaner, {o4['number']} products, {o5['number']} done in Khulna")
+    step(f"orders: {o1['number']} completed + reviewed, {o2['number']} confirmed, {o3['number']} waiting for a cleaner, {o4['number']} products")
 
     # 4. Subscription, custom request, home profile, AI quote
     sub = call("POST", "/api/subscriptions/", nusrat, {
@@ -218,11 +219,9 @@ def main():
     step("training module (passed by the cleaner) and insurance plan")
 
     # 6. City layer: authorities, issues with photos, community posts
-    city_ids_by_name = {city: [a[1] for a in AREAS if a[0] == city] for city in {a[0] for a in AREAS}}
     auths = {}
     for key, bn, en, cats in [("ward", "ঢাকা উত্তর সিটি কর্পোরেশন, ওয়ার্ড ৭", "DNCC Ward 7", ["streetlight", "garbage", "road_damage"]),
-                              ("wasa", "ঢাকা ওয়াসা, মড্স জোন ৩", "Dhaka WASA, MODS Zone 3", ["waterlogging", "drainage", "water_supply"]),
-                              ("kcc", "খুলনা সিটি কর্পোরেশন, ওয়ার্ড ১৬", "Khulna City Corporation, Ward 16", ["waterlogging", "garbage", "streetlight", "drainage"])]:
+                              ("wasa", "ঢাকা ওয়াসা, মড্স জোন ৩", "Dhaka WASA, MODS Zone 3", ["waterlogging", "drainage", "water_supply"])]:
         auths[key] = call("POST", "/api/admin/authorities/", admin, {"name_bn": bn, "name_en": en, "categories": cats}, expect=201)
         call("POST", f"/api/admin/authorities/{auths[key]['id']}/rotate-feed/", admin, expect=200)
     issues = [
@@ -230,12 +229,11 @@ def main():
         ("waterlogging", "বৃষ্টির পর হাঁটুপানি", "সাত মসজিদ রোডে প্রতি বৃষ্টিতে পানি জমে থাকে।", "Dhanmondi", "waterlogging.jpg", "wasa", "forwarded"),
         ("streetlight", "গলির বাতি নষ্ট", "রোড ১১-এর গলিতে এক সপ্তাহ ধরে বাতি জ্বলে না।", "Gulshan", "streetlight.jpg", "ward", "resolved"),
         ("road_damage", "রাস্তায় বড় গর্ত", "রিকশা উল্টে যাওয়ার ঝুঁকি।", "Uttara", "road.jpg", None, "reported"),
-        ("waterlogging", "সোনাডাঙ্গা বাসস্ট্যান্ডে পানি জমে", "জোয়ার আর বৃষ্টিতে ড্রেন উপচে রাস্তা ডুবে যায়।", "Sonadanga", "waterlogging.jpg", "kcc", "in_progress"),
     ]
-    reporters = [rahim, nusrat, customers["01711000003"]["access"], farhana]
+    reporters = [rahim, nusrat, customers["01711000003"]["access"]]
     for i, (cat, title, desc, area, photo, auth, status) in enumerate(issues):
         a = areas[area]
-        reporter = farhana if area in city_ids_by_name["Khulna"] else reporters[i % 3]
+        reporter = reporters[i % 3]
         issue = call("POST", "/api/issues/", reporter, {
             "category": cat, "title": title, "description": desc, "latitude": a["lat"], "longitude": a["lng"], "area_id": a["id"],
             "area_name": a["name_bn"], "photo_urls": [f"{IMG}/issues/{photo}"], "force": True}, expect=201)
@@ -253,10 +251,9 @@ def main():
         (rahim, "Dhanmondi", "alert", "আগামীকাল সকাল ১০টা থেকে ২টা পর্যন্ত রোড ৭-এ পানি থাকবে না।"),
         (nusrat, "Mirpur", "recommendation", "সালমা আপা খুব যত্ন করে পুরো বাসা পরিষ্কার করেছেন, সবাইকে সাজেস্ট করছি।"),
         (customers["01711000003"]["access"], "Uttara", "question", "উত্তরায় ভালো এসি টেকনিশিয়ান কে আছেন?"),
-        (farhana, "Sonadanga", "tip", "খুলনায় মাসুদ ভাই খুব ভালো ইলেকট্রিশিয়ান, শহরসাথীতে বুক করা যায়।"),
     ]:
         call("POST", "/api/community/posts/", token, {"area_id": areas[area]["id"], "area_name": areas[area]["name_bn"], "kind": kind, "body": body}, expect=201)
-    step("3 authorities (incl. Khulna City Corporation) with feed links, 5 photo issues, 4 community posts")
+    step("Dhaka: 2 authorities with feed links, 4 photo issues (one resolved), 3 community posts")
 
     # 7. Offers: seasonal packages with banners, group deal, sponsored listing
     services = {s["slug"]: s for s in call("GET", "/api/services/?page_size=50", expect=200)["results"]}
@@ -278,7 +275,10 @@ def main():
     call("POST", "/api/services/wall-painting/sponsor/", admin, {"days": 14, "fee": "2500", "sponsor_name": "Berger Paints Dealer, Dhanmondi"}, expect=201)
     step("3 seasonal packages, a group deal (2/4 joined), a sponsored listing")
 
-    # 8. Synthetic analytics history for the insight tabs
+    # 8. Khulna: its own providers, customers, orders, city issues, offers
+    khulna(admin, areas, customers, providers, services)
+
+    # 9. Synthetic analytics history for the insight tabs
     sh("docker", "compose", "cp", "scripts/demo_analytics_history.py", "analytics:/tmp/demo_history.py")
     out = sh("docker", "compose", "exec", "-T", "analytics", "python", "manage.py", "shell", "-c", "exec(open('/tmp/demo_history.py').read())")
     step(out.stdout.strip().splitlines()[-1] if out.stdout.strip() else "analytics history added")
@@ -286,9 +286,111 @@ def main():
     print(f"""
 Demo data ready. Password for every account: {PASSWORD}
   admin     {ADMIN[0]}   → admin panel
-  customer  01711000001 (রহিম, tenant in Dhanmondi) / 01711000002 (নুসরাত, Mirpur) / 01711000004 (ফারহানা, Khulna)
-  provider  01811000001 (electrician) / 01811000002 (female cleaner) / 01811000003 (AC technician) / 01811000004 (Khulna)
+  Dhaka     customers 01711000001 (রহিম, tenant in Dhanmondi) · 01711000002 (নুসরাত) · 01711000003 (তানভীর)
+            providers 01811000001 (electrician) · 01811000002 (female cleaner) · 01811000003 (AC technician)
+  Khulna    customers 01711000004 (ফারহানা) · 01711000005 (আরিফ) · 01711000006 (সুমাইয়া)
+            providers 01811000004 (electrician) · 01811000005 (female cleaner) · 01811000006 (AC & plumbing)
 """)
+
+
+
+def khulna(admin, areas, customers, providers, services):
+    farhana, arif, sumaiya = (customers[p]["access"] for p in ("01711000004", "01711000005", "01711000006"))
+    masud, rehana, saiful = (providers[p] for p in ("01811000004", "01811000005", "01811000006"))
+
+    # orders: two finished and reviewed, one confirmed for tomorrow, one waiting in the Khulna inbox, one product order
+    o5 = order(farhana, "01711000004", "ফারহানা ইসলাম", [("service", "electrician-visit", 1)], areas["Sonadanga"],
+               problem="ফ্যান ঘুরছে না, রেগুলেটর গরম হয়ে যায়", address="বাড়ি ৩৪, মজিদ সরণি")
+    take(masud, o5, note="ফ্যানের রেগুলেটর ও ক্যাপাসিটর বদলানো হয়েছে")
+    o6 = order(arif, "01711000005", "আরিফ হাসান", [("service", "ac-cleaning", 1)], areas["Khalishpur"],
+               problem="এসি চালালে পানি পড়ে", address="হাউজিং এস্টেট, ব্লক বি")
+    take(saiful, o6, photo="ai-samples/ac-leak.jpg", note="ইনডোর ও আউটডোর ইউনিট জেট ওয়াশ করা হয়েছে")
+    for o, token, rating, comment in [(o5, farhana, 5, "খুলনায় এত দ্রুত সার্ভিস আগে পাইনি।"),
+                                      (o6, arif, 4, "সময়মতো এসেছেন, কাজ পরিষ্কার।")]:
+        wait_for(lambda: call("GET", f"/api/orders/{o['id']}/", token)["bookings"][0]["status"] == "completed", "Khulna job completed")
+        call("POST", "/api/providers/reviews/", token, {"source": "booking", "source_id": o["bookings"][0]["id"], "rating": rating, "comment": comment})
+    o7 = order(sumaiya, "01711000006", "সুমাইয়া আক্তার", [("service", "home-deep-clean", 1)], areas["Boyra"],
+               when=TODAY + timedelta(days=1), slot="09-11", address="বয়রা মেইন রোড, বাড়ি ৯")
+    take(rehana, o7, finish=False)
+    order(arif, "01711000005", "আরিফ হাসান", [("service", "plumber-visit", 1)], areas["Khalishpur"],
+          when=TODAY + timedelta(days=2), slot="16-18", problem="বাথরুমের কমোডে পানি আটকে যায়", address="হাউজিং এস্টেট, ব্লক বি")
+    order(farhana, "01711000004", "ফারহানা ইসলাম", [("product", "ceiling-fan-56", 1), ("product", "led-bulb-12w", 4)],
+          areas["Sonadanga"], address="বাড়ি ৩৪, মজিদ সরণি")
+    call("POST", "/api/providers/training/safety-conduct/submit/", rehana, {"answers": [0, 0]})
+    step("Khulna: 5 orders (2 done and reviewed, 1 confirmed, 1 waiting for a provider, 1 products)")
+
+    # subscription, custom request, home profile
+    call("POST", "/api/subscriptions/", sumaiya, {
+        "plan": "cleaning-basic", "duration_days": 30, "home_size": 2, "start_date": (TODAY + timedelta(days=2)).isoformat(),
+        "preferred_weekday": (TODAY + timedelta(days=2)).weekday(), "slot": "09-11", "area_id": areas["Boyra"]["id"],
+        "area_name": areas["Boyra"]["name_bn"], "address_line": "বয়রা মেইন রোড, বাড়ি ৯", "payment_method": "cod", "prefer_female": True})
+    req = call("POST", "/api/custom-requests/", arif, {
+        "service_type": "আইপিএস ব্যাটারি বদল ও ওয়্যারিং", "description": "পুরনো ব্যাটারি বদলে নতুন ১৫০Ah, দুই রুমে আলাদা লাইন",
+        "area_id": areas["Khalishpur"]["id"], "area_name": areas["Khalishpur"]["name_bn"], "address_line": "হাউজিং এস্টেট, ব্লক বি",
+        "preferred_date": (TODAY + timedelta(days=4)).isoformat()}, expect=201)
+    call("PATCH", f"/api/admin/custom-requests/{req['id']}/quote/", admin,
+         {"labor": "1500", "materials": "16500", "transport": "300", "platform_fee": "500", "category_slug": "electrical"})
+    call("POST", "/api/home-profiles/", sumaiya, {
+        "name": "বয়রার বাসা", "address": "বয়রা মেইন রোড, বাড়ি ৯, খুলনা", "area": areas["Boyra"]["id"], "property_type": "house",
+        "square_feet": 1800, "ac_count": 2, "water_purifier": True, "wiring_age_years": 15, "plumbing_age_years": 11, "occupancy_mode": "owner"},
+        expect=201)
+    step("Khulna: cleaning subscription, IPS custom request with a quote, home profile")
+
+    # city: Khulna City Corporation and KWASA, five photo issues, posts
+    kcc = call("POST", "/api/admin/authorities/", admin, {"name_bn": "খুলনা সিটি কর্পোরেশন, ওয়ার্ড ১৬", "name_en": "Khulna City Corporation, Ward 16",
+                                                         "categories": ["garbage", "streetlight", "road_damage", "drainage"]}, expect=201)
+    kwasa = call("POST", "/api/admin/authorities/", admin, {"name_bn": "খুলনা ওয়াসা", "name_en": "Khulna WASA",
+                                                           "categories": ["waterlogging", "water_supply"]}, expect=201)
+    for a in (kcc, kwasa):
+        call("POST", f"/api/admin/authorities/{a['id']}/rotate-feed/", admin, expect=200)
+    people = [farhana, arif, sumaiya]
+    for i, (cat, title, desc, area, photo, authority, status) in enumerate([
+        ("waterlogging", "সোনাডাঙ্গা বাসস্ট্যান্ডে পানি জমে", "জোয়ার আর বৃষ্টিতে ড্রেন উপচে রাস্তা ডুবে যায়, বাস ঢুকতে পারে না।", "Sonadanga", "khulna-waterlogging.jpg", kwasa, "in_progress"),
+        ("garbage", "খালিশপুরে ময়লার কন্টেইনার উপচে পড়ছে", "ক্রিসেন্ট জুট মিলের সামনে চার দিন ধরে ময়লা নেওয়া হয়নি।", "Khalishpur", "khulna-garbage.jpg", kcc, "forwarded"),
+        ("streetlight", "বয়রা কলোনির গলিতে বাতি নেই", "সন্ধ্যার পর পুরো গলি অন্ধকার, মেয়েদের চলাচলে ভয়।", "Boyra", "khulna-streetlight.jpg", kcc, "resolved"),
+        ("road_damage", "দৌলতপুর-খুলনা রোডে ভাঙা রাস্তা", "কুয়েট গেটের কাছে রাস্তা ভেঙে বড় গর্ত, ইজিবাইক উল্টে যাচ্ছে।", "Daulatpur", "khulna-road.jpg", None, "reported"),
+        ("drainage", "গল্লামারীতে ড্রেন বন্ধ", "ড্রেনের মুখ আটকে পানি বাসার সামনে জমে থাকে।", "Gollamari", "khulna-drain.jpg", kcc, "in_progress"),
+    ]):
+        a = areas[area]
+        reporter = people[i % 3]
+        issue = call("POST", "/api/issues/", reporter, {
+            "category": cat, "title": title, "description": desc, "latitude": a["lat"], "longitude": a["lng"], "area_id": a["id"],
+            "area_name": a["name_bn"], "photo_urls": [f"{IMG}/issues/{photo}"], "force": True}, expect=201)
+        for other in people:
+            if other is not reporter:
+                call("POST", f"/api/issues/{issue['id']}/upvote/", other)
+        if authority:
+            call("POST", f"/api/admin/issues/{issue['id']}/status/", admin, {"status": "forwarded", "authority": authority["id"]}, expect=200)
+        if status in ("in_progress", "resolved"):
+            call("POST", f"/api/admin/issues/{issue['id']}/status/", admin, {"status": "in_progress", "note": "কাজ শুরু হয়েছে"}, expect=200)
+        if status == "resolved":
+            call("POST", f"/api/admin/issues/{issue['id']}/status/", admin,
+                 {"status": "resolved", "note": "নতুন এলইডি স্ট্রিটলাইট লাগানো হয়েছে", "photos": [f"{IMG}/products/led-bulb-12w.jpg"]}, expect=200)
+    for token, area, kind, body in [
+        (farhana, "Sonadanga", "recommendation", "মাসুদ ভাই খুব ভালো ইলেকট্রিশিয়ান, ফ্যানের কাজ আধা ঘণ্টায় শেষ করেছেন।"),
+        (arif, "Khalishpur", "alert", "আগামীকাল সকাল ৯টা থেকে ১২টা খালিশপুরে বিদ্যুৎ থাকবে না (ওজোপাডিকো)।"),
+        (sumaiya, "Boyra", "question", "বয়রায় পানির ট্যাংক পরিষ্কার কে ভালো করেন?"),
+        (arif, "Daulatpur", "tip", "বর্ষার আগে ছাদের ড্রেন পরিষ্কার করিয়ে নিন, খরচ কম পড়ে।"),
+    ]:
+        call("POST", "/api/community/posts/", token, {"area_id": areas[area]["id"], "area_name": areas[area]["name_bn"], "kind": kind, "body": body}, expect=201)
+    step("Khulna: City Corporation + WASA with feed links, 5 photo issues, 4 community posts")
+
+    # offers: a Khulna monsoon package, a Khalishpur group deal, a sponsored listing
+    call("POST", "/api/seasonal-packages/", admin, {
+        "title_bn": "খুলনায় বর্ষার প্রস্তুতি", "title_en": "Khulna monsoon ready", "season": "monsoon",
+        "tagline_bn": "জোয়ার-বৃষ্টির আগে প্লাম্বিং, ড্রেন আর মশা নিয়ন্ত্রণ", "tagline_en": "Plumbing, drains and mosquitoes before the tide and rain",
+        "service_slugs": ["plumber-visit", "basin-sink-repair", "mosquito-fogging"], "discount_percent": 12,
+        "banner_image_url": f"{IMG}/banners/khulna-river.jpg",
+        "active_from": (TODAY - timedelta(days=2)).isoformat(), "active_until": (TODAY + timedelta(days=45)).isoformat()}, expect=201)
+    deal = call("POST", "/api/group-deals/", admin, {
+        "title_bn": "খালিশপুর হাউজিং: এসি ক্লিনিং গ্রুপ ডিল", "title_en": "Khalishpur Housing: AC cleaning group deal",
+        "service": services["ac-cleaning"]["id"], "target_participants": 5, "discount_percent": 20, "area_ids": [areas["Khalishpur"]["id"]],
+        "expires_at": f"{(TODAY + timedelta(days=12)).isoformat()}T18:00:00+06:00"}, expect=201)
+    for token in people:
+        call("POST", f"/api/group-deals/{deal['id']}/join/", token, expect=200)
+    call("POST", "/api/services/ceiling-fan-installation/sponsor/", admin,
+         {"days": 10, "fee": "1500", "sponsor_name": "খুলনা ইলেকট্রিক হাউস, ডাকবাংলো"}, expect=201)
+    step("Khulna: monsoon package with a Khulna photo, Khalishpur group deal (3/5), sponsored fan installation")
 
 
 if __name__ == "__main__":

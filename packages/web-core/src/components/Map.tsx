@@ -24,6 +24,17 @@ function Recenter({ center }: { center: [number, number] }) {
   return null;
 }
 
+/** Without a fixed center, keep every point in view as the data arrives or a filter changes (e.g. Dhaka vs Khulna). */
+function FitPoints({ points, maxZoom }: { points: MapPoint[]; maxZoom: number }) {
+  const map = useMap();
+  const key = points.map((p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).sort().join("|");
+  useEffect(() => {
+    if (points.length === 1) map.setView([points[0].lat, points[0].lng], maxZoom);
+    else if (points.length > 1) map.fitBounds(points.map((p) => [p.lat, p.lng] as [number, number]), { padding: [30, 30], maxZoom });
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
 /** Markers are drawn as circles, so no marker image assets are needed. */
 export function MapView({ points, center, zoom = 14, height = 360, onMove }: {
   points: MapPoint[];
@@ -41,7 +52,7 @@ export function MapView({ points, center, zoom = 14, height = 360, onMove }: {
     <div style={{ height }} className="overflow-hidden rounded-[20px] border border-line">
       <MapContainer center={c as [number, number]} zoom={zoom} style={{ height: "100%", width: "100%" }} scrollWheelZoom={false}>
         <TileLayer url={OSM} attribution={ATTRIBUTION} />
-        {center && <Recenter center={center} />}
+        {center ? <Recenter center={center} /> : <FitPoints points={points} maxZoom={zoom} />}
         {onMove && <Watcher />}
         {points.map((p) => (
           <CircleMarker key={p.id} center={[p.lat, p.lng]} radius={p.radius ?? 9} pathOptions={{ color: "#fff", weight: 2, fillColor: p.color ?? "#17784A", fillOpacity: 0.9 }}>

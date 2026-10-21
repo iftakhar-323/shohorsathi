@@ -36,6 +36,13 @@ async function visit(page: Page, url: string, shot: string, expectText?: string 
   const body = (await page.locator("main, body").first().innerText()).trim();
   expect(body.length, `${url} rendered nothing`).toBeGreaterThan(40);
   if (expectText) await expect(page.locator("body")).toContainText(expectText);
+  // every photo served from the media volume must actually load (map tiles from the internet are not checked)
+  const broken = await page.evaluate(async () => {
+    const imgs = [...document.querySelectorAll("img")].filter((i) => i.src.includes("/media/"));
+    await Promise.all(imgs.map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; }))));
+    return imgs.filter((i) => i.naturalWidth === 0).map((i) => i.src);
+  });
+  expect(broken, `${url} broken images`).toEqual([]);
   await page.screenshot({ path: `test-results/tour/${shot}.png`, fullPage: true });
   expect(problems, `${url}\n${problems.join("\n")}`).toEqual([]);
 }
@@ -49,7 +56,7 @@ test("customer app: every page", async ({ page }) => {
   const requests = await api<{ results: { id: number }[] }>(page, t, "/api/custom-requests/");
   const issues = await api<{ results: { id: number }[] }>(page, t, "/api/issues/");
   const services = await api<{ results: { slug: string }[] }>(page, t, "/api/services/");
-  const subs = await api<{ results: { id: number }[] }>(page, t, "/api/subscriptions/plans/").catch(() => ({ results: [] }));
+  const plans = await api<{ slug: string }[]>(page, t, "/api/subscription-plans/");
   const C = APPS.customer;
 
   // public pages first, signed out
@@ -73,7 +80,8 @@ test("customer app: every page", async ({ page }) => {
   ] as [string, string, string | undefined][]) {
     await visit(page, C + path, `customer-${name}`, text);
   }
-  if (subs.results.length) await visit(page, `${C}/subscriptions`, "customer-subscriptions-signed-in");
+  expect(plans.length, "subscription plans are seeded").toBeGreaterThan(0);
+  await visit(page, `${C}/subscriptions/new/${plans[0].slug}`, "customer-subscribe");
 });
 
 test("customer app: main flows work by clicking", async ({ page }) => {
@@ -103,6 +111,10 @@ test("customer app: main flows work by clicking", async ({ page }) => {
   await expect(page.getByText("খুলনা সিটি কর্পোরেশন, ওয়ার্ড ১৬")).toBeVisible();
   await page.goto(`${C}/issues`);
   await expect(page.getByText("সোনাডাঙ্গা বাসস্ট্যান্ডে পানি জমে")).toBeVisible();
+  await expect(page.getByText("খালিশপুরে ময়লার কন্টেইনার উপচে পড়ছে")).toBeVisible();
+  await page.goto(`${C}/`);
+  await expect(page.getByText("খুলনায় বর্ষার প্রস্তুতি")).toBeVisible();
+  await expect(page.getByText("খালিশপুর হাউজিং: এসি ক্লিনিং গ্রুপ ডিল")).toBeVisible();
 
   // English switch keeps working on a data page
   await page.goto(`${C}/services`);
@@ -124,6 +136,16 @@ test("provider app: every page", async ({ page }) => {
   }
   expect(jobs.results.length, "the demo electrician has a finished job").toBeGreaterThan(0);
   await visit(page, `${P}/jobs/${jobs.results[0].id}`, "provider-job-detail", "গ্রাহককে রেটিং দিন");
+});
+
+test("provider app: a Khulna provider sees Khulna jobs", async ({ page }) => {
+  const t = await tokens("01811000006", page);
+  await page.addInitScript((tk) => localStorage.setItem("shohor.tokens", JSON.stringify(tk)), t);
+  await visit(page, `${APPS.provider}/`, "provider-khulna-inbox");
+  await page.getByRole("tab", { name: "নতুন কাজ" }).or(page.getByRole("button", { name: "নতুন কাজ" })).first().click();
+  await expect(page.getByText("প্লাম্বার ভিজিট")).toBeVisible();
+  await expect(page.getByText("খালিশপুর").first()).toBeVisible();
+  await page.screenshot({ path: "test-results/tour/provider-khulna-new-jobs.png", fullPage: true });
 });
 
 test("admin app: every page", async ({ page }) => {

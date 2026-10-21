@@ -4,22 +4,20 @@ How to bring up a fully populated ShohorSathi on one laptop and walk through it 
 
 ## 1. Start with demo data
 
-Needs Docker, Node 20+ with pnpm, and Python 3. First time only: `pnpm install` and `scripts/gen-jwt-keys.sh`, and `cp .env.example .env`.
+Full instructions from a fresh clone are in [SETUP.md](SETUP.md). In short:
 
 ```bash
-docker compose down -v          # WARNING: deletes all existing data (back up first with scripts/backup.sh)
-docker compose up -d --build    # on a low-memory machine build one service at a time
-python3 scripts/seed_demo.py    # photos, catalog, accounts, orders, city issues, offers, analytics history (~20 s)
-
-pnpm --filter customer-web dev --port 5173
-pnpm --filter provider-web dev --port 5174
-pnpm --filter admin-web dev --port 5175
+scripts/up.sh --demo     # backend + demo data (photos, accounts, orders, city issues, offers, analytics history)
+pnpm install             # first time only
+pnpm dev                 # the three apps
 ```
+
+For fresh demo data before a presentation: `docker compose down -v && scripts/up.sh --demo` (deletes all data).
 
 | App | URL | Log in as (password `demo1234` for all) |
 |---|---|---|
-| Customer site | http://localhost:5173 | `01711000001` রহিম (tenant, Dhanmondi) · `01711000002` নুসরাত (Mirpur) · `01711000003` তানভীর · `01711000004` ফারহানা (Khulna) |
-| Provider portal | http://localhost:5174 | `01811000001` করিম (electrician) · `01811000002` সালমা (female cleaner) · `01811000003` জামাল (AC) · `01811000004` মাসুদ (Khulna) |
+| Customer site | http://localhost:5173 | Dhaka: `01711000001` রহিম (tenant, Dhanmondi) · `01711000002` নুসরাত · `01711000003` তানভীর · Khulna: `01711000004` ফারহানা · `01711000005` আরিফ · `01711000006` সুমাইয়া |
+| Provider portal | http://localhost:5174 | Dhaka: `01811000001` করিম · `01811000002` সালমা · `01811000003` জামাল · Khulna: `01811000004` মাসুদ · `01811000005` রেহানা · `01811000006` সাইফুল |
 | Admin panel | http://localhost:5175 | `01700000000` |
 
 New sign-ups need an OTP: in development it is printed in `docker compose logs auth` (search for `OTP for`).
@@ -35,9 +33,11 @@ New sign-ups need an OTP: in development it is printed in `docker compose logs a
 4. **AI quote**: type "বাথরুমের পাইপ থেকে পানি পড়ছে" or upload a photo → suggested service and price range.
    With `ANTHROPIC_API_KEY` in `.env` Claude looks at the photo; without it a keyword match answers (the page says which).
 5. **Home profile**: health score, upkeep reminders, tenant mode with the landlord's number.
-6. **Multi-city**: the city picker in the header has ঢাকা, চট্টগ্রাম and **খুলনা** (Sonadanga, Khalishpur, Daulatpur,
-   Boyra, Gollamari). Sign in as ফারহানা to see a finished Khulna job; মাসুদ is the Khulna electrician.
-7. **City problems** → map with 5 photo reports (one in Sonadanga, forwarded to Khulna City Corporation) → **Transparency dashboard** (public, per authority, no personal data).
+6. **Khulna**: the city picker in the header has ঢাকা, চট্টগ্রাম and **খুলনা** (Sonadanga, Khalishpur, Daulatpur, Boyra,
+   Gollamari). Khulna has its own providers, finished and upcoming jobs, a cleaning subscription, an IPS quote,
+   five photo reports handled by Khulna City Corporation and Khulna WASA, a monsoon package and a Khalishpur group
+   deal. Sign in as আরিফ (`01711000005`) for his orders, or as সাইফুল (`01811000006`) to see Arif's plumbing job waiting.
+7. **City problems** → map with 9 photo reports in Dhaka and Khulna → **Transparency dashboard** (public, per authority, no personal data).
 8. **Provider portal as করিম**: job inbox, finished job (rate the customer), earnings and instant payout, training,
    insurance. As সালমা: the cleaning job waiting in *নতুন কাজ*, training badge.
 9. **Admin panel**: dashboard; orders; providers; city issues (forward to an authority, CSV export, authority feed link);

@@ -4,6 +4,9 @@ City-based problem solution marketplace — products, trusted services and city 
 
 **Stack (strict):** Django + Django REST Framework · React (Vite + TypeScript) · PostgreSQL
 
+**Run it:** [SETUP.md](SETUP.md) — from `git clone` to all three apps with demo data (`scripts/up.sh --demo`, then
+`pnpm install && pnpm dev`). Presenting it: [DEMO.md](DEMO.md).
+
 UI design canvas (customer home, booking, provider inbox, admin dashboard): https://claude.ai/artifact/C74ShN6dNDX2E6W4M9GD9v
 
 ## Architecture
@@ -126,7 +129,8 @@ without an English translation or Bangla JSX text that is not wrapped in `t()`.
 
 ## Run locally
 
-For a presentation with demo accounts, photos and data, follow [DEMO.md](DEMO.md) (`python3 scripts/seed_demo.py`).
+Step-by-step instructions, demo accounts and troubleshooting are in [SETUP.md](SETUP.md); the short version:
+`scripts/up.sh --demo`, then `pnpm install && pnpm dev`.
 
 ```bash
 ./scripts/gen-jwt-keys.sh          # creates .keys/jwt_private.pem + jwt_public.pem (gitignored)

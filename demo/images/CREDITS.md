@@ -34,3 +34,9 @@ Stock photos used only as demo content. Pexels and Unsplash licenses allow free 
 | ai-samples/burnt-socket.jpg | [photo-1555664424-778a1e5e1b48](https://unsplash.com/photos/photo-1555664424-778a1e5e1b48) | Unsplash License |
 | ai-samples/pipe-leak.jpg | [photo-1585704032915-c3400ca199e7](https://unsplash.com/photos/photo-1585704032915-c3400ca199e7) | Unsplash License |
 | ai-samples/wall-damp.jpg | [12133995](https://www.pexels.com/photo/12133995/) | Pexels License |
+| issues/khulna-waterlogging.jpg | [17935458](https://www.pexels.com/photo/17935458/) | Pexels License |
+| issues/khulna-road.jpg | [20518249](https://www.pexels.com/photo/20518249/) | Pexels License |
+| issues/khulna-garbage.jpg | [15847992](https://www.pexels.com/photo/15847992/) | Pexels License |
+| issues/khulna-streetlight.jpg | [10504093](https://www.pexels.com/photo/10504093/) | Pexels License |
+| issues/khulna-drain.jpg | [333650](https://www.pexels.com/photo/333650/) | Pexels License |
+| banners/khulna-river.jpg | [33337866](https://www.pexels.com/photo/33337866/) | Pexels License |

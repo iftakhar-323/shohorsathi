@@ -22,6 +22,7 @@ Edit `.env.prod`:
 - `PUBLIC_API_URL=https://<customer domain>`, `CUSTOMER_WEB_URL=https://<customer domain>`
 - `PAYMENT_GATEWAY=sslcommerz` with the store id/password and `SSLCOMMERZ_SANDBOX=0`
 - `SMS_BACKEND=http` with the SMS gateway URL/key, and `SENTRY_DSN`
+- `OTP_DEBUG=0` and `OTP_THROTTLE_RATE=10/hour` (the example file has development values)
 - optional `ANTHROPIC_API_KEY` for the AI photo quote (without it the quote comes from a keyword match)
 
 Issue the first certificates (port 80 must be free), then start everything:
