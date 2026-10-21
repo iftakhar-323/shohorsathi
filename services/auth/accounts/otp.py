@@ -7,6 +7,8 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
+from shohor_common import events
+
 from .models import OtpCode
 
 log = logging.getLogger(__name__)
@@ -20,7 +22,7 @@ def _hash(code):
     return hmac.new(settings.SECRET_KEY.encode(), code.encode(), hashlib.sha256).hexdigest()
 
 
-def issue(phone, purpose):
+def issue(phone, purpose, channel="sms"):
     last = OtpCode.objects.filter(phone=phone, purpose=purpose).order_by("-created_at").first()
     now = timezone.now()
     if last and (now - last.created_at).total_seconds() < settings.OTP_RESEND_SECONDS:
@@ -34,8 +36,11 @@ def issue(phone, purpose):
         expires_at=now + timedelta(seconds=settings.OTP_TTL_SECONDS),
     )
     if settings.OTP_DEBUG:
-        log.info("OTP for %s (%s): %s", phone, purpose, code)
-    # TODO(phase 2): send through the SMS gateway via the notification service.
+        log.info("OTP for %s (%s) [%s]: %s", phone, purpose, channel, code)
+    try:
+        events.publish("otp.requested", {"phone": phone, "purpose": purpose, "code": code, "channel": channel})
+    except Exception as e:
+        log.warning("failed to publish otp.requested: %s", e)
     return code
 
 

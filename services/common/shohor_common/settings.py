@@ -135,6 +135,7 @@ SERVICE_URLS = {
     "city": env("CITY_URL", "http://city:8000"),
     "media": env("MEDIA_URL_INTERNAL", "http://media:8000"),
     "notification": env("NOTIFICATION_URL", "http://notification:8000"),
+    "payment": env("PAYMENT_URL", "http://payment:8000"),
 }
 # Shared secret for service-to-service calls that are not made on behalf of a user.
 INTERNAL_API_TOKEN = env("INTERNAL_API_TOKEN", "dev-internal-token")

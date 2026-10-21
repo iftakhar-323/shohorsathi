@@ -117,7 +117,8 @@ class Subscription(models.Model):
     credit_applied = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     # Value of skipped/paused/refunded visits, applied to the next renewal.
     credit = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    payment_method = models.CharField(max_length=10, choices=[("cod", "Cash"), ("online", "Online")], default="cod")
+    payment_method = models.CharField(max_length=12, choices=[("cod", "Cash"), ("online", "Online"), ("bkash_auto", "bKash Auto-Debit")], default="cod")
+    agreement_id = models.CharField(max_length=64, blank=True, default="", help_text="bKash tokenized agreement ID")
     paid = models.BooleanField(default=False)
     status = models.CharField(max_length=16, choices=Status.choices)
     auto_renew = models.BooleanField(default=True)

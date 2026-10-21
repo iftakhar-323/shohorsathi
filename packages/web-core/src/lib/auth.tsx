@@ -19,7 +19,7 @@ function decode(access: string): SessionUser | null {
 type AuthValue = {
   user: SessionUser | null;
   login: (phone: string, password: string) => Promise<SessionUser | null>;
-  requestOtp: (phone: string, purpose?: "register" | "reset_password") => Promise<void>;
+  requestOtp: (phone: string, purpose?: "register" | "reset_password", channel?: "sms" | "whatsapp") => Promise<void>;
   register: (data: { phone: string; full_name: string; password: string; otp: string; email?: string; accept_terms: boolean; marketing_opt_in?: boolean }) => Promise<void>;
   resetPassword: (data: { phone: string; otp: string; new_password: string }) => Promise<void>;
   logout: () => void;
@@ -41,8 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setTokens(data);
         return decode(data.access);
       },
-      async requestOtp(phone, purpose = "register") {
-        await api.post("/auth/otp/request/", { phone, purpose });
+      async requestOtp(phone, purpose = "register", channel = "sms") {
+        await api.post("/auth/otp/request/", { phone, purpose, channel });
       },
       async register(body) {
         const { data } = await api.post<Tokens>("/auth/register/", body);

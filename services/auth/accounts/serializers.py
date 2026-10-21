@@ -7,6 +7,7 @@ from .models import Address, Area, OtpCode, User, bd_phone
 class OtpRequestSerializer(serializers.Serializer):
     phone = serializers.CharField(validators=[bd_phone])
     purpose = serializers.ChoiceField(choices=OtpCode.Purpose.choices)
+    channel = serializers.ChoiceField(choices=["sms", "whatsapp"], default="sms", required=False)
 
 
 class RegisterSerializer(serializers.Serializer):

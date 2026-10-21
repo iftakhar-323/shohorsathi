@@ -25,7 +25,7 @@ map $uri $service {
     ~^/api/(payment|payments)/                                     payment;
     ~^/api/admin/(payments|refunds)/                               payment;
 
-    ~^/api/chat/                                                   chat;
+    ~^/api/(chat|messenger)/                                       chat;
     ~^/api/admin/chat/                                             chat;
 
     ~^/api/(notification|notifications)/                           notification;

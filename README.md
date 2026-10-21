@@ -146,6 +146,7 @@ python3 scripts/e2e_phase3.py           # city issues, community, emergency requ
 python3 scripts/e2e_phase4.py           # credit & points, referrals, B2B portal, analytics, multi-city
 python3 scripts/e2e_phase5.py           # consent, encrypted NID, data export, account deletion, outbox
 python3 scripts/e2e_phase6.py           # trust & safety: female provider, training, insurance, SOS, ratings, instant payout
+python3 scripts/e2e_phase7.py           # channels & payments: direct bKash/Nagad, tokenized auto-debit, WhatsApp OTP, Messenger bot, SMS booking
 E2E_ADMIN_PHONE=... E2E_ADMIN_PASSWORD=... pnpm --filter e2e test   # browser tests (Playwright) of the three apps
 pnpm -r build                           # type-check and build all web apps
 ```
@@ -161,6 +162,6 @@ pnpm -r build                           # type-check and build all web apps
 | 4 — Scale | Loyalty points & wallet, referrals, B2B portal, analytics, multi-city | done |
 | 5 — Compliance & Ops | Consent (PDPO 2025), encrypted NID, data export, account deletion, outbox relay | done |
 | 6 — Trust & Safety | SOS emergency alert, live sharing, female provider preference, two-way ratings & disputes, provider insurance, training & certificates, instant payouts | done |
-| 7 — Channels & Payments | bKash tokenized auto-debit, direct payment, WhatsApp Business notification & OTP, Messenger bot, PWA, SMS booking | planned |
+| 7 — Channels & Payments | bKash tokenized auto-debit, direct payment, WhatsApp Business notification & OTP, Messenger bot, PWA, SMS booking | done |
 | 8 — Smart Features | AI photo quote (vision), Bangla voice search, Digital Home Profile & reminders, tenant/landlord mode, neighbourhood group deals | planned |
 | 9 — Growth & City Partnership | City corporation data export & transparency dashboard, demand forecasting, fraud & churn detection, parts marketplace | planned |

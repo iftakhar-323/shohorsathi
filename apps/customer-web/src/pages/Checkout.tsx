@@ -22,7 +22,7 @@ export default function Checkout() {
   const [contactName, setContactName] = useState(user?.name ?? "");
   const [contactPhone, setContactPhone] = useState(user?.phone ?? "");
   const [note, setNote] = useState("");
-  const [payment, setPayment] = useState<"cod" | "online" | "wallet">("cod");
+  const [payment, setPayment] = useState<"cod" | "online" | "bkash" | "nagad" | "wallet">("cod");
   const { data: loyalty } = useLoyalty();
   const { data: orgs } = useMyOrgs();
   const [usePoints, setUsePoints] = useState(false);
@@ -83,7 +83,7 @@ export default function Checkout() {
         latitude,
         longitude,
         note,
-        payment_method: payment,
+        payment_method: ["online", "bkash", "nagad"].includes(payment) ? "online" : payment,
         redeem_points: usePoints ? loyalty?.points ?? 0 : 0,
         organization_id: orgId ? Number(orgId) : null,
         service_details: schedules,
@@ -91,7 +91,9 @@ export default function Checkout() {
       clearDrafts();
       qc.invalidateQueries({ queryKey: ["cart"] });
       qc.invalidateQueries({ queryKey: ["orders"] });
-      if (payment === "online") await payOnline("order", data.id);
+      if (payment === "bkash") await payOnline("order", data.id, "bkash");
+      else if (payment === "nagad") await payOnline("order", data.id, "nagad");
+      else if (payment === "online") await payOnline("order", data.id, "sslcommerz");
       else navigate(`/orders/${data.id}`, { replace: true });
     } catch (err) {
       setError(errorMessage(err));
@@ -191,7 +193,13 @@ export default function Checkout() {
           <Select label={t("কার পক্ষে অর্ডার")} value={orgId} onChange={(e) => setOrgId(e.target.value)}
             options={[{ value: "", label: t("নিজের জন্য") }, ...orgs.filter((o) => o.status === "approved").map((o) => ({ value: o.id, label: o.name }))]} />
         )}
-        {([["cod", "ক্যাশ অন ডেলিভারি", "পণ্য পেয়ে বা কাজ শেষে টাকা দিন"], ["online", "বিকাশ / নগদ / কার্ড", "টাকা কাজ শেষ হওয়া পর্যন্ত নিরাপদে জমা থাকে"], ...(loyalty && Number(loyalty.wallet) > 0 ? [["wallet", "শহরসাথী ক্রেডিট", "ব্যালেন্স"]] : [])] as [ "cod" | "online" | "wallet", string, string][]).map(([value, title, hint]) => (
+        {([
+          ["cod", "ক্যাশ অন ডেলিভারি", "পণ্য পেয়ে বা কাজ শেষে টাকা দিন"],
+          ["bkash", "বিকাশ সরাসরি পেমেন্ট", "বিকাশ দিয়ে তাত্ক্ষণিক পেমেন্ট"],
+          ["nagad", "নগদ সরাসরি পেমেন্ট", "নগদ অ্যাকাউন্ট দিয়ে দ্রুত পেমেন্ট"],
+          ["online", "কার্ড / অন্যান্য অনলাইন", "ভিসা, মাস্টারকার্ড বা অন্যান্য এমএফএস"],
+          ...(loyalty && Number(loyalty.wallet) > 0 ? [["wallet", "শহরসাথী ক্রেডিট", "ব্যালেন্স"]] : []),
+        ] as ["cod" | "online" | "bkash" | "nagad" | "wallet", string, string][]).map(([value, title, hint]) => (
           <label key={value} className={`flex items-start gap-3 rounded-xl border p-3 text-[15px] ${payment === value ? "border-brand bg-brand-tint" : "border-line"}`}>
             <input type="radio" name="payment" checked={payment === value} onChange={() => setPayment(value)} className="mt-1 accent-brand" />
             <span>

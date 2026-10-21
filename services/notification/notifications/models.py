@@ -30,6 +30,18 @@ class SmsLog(models.Model):
         ordering = ["-created_at"]
 
 
+class WhatsAppLog(models.Model):
+    phone = models.CharField(max_length=15)
+    body = models.TextField()
+    template = models.CharField(max_length=64, blank=True)
+    status = models.CharField(max_length=10, default="sent")
+    detail = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
 class Broadcast(models.Model):
     audience = models.CharField(max_length=20)
     title_bn = models.CharField(max_length=200)

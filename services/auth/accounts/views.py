@@ -41,11 +41,12 @@ class OtpRequestView(APIView):
         data = OtpRequestSerializer(data=request.data)
         data.is_valid(raise_exception=True)
         phone, purpose = data.validated_data["phone"], data.validated_data["purpose"]
+        channel = data.validated_data.get("channel", "sms")
         # Do not reveal whether a number is registered: reset requests for unknown numbers look the same.
         if purpose == OtpCode.Purpose.RESET_PASSWORD and not User.objects.filter(phone=phone).exists():
             return Response({"detail": "Code sent."})
         try:
-            otp.issue(phone, purpose)
+            otp.issue(phone, purpose, channel=channel)
         except otp.OtpError as e:
             return Response({"detail": str(e)}, status=status.HTTP_429_TOO_MANY_REQUESTS)
         return Response({"detail": "Code sent."})

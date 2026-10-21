@@ -170,3 +170,20 @@ def test_privacy(customer):
     sub_id = subscribe(customer).data["id"]
     assert auth_client("customer", user_id=8).get(f"/api/subscriptions/{sub_id}/").status_code == 404
     assert customer.get("/api/admin/subscriptions/").status_code == 403
+
+
+def test_bkash_auto_debit_renewal(customer, captured_events):
+    with mock.patch("shohor_common.internal.post", return_value=(200, {"status": "held", "method": "bKash Auto-Debit"})):
+        res = subscribe(customer, payment_method="bkash_auto", agreement_id="AGR-SUB-888")
+        assert res.status_code == 201
+        sub = Subscription.objects.get(pk=res.data["id"])
+        assert sub.payment_method == "bkash_auto" and sub.agreement_id == "AGR-SUB-888"
+        assert sub.status == "active" and sub.paid
+
+        # Renew through daily housekeeping
+        with mock.patch("django.utils.timezone.localdate", return_value=sub.end_date):
+            assert logic.daily_housekeeping() == 1
+        new = Subscription.objects.exclude(pk=sub.id).get()
+        assert new.payment_method == "bkash_auto" and new.agreement_id == "AGR-SUB-888"
+        assert new.status == "active" and new.paid
+

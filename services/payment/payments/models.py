@@ -7,6 +7,23 @@ def new_tran_id():
     return "SS" + secrets.token_hex(8).upper()
 
 
+class PaymentAgreement(models.Model):
+    class Status(models.TextChoices):
+        ACTIVE = "active"
+        CANCELLED = "cancelled"
+
+    user_id = models.PositiveBigIntegerField(db_index=True)
+    gateway = models.CharField(max_length=16, default="bkash")
+    agreement_id = models.CharField(max_length=64, unique=True)
+    payer_reference = models.CharField(max_length=64, blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.ACTIVE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
 class Payment(models.Model):
     class Purpose(models.TextChoices):
         ORDER = "order"
@@ -27,6 +44,7 @@ class Payment(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.CharField(max_length=3, default="BDT")
     gateway = models.CharField(max_length=16)
+    agreement = models.ForeignKey(PaymentAgreement, null=True, blank=True, on_delete=models.SET_NULL, related_name="payments")
     tran_id = models.CharField(max_length=32, unique=True, default=new_tran_id)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.INITIATED)
     method = models.CharField(max_length=40, blank=True, help_text="bKash / Nagad / card, as reported by the gateway")

@@ -6,8 +6,8 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from shohor_common import events, internal
 
-from .gateways import GatewayError, gateway
-from .models import LedgerEntry, Payment, RefundRequest
+from .gateways import GatewayError, gateway, get_gateway
+from .models import LedgerEntry, Payment, PaymentAgreement, RefundRequest
 
 P = Payment.Status
 A = LedgerEntry.Account
@@ -25,7 +25,7 @@ def post(payment, debit, credit, amount, memo):
 
 
 @transaction.atomic
-def initiate(user, purpose, reference_id):
+def initiate(user, purpose, reference_id, gateway_name=None):
     service, path = PAYABLE[purpose]
     info = internal.get(service, path.format(id=reference_id))
     if info is None:
@@ -36,7 +36,7 @@ def initiate(user, purpose, reference_id):
         raise ValidationError({"reference_id": "Nothing to pay for this."})
     if Payment.objects.filter(purpose=purpose, reference_id=reference_id, status__in=[P.HELD, P.RELEASED]).exists():
         raise ValidationError({"reference_id": "Already paid."})
-    gw = gateway()
+    gw = get_gateway(gateway_name)
     payment = Payment.objects.create(user_id=user["id"], purpose=purpose, reference_id=reference_id, amount=Decimal(info["amount"]), gateway=gw.name)
     try:
         url = gw.start(payment, user)
@@ -56,7 +56,8 @@ def confirm(data):
         return None
     if payment.status != P.INITIATED:
         return payment
-    result = gateway().validate(data)
+    gw = get_gateway(payment.gateway)
+    result = gw.validate(data)
     if not result.get("ok") or result.get("amount") != payment.amount:
         payment.status = P.FAILED
         payment.gateway_response = {k: str(v) for k, v in result.items()}
@@ -150,3 +151,87 @@ def balances():
         return LedgerEntry.objects.filter(**f).aggregate(s=Sum("amount"))["s"] or Decimal("0")
 
     return {str(acc): f"{total(credit=acc) - total(debit=acc):.2f}" for acc in (A.ESCROW, A.SETTLED, A.REFUNDS)}
+
+
+# ---- Tokenized Agreements (bKash Auto-Debit) ------------------------------------------------
+
+def create_agreement(user):
+    gw = get_gateway("bkash")
+    return gw.start_agreement(user)
+
+
+@transaction.atomic
+def execute_agreement(user, agreement_id, payer_reference=""):
+    gw = get_gateway("bkash")
+    res = gw.execute_agreement(agreement_id, payer_reference)
+    agreement, _ = PaymentAgreement.objects.update_or_create(
+        agreement_id=agreement_id,
+        defaults={
+            "user_id": user["id"],
+            "gateway": "bkash",
+            "payer_reference": payer_reference or str(user.get("phone", "")),
+            "status": PaymentAgreement.Status.ACTIVE,
+        },
+    )
+    events.publish("payment.agreement_created", {"user_id": user["id"], "agreement_id": agreement_id, "gateway": "bkash"})
+    return agreement
+
+
+@transaction.atomic
+def cancel_agreement(user_id, agreement_id_or_id):
+    qs = PaymentAgreement.objects.filter(user_id=user_id)
+    if str(agreement_id_or_id).isdigit():
+        agreement = qs.filter(id=int(agreement_id_or_id)).first()
+    else:
+        agreement = qs.filter(agreement_id=agreement_id_or_id).first()
+    if not agreement:
+        raise ValidationError({"agreement": "Agreement not found."})
+    agreement.status = PaymentAgreement.Status.CANCELLED
+    agreement.cancelled_at = timezone.now()
+    agreement.save(update_fields=["status", "cancelled_at"])
+    events.publish("payment.agreement_cancelled", {"user_id": user_id, "agreement_id": agreement.agreement_id})
+    return agreement
+
+
+@transaction.atomic
+def charge_agreement(agreement_id, purpose, reference_id, amount=None):
+    agreement = PaymentAgreement.objects.filter(agreement_id=agreement_id, status=PaymentAgreement.Status.ACTIVE).first()
+    if not agreement:
+        raise ValidationError({"agreement": "Active agreement not found."})
+    service, path = PAYABLE[purpose]
+    info = internal.get(service, path.format(id=reference_id))
+    if info is None:
+        raise ValidationError({"reference_id": "Not found."})
+    if not info["payable"] or Decimal(info["amount"]) <= 0:
+        raise ValidationError({"reference_id": "Nothing to pay."})
+    charge_amt = Decimal(amount) if amount is not None else Decimal(info["amount"])
+    if Payment.objects.filter(purpose=purpose, reference_id=reference_id, status__in=[P.HELD, P.RELEASED]).exists():
+        raise ValidationError({"reference_id": "Already paid."})
+    gw = get_gateway(agreement.gateway)
+    payment = Payment.objects.create(
+        user_id=agreement.user_id,
+        purpose=purpose,
+        reference_id=reference_id,
+        amount=charge_amt,
+        gateway=gw.name,
+        agreement=agreement,
+        method="bKash Auto-Debit",
+    )
+    res = gw.charge_agreement(agreement_id, charge_amt, payment.tran_id)
+    if not res.get("ok"):
+        payment.status = P.FAILED
+        payment.save()
+        events.publish("payment.failed", {"payment_id": payment.id, "user_id": payment.user_id, "purpose": payment.purpose, "reference_id": payment.reference_id})
+        raise ValidationError({"charge": "bKash auto-debit charge failed."})
+    payment.status = P.HELD
+    payment.val_id = res["val_id"]
+    payment.bank_tran_id = res["bank_tran_id"]
+    payment.paid_at = timezone.now()
+    payment.save()
+    post(payment, A.GATEWAY, A.ESCROW, payment.amount, f"Recurring auto-debit ({agreement.gateway}) held in escrow")
+    events.publish(
+        "payment.succeeded",
+        {"payment_id": payment.id, "user_id": payment.user_id, "purpose": payment.purpose, "reference_id": payment.reference_id, "amount": str(payment.amount)},
+    )
+    return payment
+

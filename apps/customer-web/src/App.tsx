@@ -3,6 +3,8 @@ import { Route, Routes } from "react-router-dom";
 
 import Footer from "./components/Footer";
 import Header from "./components/Header";
+import { InstallPrompt } from "./components/InstallPrompt";
+import { useLowDataMode } from "./lib/lowData";
 import { BusinessDetail, BusinessHome } from "./pages/Business";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
@@ -28,8 +30,16 @@ function Private({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const [lowData] = useLowDataMode();
+
   return (
     <div className="flex min-h-screen flex-col">
+      <InstallPrompt />
+      {lowData && (
+        <div className="bg-amber-50 px-4 py-1.5 text-center text-xs font-medium text-amber-900 border-b border-amber-200">
+          ⚡ {t("ডাটা সাশ্রয়ী মোড সক্রিয় — ছবি ও ভারী কনটেন্ট লোড সীমিত করা হয়েছে")}
+        </div>
+      )}
       <Header />
       <main className="flex-1">
         <Routes>

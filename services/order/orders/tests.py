@@ -276,3 +276,34 @@ def test_prefer_female_reaches_job_and_provider_phone_window(customer, captured_
     assert customer.get(f"/api/bookings/{booking['id']}/").data["provider_phone"] == "01811111111"
     logic.apply_job_status({"source": "booking", "source_id": booking["id"], "status": "completed"})
     assert customer.get(f"/api/bookings/{booking['id']}/").data["provider_phone"] == ""
+
+
+@pytest.mark.django_db
+def test_sms_booking_draft_confirm_and_status(captured_events):
+    from rest_framework.test import APIClient
+    client = APIClient()
+
+    phone = "01712345678"
+
+    # 1. Inbound SMS to book
+    res1 = client.post("/api/orders/sms-inbound/", {"phone": phone, "text": "SS CLEAN DHANMONDI Road 5"}, format="json")
+    assert res1.status_code == 200
+    assert "ড্রাফট তৈরি হয়েছে" in res1.data["reply"]
+    order = Order.objects.get(contact_phone=phone)
+    assert order.status == "pending" and order.area_name == "Dhanmondi"
+    assert order.bookings.first().service_slug == "home-cleaning"
+
+    # 2. Status check before confirmation
+    res_status = client.post("/api/orders/sms-inbound/", {"phone": phone, "text": f"STATUS {order.id}"}, format="json")
+    assert f"#{order.id}" in res_status.data["reply"]
+    assert "pending" in res_status.data["reply"]
+
+    # 3. Confirm via SMS YES <ID>
+    res_yes = client.post("/api/orders/sms-inbound/", {"phone": phone, "text": f"YES {order.id}"}, format="json")
+    assert res_yes.status_code == 200
+    assert "নিশ্চিত করা হয়েছে" in res_yes.data["reply"]
+    order.refresh_from_db()
+    assert order.status == "confirmed"
+    assert "order.placed" in [e for e, _ in captured_events]
+    assert "booking.created" in [e for e, _ in captured_events]
+

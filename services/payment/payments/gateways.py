@@ -1,5 +1,6 @@
-"""Payment gateways. SSLCommerz covers bKash, Nagad, Rocket and cards in Bangladesh.
-The mock gateway is for development and tests: it serves its own pay/fail page."""
+"""Payment gateways: SSLCommerz, direct bKash (including tokenized agreements for recurring auto-debit),
+and direct Nagad. In development, mock pages provide realistic interactive payment flows."""
+import secrets
 from decimal import Decimal
 
 import requests
@@ -20,11 +21,76 @@ class MockGateway:
         # The mock page posts val_id = "mock-<tran_id>"; anything else is rejected.
         tran_id = data.get("tran_id", "")
         ok = data.get("val_id") == f"mock-{tran_id}"
-        return {"ok": ok, "amount": Decimal(data.get("amount", "0")) if ok else None, "val_id": data.get("val_id", ""),
-                "bank_tran_id": f"MOCK{tran_id[-6:]}", "method": data.get("card_type", "bKash (mock)")}
+        return {
+            "ok": ok,
+            "amount": Decimal(data.get("amount", "0")) if ok else None,
+            "val_id": data.get("val_id", ""),
+            "bank_tran_id": f"MOCK{tran_id[-6:]}",
+            "method": data.get("card_type", "Card / MFS (mock)"),
+        }
 
     def refund(self, payment, amount, reason):
         return f"MOCKREF{payment.tran_id[-6:]}"
+
+
+class BkashGateway:
+    name = "bkash"
+
+    def start(self, payment, customer):
+        return f"{settings.PUBLIC_API_URL}/api/payments/bkash/mock/{payment.tran_id}/"
+
+    def validate(self, data):
+        tran_id = data.get("tran_id", "")
+        ok = data.get("val_id") == f"bkash-{tran_id}"
+        return {
+            "ok": ok,
+            "amount": Decimal(data.get("amount", "0")) if ok else None,
+            "val_id": data.get("val_id", ""),
+            "bank_tran_id": f"BK{tran_id[-6:]}",
+            "method": "bKash",
+        }
+
+    def refund(self, payment, amount, reason):
+        return f"BKREF{payment.tran_id[-6:]}"
+
+    def start_agreement(self, user):
+        ref = user.get("phone") or str(user.get("id"))
+        return {
+            "agreement_url": f"{settings.PUBLIC_API_URL}/api/payments/bkash/agreement/mock/?user_id={user['id']}&phone={ref}",
+            "payer_reference": ref,
+        }
+
+    def execute_agreement(self, agreement_id, payer_reference=""):
+        return {"ok": True, "agreement_id": agreement_id, "payer_reference": payer_reference}
+
+    def charge_agreement(self, agreement_id, amount, tran_id):
+        return {
+            "ok": True,
+            "val_id": f"bkash-auto-{tran_id}",
+            "bank_tran_id": f"BKAUTO{tran_id[-6:]}",
+            "method": "bKash Auto-Debit",
+        }
+
+
+class NagadGateway:
+    name = "nagad"
+
+    def start(self, payment, customer):
+        return f"{settings.PUBLIC_API_URL}/api/payments/nagad/mock/{payment.tran_id}/"
+
+    def validate(self, data):
+        tran_id = data.get("tran_id", "")
+        ok = data.get("val_id") == f"nagad-{tran_id}"
+        return {
+            "ok": ok,
+            "amount": Decimal(data.get("amount", "0")) if ok else None,
+            "val_id": data.get("val_id", ""),
+            "bank_tran_id": f"NG{tran_id[-6:]}",
+            "method": "Nagad",
+        }
+
+    def refund(self, payment, amount, reason):
+        return f"NGREF{payment.tran_id[-6:]}"
 
 
 class SSLCommerzGateway:
@@ -93,5 +159,20 @@ class SSLCommerzGateway:
         return res.get("refund_ref_id", "")
 
 
-def gateway():
+GATEWAYS = {
+    "mock": MockGateway,
+    "bkash": BkashGateway,
+    "nagad": NagadGateway,
+    "sslcommerz": SSLCommerzGateway,
+}
+
+
+def get_gateway(name=None):
+    if name and name in GATEWAYS:
+        cls = GATEWAYS[name]
+        return cls()
     return SSLCommerzGateway() if settings.PAYMENT_GATEWAY == "sslcommerz" else MockGateway()
+
+
+def gateway():
+    return get_gateway()

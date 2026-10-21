@@ -80,8 +80,8 @@ export function areaName(areas: Area[] | undefined, id: number) {
   return areas?.find((a) => a.id === id)?.name_bn ?? `#${id}`;
 }
 
-/** Starts an online payment and sends the browser to the gateway (SSLCommerz or the dev mock page). */
-export async function payOnline(purpose: "order" | "subscription" | "custom_request_advance", referenceId: number) {
-  const { data } = await api.post<{ tran_id: string; redirect_url: string }>("/payments/initiate/", { purpose, reference_id: referenceId });
+/** Starts an online payment and sends the browser to the gateway (direct bKash, Nagad, SSLCommerz, or mock). */
+export async function payOnline(purpose: "order" | "subscription" | "custom_request_advance", referenceId: number, gateway?: string) {
+  const { data } = await api.post<{ tran_id: string; redirect_url: string }>("/payments/initiate/", { purpose, reference_id: referenceId, gateway });
   window.location.href = data.redirect_url;
 }

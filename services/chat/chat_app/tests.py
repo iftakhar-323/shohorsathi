@@ -82,3 +82,80 @@ def test_websocket_receives_new_messages(customer):
 
     assert async_to_sync(run)()["body"] == "hello"
     assert Conversation.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_messenger_webhook_verification():
+    from rest_framework.test import APIClient
+    client = APIClient()
+
+    # Valid challenge
+    res = client.get("/api/messenger/webhook/", {
+        "hub.mode": "subscribe",
+        "hub.verify_token": "shohor-messenger-verify-token",
+        "hub.challenge": "12345678",
+    })
+    assert res.status_code == 200
+    assert res.content.decode() == "12345678"
+
+    # Invalid token
+    bad = client.get("/api/messenger/webhook/", {
+        "hub.mode": "subscribe",
+        "hub.verify_token": "wrong-token",
+        "hub.challenge": "12345678",
+    })
+    assert bad.status_code == 403
+
+
+@pytest.mark.django_db
+def test_messenger_bot_message_flow(monkeypatch):
+    from rest_framework.test import APIClient
+    from chat_app.bot import OUTBOX
+    OUTBOX.clear()
+
+    # Mock order summary lookup
+    monkeypatch.setattr(internal, "get", lambda service, path, **kw: {
+        "id": 12, "status": "on_the_way", "status_bn": "প্রোভাইডার পথে আছেন", "provider_name": "করিম"
+    } if "orders/12/summary" in path else None)
+
+    client = APIClient()
+
+    # 1. Send greeting message
+    client.post("/api/messenger/webhook/", {
+        "object": "page",
+        "entry": [{
+            "messaging": [{
+                "sender": {"id": "fb_user_100"},
+                "message": {"text": "hello"}
+            }]
+        }]
+    }, format="json")
+    assert len(OUTBOX) == 1
+    assert "ShohorSathi" in OUTBOX[-1]["message"]["text"]
+    assert len(OUTBOX[-1]["message"]["quick_replies"]) == 4
+
+    # 2. Click quick reply: MENU_SERVICES
+    client.post("/api/messenger/webhook/", {
+        "object": "page",
+        "entry": [{
+            "messaging": [{
+                "sender": {"id": "fb_user_100"},
+                "message": {"text": "সার্ভিস", "quick_reply": {"payload": "MENU_SERVICES"}}
+            }]
+        }]
+    }, format="json")
+    assert "জনপ্রিয় সার্ভিসসমূহ" in OUTBOX[-1]["message"]["text"]
+
+    # 3. Track order
+    client.post("/api/messenger/webhook/", {
+        "object": "page",
+        "entry": [{
+            "messaging": [{
+                "sender": {"id": "fb_user_100"},
+                "message": {"text": "track 12"}
+            }]
+        }]
+    }, format="json")
+    assert "অর্ডার #12" in OUTBOX[-1]["message"]["text"]
+    assert "করিম" in OUTBOX[-1]["message"]["text"]
+

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="40" fill="#17784A"/>
+  <!-- City Skyline -->
+  <path d="M36 140 V90 H56 V110 H80 V70 H104 V100 H128 V80 H156 V140 Z" fill="#ffffff" fill-opacity="0.25"/>
+  <!-- Home & Heart Shield Icon -->
+  <path d="M96 42 L46 82 H60 V136 H86 V106 H106 V136 H132 V82 H146 Z" fill="#ffffff"/>
+  <!-- Helping Hands / Smile emblem -->
+  <circle cx="96" cy="74" r="8" fill="#FACC15"/>
+</svg>
+

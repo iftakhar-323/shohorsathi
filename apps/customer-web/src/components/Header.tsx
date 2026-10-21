@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 
 import { useCart } from "../api/orders";
+import { useLowDataMode } from "../lib/lowData";
 
 const nav = [
   { to: "/services", label: "সার্ভিস" },
@@ -16,6 +17,7 @@ const nav = [
 export default function Header() {
   const { user, logout } = useAuth();
   const { data: cart } = useCart(!!user);
+  const [lowData, setLowData] = useLowDataMode();
   const [menu, setMenu] = useState(false);
   const navigate = useNavigate();
   const count = cart?.items.length ?? 0;
@@ -43,6 +45,17 @@ export default function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setLowData(!lowData)}
+            title={lowData ? t("ডাটা সাশ্রয়ী মোড সক্রিয়") : t("ডাটা সাশ্রয়ী মোড চালু করুন")}
+            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
+              lowData ? "border-brand bg-brand/10 text-brand" : "border-line bg-surface text-ink-muted hover:text-ink"
+            }`}
+          >
+            <span>⚡</span>
+            <span className="hidden md:inline">{lowData ? t("লো-ডাটা চালু") : t("লো-ডাটা")}</span>
+          </button>
           <CitySelect className="hidden sm:flex" />
           <LanguageToggle />
           {user && <NotificationBell />}

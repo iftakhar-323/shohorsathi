@@ -62,3 +62,12 @@ def test_sos_alerts_admins_and_texts_emergency_contact(monkeypatch):
                                 "longitude": "90.4", "provider_name": "Rina", "customer_name": "X", "sms_phones": ["01999888777"]})
     assert sorted(Notification.objects.values_list("user_id", flat=True)) == [1, 2]
     assert SmsLog.objects.filter(phone="01999888777").exists()
+
+
+@pytest.mark.django_db
+def test_whatsapp_notification_and_otp():
+    from notifications.models import WhatsAppLog
+    logic.handle("otp.requested", {"phone": "01712345678", "code": "654321", "channel": "whatsapp"})
+    w = WhatsAppLog.objects.get(phone="01712345678")
+    assert "654321" in w.body and w.template == "otp"
+

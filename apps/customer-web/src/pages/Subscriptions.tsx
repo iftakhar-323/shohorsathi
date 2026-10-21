@@ -204,6 +204,8 @@ export function Subscribe() {
   });
   const { data: addresses } = useAddresses(!!user);
   const { data: areas } = useAreas();
+  const [searchParams] = useSearchParams();
+  const urlAgreementId = searchParams.get("agreement_id");
   const tomorrow = todayISO(1);
   const [f, setF] = useState({ duration_days: 30, home_size: 1, prepaid_months: 1, start_date: tomorrow, preferred_weekday: 5, slot: "09-11", diet: "bangla", payment_method: "cod", auto_renew: true, prefer_female: false });
   const [picked, setPicked] = useState<string[]>([]);
@@ -220,6 +222,16 @@ export function Subscribe() {
     const def = addresses?.find((a) => a.is_default) ?? addresses?.[0];
     if (def) setAddressId(def.id);
   }, [addresses]);
+
+  useEffect(() => {
+    if (urlAgreementId && user) {
+      api.post("/payments/agreements/bkash/execute/", { agreement_id: urlAgreementId, payer_reference: user.phone })
+        .then(() => {
+          setF((prev) => ({ ...prev, payment_method: "bkash_auto" }));
+        })
+        .catch(() => {});
+    }
+  }, [urlAgreementId, user]);
 
   useEffect(() => {
     if (!plan) return;
@@ -247,6 +259,21 @@ export function Subscribe() {
     setBusy(true);
     setError("");
     try {
+      if (f.payment_method === "bkash_auto") {
+        const { data: agrData } = await api.get<any>("/payments/agreements/");
+        const agreements = Array.isArray(agrData) ? agrData : agrData.results || [];
+        const active = agreements.find((a: any) => a.status === "active");
+        if (active) {
+          const { data: sub } = await api.post<Subscription>("/subscriptions/", {
+            ...f, agreement_id: active.agreement_id, plan: plan!.slug, home_size: plan!.sizes_apply ? f.home_size : 0, diet: isMeal ? f.diet : "", addons: picked, members, ...address,
+          });
+          navigate(`/subscriptions/${sub.id}`);
+        } else {
+          const { data: res } = await api.post<{ agreement_url: string }>("/payments/agreements/bkash/create/");
+          window.location.href = res.agreement_url;
+        }
+        return;
+      }
       const { data: sub } = await api.post<Subscription>("/subscriptions/", {
         ...f, plan: plan!.slug, home_size: plan!.sizes_apply ? f.home_size : 0, diet: isMeal ? f.diet : "", addons: picked, members, ...address,
       });
@@ -357,7 +384,7 @@ export function Subscribe() {
         )}
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
           <legend className="mb-2 font-semibold">{t("পেমেন্ট")}</legend>
-          {[["cod", "ক্যাশ (প্রথম ভিজিটে)"], ["online", "বিকাশ / নগদ / কার্ড"]].map(([v, label]) => (
+          {[["cod", "ক্যাশ (প্রথম ভিজিটে)"], ["online", "বিকাশ / নগদ / কার্ড"], ["bkash_auto", "বিকাশ অটো-ডেবিট (স্বয়ংক্রিয় রিনিউ)"]].map(([v, label]) => (
             <label key={v} className={`flex items-center gap-3 rounded-xl border p-3 ${f.payment_method === v ? "border-brand bg-brand-tint" : "border-line"}`}>
               <input type="radio" checked={f.payment_method === v} onChange={() => set("payment_method", v)} className="accent-brand" /> {t(label)}
             </label>
@@ -528,7 +555,7 @@ export function SubscriptionDetail() {
           <div className="flex justify-between"><span className="text-muted">{t("মূল্য")}</span><span className="font-bold">{formatTaka(sub.price)}</span></div>
           {Number(sub.credit_applied) > 0 && <div className="flex justify-between text-brand-strong"><span>{t("আগের ক্রেডিট")}</span><span>− {formatTaka(sub.credit_applied)}</span></div>}
           <div className="flex justify-between"><span className="text-muted">{t("জমা ক্রেডিট (পরের রিনিউয়ে)")}</span><span>{formatTaka(sub.credit)}</span></div>
-          <div className="flex items-center justify-between"><span className="text-muted">{sub.payment_method === "cod" ? t("ক্যাশ") : t("অনলাইন")}</span><StatusBadge status={sub.paid ? "paid" : "unpaid"} /></div>
+          <div className="flex items-center justify-between"><span className="text-muted">{sub.payment_method === "cod" ? t("ক্যাশ") : sub.payment_method === "bkash_auto" ? t("বিকাশ অটো-ডেবিট") : t("অনলাইন")}</span><StatusBadge status={sub.paid ? "paid" : "unpaid"} /></div>
         </Card>
         <Card className="flex flex-col gap-3">
           <label className="flex items-center gap-2">

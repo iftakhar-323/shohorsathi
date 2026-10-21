@@ -5,6 +5,7 @@ from rest_framework import generics, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
 from shohor_common.internal import IsInternal
 from shohor_common.permissions import IsAdmin
 
@@ -233,3 +234,16 @@ class InternalOrganizationOrdersView(generics.GenericAPIView):
                                   updated_at__date__gte=p["from"], updated_at__date__lte=p["to"])
         return Response([{"id": o.id, "number": o.number, "total": str(o.total), "date": o.updated_at.date().isoformat(),
                           "items": [b.service_name for b in o.bookings.all()] + [i.name for i in o.items.all()]} for o in qs])
+
+
+class SmsInboundView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        phone = request.data.get("phone") or request.data.get("From") or ""
+        text = request.data.get("text") or request.data.get("Body") or ""
+        from . import sms
+        reply = sms.parse_and_process_sms(phone, text)
+        return Response({"reply": reply})
+

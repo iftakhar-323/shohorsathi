@@ -1,0 +1,46 @@
+{
+  "name": "শহরসাথী — ShohorSathi",
+  "short_name": "শহরসাথী",
+  "description": "City-based marketplace for trusted home services, products and city issue reporting.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#17784A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "হোম সার্ভিস বুকিং",
+      "short_name": "সার্ভিস",
+      "url": "/services",
+      "description": "বিশ্বস্ত হোম সার্ভিস অর্ডার করুন"
+    },
+    {
+      "name": "সাবস্ক্রিপশন",
+      "short_name": "সাবস্ক্রিপশন",
+      "url": "/subscriptions",
+      "description": "নিয়মিত বাসা পরিষ্কার ও খাবার প্ল্যান"
+    },
+    {
+      "name": "জরুরি সেবা (SOS)",
+      "short_name": "জরুরি",
+      "url": "/emergency",
+      "description": "তাত্ক্ষণিক জরুরি সাহায্য"
+    }
+  ]
+}
+

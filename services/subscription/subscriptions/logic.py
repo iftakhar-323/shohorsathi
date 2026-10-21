@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
-from shohor_common import events
+from shohor_common import events, internal
 
 from .models import Addon, Plan, PlanPrice, StudentVerification, Subscription, Visit
 
@@ -133,7 +133,6 @@ def publish_status(sub, cancelled_visit_ids=()):
     )
 
 
-@transaction.atomic
 def create(user_id, name, phone, data, renewed_from=None):
     plan = data["plan"]
     if not plan.is_active:
@@ -146,38 +145,54 @@ def create(user_id, name, phone, data, renewed_from=None):
     months = q["months"]
     credit = renewed_from.credit if renewed_from else Decimal("0")
     online = data.get("payment_method") == "online"
-    sub = Subscription.objects.create(
-        user_id=user_id,
-        customer_name=name,
-        customer_phone=phone,
-        plan=plan,
-        duration_days=data["duration_days"],
-        home_size=data.get("home_size", 0),
-        preferred_weekday=data.get("preferred_weekday", 5),
-        slot=data.get("slot", "09-11"),
-        start_date=start,
-        end_date=start + timedelta(days=data["duration_days"] * months - 1),
-        area_id=data["area_id"],
-        area_name=data["area_name"],
-        address_line=data["address_line"],
-        latitude=data.get("latitude"),
-        longitude=data.get("longitude"),
-        diet=data.get("diet", ""),
-        required_gender="female" if data.get("prefer_female") else "",
-        addons=q["addons"],
-        members=data.get("members", []),
-        prepaid_months=months,
-        student_discount=q["student_discount"],
-        price=q["total"],
-        credit_applied=min(credit, q["total"]),
-        payment_method=data.get("payment_method", "cod"),
-        status=S.PENDING_PAYMENT if online else S.ACTIVE,
-        auto_renew=data.get("auto_renew", True),
-        renewed_from=renewed_from,
-        preferred_provider_id=renewed_from.preferred_provider_id if renewed_from else None,
-        preferred_provider_name=renewed_from.preferred_provider_name if renewed_from else "",
-    )
-    build_visits(sub)
+    with transaction.atomic():
+        sub = Subscription.objects.create(
+            user_id=user_id,
+            customer_name=name,
+            customer_phone=phone,
+            plan=plan,
+            duration_days=data["duration_days"],
+            home_size=data.get("home_size", 0),
+            preferred_weekday=data.get("preferred_weekday", 5),
+            slot=data.get("slot", "09-11"),
+            start_date=start,
+            end_date=start + timedelta(days=data["duration_days"] * months - 1),
+            area_id=data["area_id"],
+            area_name=data["area_name"],
+            address_line=data["address_line"],
+            latitude=data.get("latitude"),
+            longitude=data.get("longitude"),
+            diet=data.get("diet", ""),
+            required_gender="female" if data.get("prefer_female") else "",
+            addons=q["addons"],
+            members=data.get("members", []),
+            prepaid_months=months,
+            student_discount=q["student_discount"],
+            price=q["total"],
+            credit_applied=min(credit, q["total"]),
+            payment_method=data.get("payment_method", "cod"),
+            agreement_id=data.get("agreement_id", ""),
+            status=S.PENDING_PAYMENT if online else S.ACTIVE,
+            auto_renew=data.get("auto_renew", True),
+            renewed_from=renewed_from,
+            preferred_provider_id=renewed_from.preferred_provider_id if renewed_from else None,
+            preferred_provider_name=renewed_from.preferred_provider_name if renewed_from else "",
+        )
+        build_visits(sub)
+
+    if sub.payment_method == "bkash_auto" and sub.agreement_id and sub.amount_due > 0:
+        status_code, res = internal.post(
+            "payment",
+            "/api/internal/charge-agreement/",
+            {"agreement_id": sub.agreement_id, "purpose": "subscription", "reference_id": sub.id, "amount": str(sub.amount_due)},
+        )
+        if status_code in (200, 201) and res and res.get("status") in ("held", "released"):
+            sub.paid = True
+            sub.status = S.ACTIVE
+            sub.save(update_fields=["paid", "status"])
+        else:
+            sub.status = S.PENDING_PAYMENT
+            sub.save(update_fields=["status"])
     events.publish(
         "subscription.created",
         {"subscription_id": sub.id, "user_id": user_id, "plan": plan.slug, "category": plan.category,
@@ -397,7 +412,6 @@ def daily_housekeeping():
     return renewed
 
 
-@transaction.atomic
 def renew(sub, plan=None):
     if hasattr(sub, "renewal"):
         raise ValidationError({"subscription": "Already renewed."})
@@ -419,10 +433,12 @@ def renew(sub, plan=None):
         "members": sub.members,
         "prepaid_months": sub.prepaid_months,
         "payment_method": sub.payment_method,
+        "agreement_id": sub.agreement_id,
         "auto_renew": sub.auto_renew,
     }
     new = create(sub.user_id, sub.customer_name, sub.customer_phone, data, renewed_from=sub)
-    sub.credit = max(sub.credit - new.credit_applied, Decimal("0"))
-    sub.save(update_fields=["credit"])
+    with transaction.atomic():
+        sub.credit = max(sub.credit - new.credit_applied, Decimal("0"))
+        sub.save(update_fields=["credit"])
     events.publish("subscription.renewed", {"subscription_id": new.id, "previous_id": sub.id, "user_id": sub.user_id, "amount": str(new.amount_due)})
     return new

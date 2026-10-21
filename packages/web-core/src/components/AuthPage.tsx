@@ -36,6 +36,7 @@ export default function AuthPage({
   const [name, setName] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [channel, setChannel] = useState<"sms" | "whatsapp">("sms");
   const [accepted, setAccepted] = useState(false);
   const [marketing, setMarketing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -76,9 +77,11 @@ export default function AuthPage({
     }
     if (!otpSent) {
       run(async () => {
-        await auth.requestOtp(phone, mode === "register" ? "register" : "reset_password");
+        await auth.requestOtp(phone, mode === "register" ? "register" : "reset_password", channel);
         setOtpSent(true);
-        setNotice(t("{phone} নম্বরে ৬ সংখ্যার কোড পাঠানো হয়েছে।", { phone }));
+        setNotice(channel === "whatsapp"
+          ? t("{phone} নম্বরে WhatsApp-এ ৬ সংখ্যার কোড পাঠানো হয়েছে।", { phone })
+          : t("{phone} নম্বরে ৬ সংখ্যার কোড পাঠানো হয়েছে।", { phone }));
       });
       return;
     }
@@ -125,6 +128,19 @@ export default function AuthPage({
           required
           autoComplete="tel"
         />
+
+        {mode !== "login" && !otpSent && (
+          <div className="flex gap-4 text-sm font-medium">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="otp_channel" checked={channel === "sms"} onChange={() => setChannel("sms")} className="accent-brand" />
+              <span>{t("SMS-এ কোড পাঠান")}</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="otp_channel" checked={channel === "whatsapp"} onChange={() => setChannel("whatsapp")} className="accent-brand" />
+              <span>{t("WhatsApp-এ কোড পাঠান")}</span>
+            </label>
+          </div>
+        )}
 
         {mode === "register" && (
           <Field label={t("পুরো নাম")} value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />

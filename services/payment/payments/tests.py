@@ -118,3 +118,72 @@ def test_mock_page_renders(customer):
     page = APIClient().get(f"/api/payments/mock/{tran}/")
     assert page.status_code == 200 and b"660.00" in page.content
 
+
+@pytest.mark.django_db
+def test_direct_bkash_and_nagad_payment(customer):
+    res_bk = customer.post("/api/payments/initiate/", {"purpose": "order", "reference_id": 5, "gateway": "bkash"}, format="json")
+    assert res_bk.status_code == 201
+    assert "/api/payments/bkash/mock/" in res_bk.data["redirect_url"]
+    tran_bk = res_bk.data["tran_id"]
+    res_pay_bk = APIClient().post(
+        "/api/payments/gateway/success/",
+        {"tran_id": tran_bk, "amount": "660.00", "val_id": f"bkash-{tran_bk}", "card_type": "bKash"},
+    )
+    assert res_pay_bk.status_code == 302
+    p_bk = Payment.objects.get(tran_id=tran_bk)
+    assert p_bk.status == "held" and p_bk.method == "bKash"
+
+    # Nagad direct
+    PAYABLE["/api/internal/orders/6/payable/"] = {"user_id": 7, "amount": "450.00", "payable": True}
+    res_ng = customer.post("/api/payments/initiate/", {"purpose": "order", "reference_id": 6, "gateway": "nagad"}, format="json")
+    assert res_ng.status_code == 201
+    assert "/api/payments/nagad/mock/" in res_ng.data["redirect_url"]
+    tran_ng = res_ng.data["tran_id"]
+    res_pay_ng = APIClient().post(
+        "/api/payments/gateway/success/",
+        {"tran_id": tran_ng, "amount": "450.00", "val_id": f"nagad-{tran_ng}", "card_type": "Nagad"},
+    )
+    assert res_pay_ng.status_code == 302
+    p_ng = Payment.objects.get(tran_id=tran_ng)
+    assert p_ng.status == "held" and p_ng.method == "Nagad"
+
+
+@pytest.mark.django_db
+def test_bkash_tokenized_agreement_and_auto_debit(customer, captured_events):
+    # 1. Create agreement
+    res_create = customer.post("/api/payments/agreements/bkash/create/", format="json")
+    assert res_create.status_code == 200
+    assert "agreement_url" in res_create.data
+
+    # 2. Execute agreement
+    agr_id = "AGR-TEST-1234"
+    res_exec = customer.post("/api/payments/agreements/bkash/execute/", {"agreement_id": agr_id, "payer_reference": "01712345678"}, format="json")
+    assert res_exec.status_code == 201
+    assert res_exec.data["agreement_id"] == agr_id
+    assert res_exec.data["status"] == "active"
+
+    # 3. List my agreements
+    res_list = customer.get("/api/payments/agreements/")
+    assert res_list.status_code == 200
+    results = res_list.data.get("results", res_list.data)
+    assert len(results) == 1
+
+    # 4. Auto-debit recurring charge via internal API
+    PAYABLE["/api/internal/subscriptions/10/payable/"] = {"user_id": 7, "amount": "1200.00", "payable": True}
+    res_charge = APIClient().post(
+        "/api/internal/charge-agreement/",
+        {"agreement_id": agr_id, "purpose": "subscription", "reference_id": 10, "amount": "1200.00"},
+        format="json",
+    )
+    assert res_charge.status_code == 200
+    assert res_charge.data["status"] == "held"
+    assert res_charge.data["method"] == "bKash Auto-Debit"
+
+    p = Payment.objects.get(purpose="subscription", reference_id=10)
+    assert p.status == "held" and p.agreement.agreement_id == agr_id
+
+    # 5. Cancel agreement
+    res_cancel = customer.post(f"/api/payments/agreements/{res_exec.data['id']}/cancel/", format="json")
+    assert res_cancel.status_code == 200 and res_cancel.data["status"] == "cancelled"
+
+

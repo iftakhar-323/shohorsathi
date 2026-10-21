@@ -49,7 +49,8 @@ class CreateSubscriptionSerializer(QuoteSerializer):
     longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     diet = serializers.ChoiceField(choices=["", "bangla", "light", "protein"], default="", required=False)
     prefer_female = serializers.BooleanField(default=False, required=False)
-    payment_method = serializers.ChoiceField(choices=["cod", "online"], default="cod")
+    payment_method = serializers.ChoiceField(choices=["cod", "online", "bkash_auto"], default="cod")
+    agreement_id = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
     auto_renew = serializers.BooleanField(default=True)
 
     def validate_members(self, members):
@@ -90,7 +91,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         fields = [
             "id", "plan", "duration_days", "home_size", "preferred_weekday", "slot", "start_date", "end_date", "area_id",
             "area_name", "address_line", "diet", "required_gender", "addons", "members", "prepaid_months", "student_discount", "price",
-            "credit_applied", "amount_due", "credit", "payment_method", "paid", "status", "auto_renew", "next_plan",
+            "credit_applied", "amount_due", "credit", "payment_method", "agreement_id", "paid", "status", "auto_renew", "next_plan",
             "preferred_provider_name", "paused_until", "created_at", "upcoming", "stats",
         ]
 

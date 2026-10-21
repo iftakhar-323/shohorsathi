@@ -15,3 +15,8 @@ ASGI_APPLICATION = "config.asgi.application"
 CHANNEL_LAYERS = {
     "default": {"BACKEND": "channels_redis.core.RedisChannelLayer", "CONFIG": {"hosts": [env("REDIS_URL", "redis://redis:6379/1")]}},
 }
+
+MESSENGER_VERIFY_TOKEN = env("MESSENGER_VERIFY_TOKEN", "shohor-messenger-verify-token")
+MESSENGER_PAGE_ACCESS_TOKEN = env("MESSENGER_PAGE_ACCESS_TOKEN", "")
+MESSENGER_BACKEND = env("MESSENGER_BACKEND", "mock")
+CUSTOMER_WEB_URL = env("CUSTOMER_WEB_URL", "http://localhost:5173")

@@ -1,13 +1,15 @@
 from django.db.models import Count, F, Max, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from shohor_common.permissions import IsAdmin, token_role
 
-from . import logic
+from . import bot, logic
 from .models import Conversation, ReadState
 
 
@@ -104,3 +106,41 @@ class AdminCloseView(APIView):
     def post(self, request, pk):
         conv = get_object_or_404(Conversation, pk=pk, kind=Conversation.Kind.SUPPORT)
         return Response(ConversationSerializer(logic.close(conv)).data)
+
+
+class MessengerWebhookView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        mode = request.query_params.get("hub.mode")
+        token = request.query_params.get("hub.verify_token")
+        challenge = request.query_params.get("hub.challenge")
+        res = bot.verify_webhook(mode, token, challenge)
+        if res is not None:
+            return HttpResponse(res)
+        return HttpResponse("Verification failed", status=403)
+
+    def post(self, request):
+        data = request.data or {}
+        entries = data.get("entry", [])
+        for entry in entries:
+            messaging = entry.get("messaging", [])
+            for msg_item in messaging:
+                sender_id = msg_item.get("sender", {}).get("id")
+                if not sender_id:
+                    continue
+                postback = msg_item.get("postback", {})
+                payload = postback.get("payload")
+                text = ""
+                if "message" in msg_item:
+                    msg_obj = msg_item["message"]
+                    text = msg_obj.get("text", "")
+                    quick_reply = msg_obj.get("quick_reply", {})
+                    payload = payload or quick_reply.get("payload")
+
+                reply = bot.handle_message(sender_id, text=text, payload=payload)
+                bot.send_reply(sender_id, reply)
+
+        return Response({"status": "EVENT_RECEIVED"}, status=status.HTTP_200_OK)
+
