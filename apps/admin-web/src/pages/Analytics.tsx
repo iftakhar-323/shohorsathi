@@ -1,4 +1,4 @@
-import { Badge, Button, Card, ErrorNote, MapView, PageHeader, Select, Stat, SuccessNote, Tabs, api, errorMessage, formatDate, formatNumber, formatTaka, getLang, localName, t, useCategories, useCities, type MapPoint } from "@shohor/web-core";
+import { Badge, Button, Card, cityName, ErrorNote, MapView, PageHeader, Select, Stat, SuccessNote, Tabs, api, errorMessage, formatDate, formatNumber, formatTaka, getLang, localName, t, useCategories, useCities, type MapPoint } from "@shohor/web-core";
 import { useQuery } from "@tanstack/react-query";
 
 import { DataTable } from "../components";
@@ -193,7 +193,7 @@ export default function Analytics() {
         actions={
           <div className="flex gap-2">
             <Select label={t("সময়")} value={days} onChange={(e) => setDays(e.target.value)} options={[{ value: "7", label: t("৭ দিন") }, { value: "30", label: t("৩০ দিন") }, { value: "90", label: t("৯০ দিন") }, { value: "365", label: t("১ বছর") }]} />
-            <Select label={t("শহর")} value={city} onChange={(e) => setCity(e.target.value)} options={[{ value: "", label: t("সব শহর") }, ...(cities ?? []).map((c) => ({ value: c, label: t(c) }))]} />
+            <Select label={t("শহর")} value={city} onChange={(e) => setCity(e.target.value)} options={[{ value: "", label: t("সব শহর") }, ...(cities ?? []).map((c) => ({ value: c, label: cityName(c) }))]} />
           </div>
         }
       />

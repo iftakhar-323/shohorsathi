@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { api, type Paginated } from "./api";
+import { getLang } from "./i18n";
 
 export type Area = { id: number; city: string; name_en: string; name_bn: string; ward: string };
 export type Category = { id: number; kind: "product" | "service"; parent: number | null; slug: string; name_en: string; name_bn: string; sort_order: number; is_active: boolean };
@@ -40,6 +41,16 @@ export function setCity(city: string) {
   } catch {
     // not remembered
   }
+}
+
+// Bangla names of the cities areas are created in (the area's `city` field is stored in English).
+const CITY_BN: Record<string, string> = {
+  Dhaka: "ঢাকা", Chattogram: "চট্টগ্রাম", Khulna: "খুলনা", Rajshahi: "রাজশাহী", Sylhet: "সিলেট",
+  Barishal: "বরিশাল", Rangpur: "রংপুর", Mymensingh: "ময়মনসিংহ", Cumilla: "কুমিল্লা", Gazipur: "গাজীপুর", Narayanganj: "নারায়ণগঞ্জ",
+};
+
+export function cityName(city: string) {
+  return getLang() === "en" ? city : CITY_BN[city] ?? city;
 }
 
 export function useCities() {

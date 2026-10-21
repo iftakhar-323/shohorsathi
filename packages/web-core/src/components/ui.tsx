@@ -2,7 +2,7 @@ import { t } from "../lib/i18n";
 import { useId, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 
 import { upload } from "../lib/api";
-import { getCity, setCity, useCities } from "../lib/shared-api";
+import { cityName, getCity, setCity, useCities } from "../lib/shared-api";
 import { formatDateTime, statusInfo, type Tone } from "../lib/format";
 import Icon, { type IconName } from "./Icon";
 
@@ -329,7 +329,7 @@ export function CitySelect({ className = "" }: { className?: string }) {
         className="h-11 rounded-full border border-line bg-surface px-3 text-[15px]"
       >
         <option value="">{t("সব শহর")}</option>
-        {cities.map((c) => <option key={c} value={c}>{t(c)}</option>)}
+        {cities.map((c) => <option key={c} value={c}>{cityName(c)}</option>)}
       </select>
     </label>
   );

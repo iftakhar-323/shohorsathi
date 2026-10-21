@@ -25,12 +25,14 @@ IMG = "/media/public/demo"
 TODAY = date.today()
 
 ADMIN = ("01700000000", "শহরসাথী অ্যাডমিন")
-CUSTOMERS = [("01711000001", "রহিম উদ্দিন"), ("01711000002", "নুসরাত জাহান"), ("01711000003", "তানভীর আহমেদ")]
+CUSTOMERS = [("01711000001", "রহিম উদ্দিন"), ("01711000002", "নুসরাত জাহান"), ("01711000003", "তানভীর আহমেদ"),
+             ("01711000004", "ফারহানা ইসলাম")]  # lives in Khulna
 PROVIDERS = [
     # phone, name, type, skills, gender
     ("01811000001", "করিম মিয়া", "electrician", ["electrical", "appliance"], "male"),
     ("01811000002", "সালমা বেগম", "cleaner", ["cleaning", "pest-control"], "female"),
     ("01811000003", "জামাল হোসেন", "ac_technician", ["ac", "plumbing"], "male"),
+    ("01811000004", "মাসুদ রানা", "electrician", ["electrical", "ac", "plumbing"], "male"),  # works in Khulna
 ]
 AREAS = [
     ("Dhaka", "Dhanmondi", "ধানমন্ডি", "23.746466", "90.376015"),
@@ -41,6 +43,11 @@ AREAS = [
     ("Dhaka", "Banani", "বনানী", "23.793993", "90.404272"),
     ("Chattogram", "Agrabad", "আগ্রাবাদ", "22.324558", "91.812020"),
     ("Chattogram", "Nasirabad", "নাসিরাবাদ", "22.367090", "91.823410"),
+    ("Khulna", "Sonadanga", "সোনাডাঙ্গা", "22.815500", "89.548000"),
+    ("Khulna", "Khalishpur", "খালিশপুর", "22.858000", "89.534000"),
+    ("Khulna", "Daulatpur", "দৌলতপুর", "22.882600", "89.516000"),
+    ("Khulna", "Boyra", "বয়রা", "22.836000", "89.539000"),
+    ("Khulna", "Gollamari", "গল্লামারী", "22.800000", "89.533000"),
 ]
 
 
@@ -94,9 +101,9 @@ def main():
     for city, en, bn, lat, lng in AREAS:
         a = existing.get((city, en)) or call("POST", "/api/admin/areas/", admin, {"city": city, "name_en": en, "name_bn": bn}, expect=201)
         areas[en] = {**a, "lat": lat, "lng": lng}
-    dhaka_ids = [areas[a[1]]["id"] for a in AREAS if a[0] == "Dhaka"]
+    city_ids = {city: [areas[a[1]]["id"] for a in AREAS if a[0] == city] for city in {a[0] for a in AREAS}}
     customers = {p: register(p, n) for p, n in CUSTOMERS}
-    step(f"admin {ADMIN[0]}, {len(areas)} areas in Dhaka and Chattogram, {len(customers)} customers")
+    step(f"admin {ADMIN[0]}, {len(areas)} areas in Dhaka, Chattogram and Khulna, {len(customers)} customers")
 
     # 2. Providers: apply, admin approves, online with emergency contact
     providers = {}
@@ -104,7 +111,7 @@ def main():
         tokens = register(p_phone, p_name)
         if role_of(tokens["access"]) != "provider":
             call("POST", "/api/providers/register/", tokens["access"], {
-                "provider_type": p_type, "skills": skills, "area_ids": dhaka_ids, "nid_number": "19901234567890",
+                "provider_type": p_type, "skills": skills, "area_ids": city_ids["Khulna" if p_phone == "01811000004" else "Dhaka"], "nid_number": "19901234567890",
                 "photo_url": f"{IMG}/services/electrician-visit.jpg", "nid_front_url": f"{IMG}/services/electrician-visit.jpg",
                 "payout_method": "bkash", "payout_account": p_phone, "gender": gender, "experience_years": 6,
                 "bio": "৬ বছরের অভিজ্ঞতা, সময়মতো ও যত্নের সাথে কাজ করি।",
@@ -118,7 +125,7 @@ def main():
         call("PATCH", "/api/providers/me/", access, {"is_online": True, "emergency_contact_name": "বাবা",
                                                     "emergency_contact_phone": "01700000009"}, expect=200)
         providers[p_phone] = access
-    step("3 providers approved and online (electrician, female cleaner, AC technician)")
+    step("4 providers approved and online (electrician, female cleaner, AC technician; electrician in Khulna)")
 
     # 3. Orders: a finished electrician job with review, a confirmed AC booking, a product order, a pending cleaning job
     rahim, nusrat = customers["01711000001"]["access"], customers["01711000002"]["access"]
@@ -162,7 +169,14 @@ def main():
     o3 = order(nusrat, "01711000002", "নুসরাত জাহান", [("service", "home-deep-clean", 1)], areas["Mirpur"],
                when=TODAY + timedelta(days=1), slot="09-11")
     o4 = order(nusrat, "01711000002", "নুসরাত জাহান", [("product", "floor-cleaner-1l", 3), ("product", "extension-board-4", 1)], areas["Mirpur"])
-    step(f"orders: {o1['number']} completed + reviewed, {o2['number']} confirmed, {o3['number']} waiting for a cleaner, {o4['number']} products")
+    farhana = customers["01711000004"]["access"]
+    o5 = order(farhana, "01711000004", "ফারহানা ইসলাম", [("service", "electrician-visit", 1)], areas["Sonadanga"],
+               problem="ফ্যান ঘুরছে না, রেগুলেটর গরম হয়ে যায়")
+    take(providers["01811000004"], o5)
+    wait_for(lambda: call("GET", f"/api/orders/{o5['id']}/", farhana)["bookings"][0]["status"] == "completed", "Khulna booking completed")
+    call("POST", "/api/providers/reviews/", farhana, {"source": "booking", "source_id": o5["bookings"][0]["id"], "rating": 5,
+                                                     "comment": "খুলনায় এত দ্রুত সার্ভিস আগে পাইনি।"})
+    step(f"orders: {o1['number']} completed + reviewed, {o2['number']} confirmed, {o3['number']} waiting for a cleaner, {o4['number']} products, {o5['number']} done in Khulna")
 
     # 4. Subscription, custom request, home profile, AI quote
     sub = call("POST", "/api/subscriptions/", nusrat, {
@@ -204,9 +218,11 @@ def main():
     step("training module (passed by the cleaner) and insurance plan")
 
     # 6. City layer: authorities, issues with photos, community posts
+    city_ids_by_name = {city: [a[1] for a in AREAS if a[0] == city] for city in {a[0] for a in AREAS}}
     auths = {}
     for key, bn, en, cats in [("ward", "ঢাকা উত্তর সিটি কর্পোরেশন, ওয়ার্ড ৭", "DNCC Ward 7", ["streetlight", "garbage", "road_damage"]),
-                              ("wasa", "ঢাকা ওয়াসা, মড্স জোন ৩", "Dhaka WASA, MODS Zone 3", ["waterlogging", "drainage", "water_supply"])]:
+                              ("wasa", "ঢাকা ওয়াসা, মড্স জোন ৩", "Dhaka WASA, MODS Zone 3", ["waterlogging", "drainage", "water_supply"]),
+                              ("kcc", "খুলনা সিটি কর্পোরেশন, ওয়ার্ড ১৬", "Khulna City Corporation, Ward 16", ["waterlogging", "garbage", "streetlight", "drainage"])]:
         auths[key] = call("POST", "/api/admin/authorities/", admin, {"name_bn": bn, "name_en": en, "categories": cats}, expect=201)
         call("POST", f"/api/admin/authorities/{auths[key]['id']}/rotate-feed/", admin, expect=200)
     issues = [
@@ -214,15 +230,17 @@ def main():
         ("waterlogging", "বৃষ্টির পর হাঁটুপানি", "সাত মসজিদ রোডে প্রতি বৃষ্টিতে পানি জমে থাকে।", "Dhanmondi", "waterlogging.jpg", "wasa", "forwarded"),
         ("streetlight", "গলির বাতি নষ্ট", "রোড ১১-এর গলিতে এক সপ্তাহ ধরে বাতি জ্বলে না।", "Gulshan", "streetlight.jpg", "ward", "resolved"),
         ("road_damage", "রাস্তায় বড় গর্ত", "রিকশা উল্টে যাওয়ার ঝুঁকি।", "Uttara", "road.jpg", None, "reported"),
+        ("waterlogging", "সোনাডাঙ্গা বাসস্ট্যান্ডে পানি জমে", "জোয়ার আর বৃষ্টিতে ড্রেন উপচে রাস্তা ডুবে যায়।", "Sonadanga", "waterlogging.jpg", "kcc", "in_progress"),
     ]
-    reporters = [rahim, nusrat, customers["01711000003"]["access"]]
+    reporters = [rahim, nusrat, customers["01711000003"]["access"], farhana]
     for i, (cat, title, desc, area, photo, auth, status) in enumerate(issues):
         a = areas[area]
-        issue = call("POST", "/api/issues/", reporters[i % 3], {
+        reporter = farhana if area in city_ids_by_name["Khulna"] else reporters[i % 3]
+        issue = call("POST", "/api/issues/", reporter, {
             "category": cat, "title": title, "description": desc, "latitude": a["lat"], "longitude": a["lng"], "area_id": a["id"],
             "area_name": a["name_bn"], "photo_urls": [f"{IMG}/issues/{photo}"], "force": True}, expect=201)
         for other in reporters:
-            if other is not reporters[i % 3]:  # the reporter's own vote is already counted; upvote toggles
+            if other is not reporter:  # the reporter's own vote is already counted; upvote toggles
                 call("POST", f"/api/issues/{issue['id']}/upvote/", other)
         if auth:
             call("POST", f"/api/admin/issues/{issue['id']}/status/", admin, {"status": "forwarded", "authority": auths[auth]["id"]}, expect=200)
@@ -235,9 +253,10 @@ def main():
         (rahim, "Dhanmondi", "alert", "আগামীকাল সকাল ১০টা থেকে ২টা পর্যন্ত রোড ৭-এ পানি থাকবে না।"),
         (nusrat, "Mirpur", "recommendation", "সালমা আপা খুব যত্ন করে পুরো বাসা পরিষ্কার করেছেন, সবাইকে সাজেস্ট করছি।"),
         (customers["01711000003"]["access"], "Uttara", "question", "উত্তরায় ভালো এসি টেকনিশিয়ান কে আছেন?"),
+        (farhana, "Sonadanga", "tip", "খুলনায় মাসুদ ভাই খুব ভালো ইলেকট্রিশিয়ান, শহরসাথীতে বুক করা যায়।"),
     ]:
         call("POST", "/api/community/posts/", token, {"area_id": areas[area]["id"], "area_name": areas[area]["name_bn"], "kind": kind, "body": body}, expect=201)
-    step("2 authorities with feed links, 4 photo issues (one resolved), 3 community posts")
+    step("3 authorities (incl. Khulna City Corporation) with feed links, 5 photo issues, 4 community posts")
 
     # 7. Offers: seasonal packages with banners, group deal, sponsored listing
     services = {s["slug"]: s for s in call("GET", "/api/services/?page_size=50", expect=200)["results"]}
@@ -267,8 +286,8 @@ def main():
     print(f"""
 Demo data ready. Password for every account: {PASSWORD}
   admin     {ADMIN[0]}   → admin panel
-  customer  01711000001 (রহিম, tenant in Dhanmondi) / 01711000002 (নুসরাত, Mirpur)
-  provider  01811000001 (electrician) / 01811000002 (female cleaner) / 01811000003 (AC technician)
+  customer  01711000001 (রহিম, tenant in Dhanmondi) / 01711000002 (নুসরাত, Mirpur) / 01711000004 (ফারহানা, Khulna)
+  provider  01811000001 (electrician) / 01811000002 (female cleaner) / 01811000003 (AC technician) / 01811000004 (Khulna)
 """)
 
 

@@ -11,7 +11,9 @@ from analytics_app.models import Fact
 
 random.seed(7)
 now = timezone.now()
-AREAS = [(1, "ধানমন্ডি", 23.7465, 90.3760), (2, "মিরপুর", 23.8069, 90.3686), (3, "গুলশান", 23.7925, 90.4078), (4, "উত্তরা", 23.8759, 90.3795)]
+# area ids match the order scripts/seed_demo.py creates them in (9 = Sonadanga, Khulna)
+AREAS = [(1, "ধানমন্ডি", 23.7465, 90.3760), (2, "মিরপুর", 23.8069, 90.3686), (3, "গুলশান", 23.7925, 90.4078), (4, "উত্তরা", 23.8759, 90.3795),
+         (9, "সোনাডাঙ্গা", 22.8155, 89.5480)]
 # category: (title, price, bookings on a weekday, extra on Fri/Sat, growth per week)
 CATS = {"ac": ("এসি ক্লিনিং", 800, 3, 4, 0.12), "cleaning": ("হোম ডিপ ক্লিন", 2500, 2, 5, 0.04), "electrical": ("ইলেকট্রিশিয়ান ভিজিট", 300, 4, 2, 0.0),
         "plumbing": ("প্লাম্বার ভিজিট", 300, 2, 1, 0.0), "pest-control": ("তেলাপোকা নিয়ন্ত্রণ", 1500, 1, 1, 0.08)}

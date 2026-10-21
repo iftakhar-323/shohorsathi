@@ -96,6 +96,14 @@ test("customer app: main flows work by clicking", async ({ page }) => {
   await expect(page.getByText("প্রস্তাবিত সার্ভিস")).toBeVisible();
   await page.screenshot({ path: "test-results/tour/flow-ai-quote.png", fullPage: true });
 
+  // Khulna is one of the cities and has its own areas, authority and issue
+  await page.goto(`${C}/`);
+  await expect(page.locator("option", { hasText: "খুলনা" })).toHaveCount(1);
+  await page.goto(`${C}/transparency`);
+  await expect(page.getByText("খুলনা সিটি কর্পোরেশন, ওয়ার্ড ১৬")).toBeVisible();
+  await page.goto(`${C}/issues`);
+  await expect(page.getByText("সোনাডাঙ্গা বাসস্ট্যান্ডে পানি জমে")).toBeVisible();
+
   // English switch keeps working on a data page
   await page.goto(`${C}/services`);
   await page.getByRole("button", { name: "Switch to English" }).click();

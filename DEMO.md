@@ -18,8 +18,8 @@ pnpm --filter admin-web dev --port 5175
 
 | App | URL | Log in as (password `demo1234` for all) |
 |---|---|---|
-| Customer site | http://localhost:5173 | `01711000001` রহিম (tenant, Dhanmondi) · `01711000002` নুসরাত (Mirpur) · `01711000003` তানভীর |
-| Provider portal | http://localhost:5174 | `01811000001` করিম (electrician) · `01811000002` সালমা (female cleaner) · `01811000003` জামাল (AC) |
+| Customer site | http://localhost:5173 | `01711000001` রহিম (tenant, Dhanmondi) · `01711000002` নুসরাত (Mirpur) · `01711000003` তানভীর · `01711000004` ফারহানা (Khulna) |
+| Provider portal | http://localhost:5174 | `01811000001` করিম (electrician) · `01811000002` সালমা (female cleaner) · `01811000003` জামাল (AC) · `01811000004` মাসুদ (Khulna) |
 | Admin panel | http://localhost:5175 | `01700000000` |
 
 New sign-ups need an OTP: in development it is printed in `docker compose logs auth` (search for `OTP for`).
@@ -35,12 +35,14 @@ New sign-ups need an OTP: in development it is printed in `docker compose logs a
 4. **AI quote**: type "বাথরুমের পাইপ থেকে পানি পড়ছে" or upload a photo → suggested service and price range.
    With `ANTHROPIC_API_KEY` in `.env` Claude looks at the photo; without it a keyword match answers (the page says which).
 5. **Home profile**: health score, upkeep reminders, tenant mode with the landlord's number.
-6. **City problems** → map with 4 photo reports → **Transparency dashboard** (public, per authority, no personal data).
-7. **Provider portal as করিম**: job inbox, finished job (rate the customer), earnings and instant payout, training,
+6. **Multi-city**: the city picker in the header has ঢাকা, চট্টগ্রাম and **খুলনা** (Sonadanga, Khalishpur, Daulatpur,
+   Boyra, Gollamari). Sign in as ফারহানা to see a finished Khulna job; মাসুদ is the Khulna electrician.
+7. **City problems** → map with 5 photo reports (one in Sonadanga, forwarded to Khulna City Corporation) → **Transparency dashboard** (public, per authority, no personal data).
+8. **Provider portal as করিম**: job inbox, finished job (rate the customer), earnings and instant payout, training,
    insurance. As সালমা: the cleaning job waiting in *নতুন কাজ*, training badge.
-8. **Admin panel**: dashboard; orders; providers; city issues (forward to an authority, CSV export, authority feed link);
+9. **Admin panel**: dashboard; orders; providers; city issues (forward to an authority, CSV export, authority feed link);
    **গ্রুপ ডিল ও অফার** (deals, seasonal packages, sponsored listing); **অ্যানালিটিক্স** → demand forecast,
-   customers at risk (send a come-back note), fraud signals.
+   customers at risk (send a come-back note), fraud signals; the city filter includes Khulna.
 
 ## 3. Good to know
 
