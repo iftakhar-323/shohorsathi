@@ -16,6 +16,8 @@ urlpatterns = [
     path("api/auth/password/reset/", views.PasswordResetView.as_view()),
     path("api/me/", views.MeView.as_view()),
     path("api/areas/", views.AreaListView.as_view()),
+    path("api/cities/", views.CityListView.as_view()),
     path("api/internal/users/<int:pk>/", views.InternalUserView.as_view()),
     path("api/internal/users/", views.InternalUserIdsView.as_view()),
+    path("api/internal/users/by-phone/<str:phone>/", views.InternalUserByPhoneView.as_view()),
 ] + router.urls

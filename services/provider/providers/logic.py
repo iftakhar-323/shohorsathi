@@ -193,7 +193,7 @@ def record_completion(job):
     events.publish(
         "job.completed",
         {"job_id": job.id, "source": job.source, "source_id": job.source_id, "provider_user_id": provider.user_id,
-         "user_id": job.user_id, "amount": str(gross), "commission": str(commission)},
+         "user_id": job.user_id, "amount": str(gross), "commission": str(commission), "area_id": job.area_id, "area_name": job.area_name},
     )
 
 

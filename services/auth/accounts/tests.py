@@ -115,3 +115,11 @@ def test_customer_cannot_manage_areas(client):
     tokens = register(client).data
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
     assert client.post("/api/admin/areas/", {"name_en": "X", "name_bn": "X"}, format="json").status_code == 403
+
+
+@pytest.mark.django_db
+def test_cities_and_area_filter(client):
+    Area.objects.create(city="Dhaka", name_en="Mirpur", name_bn="মিরপুর")
+    Area.objects.create(city="Chattogram", name_en="Agrabad", name_bn="আগ্রাবাদ")
+    assert client.get("/api/cities/").data == ["Chattogram", "Dhaka"]
+    assert [a["name_en"] for a in client.get("/api/areas/?city=chattogram").data] == ["Agrabad"]

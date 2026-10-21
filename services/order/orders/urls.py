@@ -16,4 +16,5 @@ urlpatterns = [
     path("api/admin/order-stats/", views.AdminStatsView.as_view()),
     path("api/internal/bookings/<int:pk>/verify-arrival/", views.VerifyArrivalView.as_view()),
     path("api/internal/orders/<int:pk>/payable/", views.OrderPayableView.as_view()),
+    path("api/internal/orders/", views.InternalOrganizationOrdersView.as_view()),
 ] + router.urls

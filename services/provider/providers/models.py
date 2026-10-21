@@ -79,6 +79,7 @@ class Job(models.Model):
         WARRANTY = "warranty"
         CUSTOM_REQUEST = "custom_request"
         SUBSCRIPTION_VISIT = "subscription_visit"
+        B2B_VISIT = "b2b_visit", "Maintenance contract visit"
 
     class Status(models.TextChoices):
         OPEN = "open"

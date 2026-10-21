@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 
 import Footer from "./components/Footer";
 import Header from "./components/Header";
+import { BusinessDetail, BusinessHome } from "./pages/Business";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import { CustomRequestDetail, CustomRequestList, NewCustomRequest } from "./pages/CustomRequests";
@@ -17,6 +18,7 @@ import Profile from "./pages/Profile";
 import ServiceDetail from "./pages/ServiceDetail";
 import Services from "./pages/Services";
 import Shop from "./pages/Shop";
+import Wallet from "./pages/Wallet";
 import { MySubscriptions, Subscribe, SubscriptionDetail, SubscriptionPlans } from "./pages/Subscriptions";
 
 function Private({ children }: { children: React.ReactNode }) {
@@ -53,6 +55,9 @@ export default function App() {
           <Route path="/issues/mine" element={<Private><IssuesHome mine /></Private>} />
           <Route path="/issues/:id" element={<IssueDetail />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/wallet" element={<Private><Wallet /></Private>} />
+          <Route path="/business" element={<Private><BusinessHome /></Private>} />
+          <Route path="/business/:id" element={<Private><BusinessDetail /></Private>} />
           <Route path="/chat" element={<Private><div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6"><ChatPage /></div></Private>} />
           <Route path="/chat/:id" element={<Private><div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6"><ChatPage /></div></Private>} />
           <Route path="/notifications" element={<Private><div className="px-4 py-8 sm:px-6"><NotificationsPage /></div></Private>} />

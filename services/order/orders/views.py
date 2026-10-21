@@ -216,3 +216,17 @@ class OrderPayableView(generics.GenericAPIView):
             and order.status != Order.Status.CANCELLED
         )
         return Response({"user_id": order.user_id, "amount": str(order.total), "payable": payable})
+
+
+class InternalOrganizationOrdersView(generics.GenericAPIView):
+    """Completed orders of an organization in a period, for its monthly invoice."""
+
+    permission_classes = [IsInternal]
+    authentication_classes = []
+
+    def get(self, request):
+        p = request.query_params
+        qs = Order.objects.filter(organization_id=p["organization_id"], status=Order.Status.COMPLETED,
+                                  updated_at__date__gte=p["from"], updated_at__date__lte=p["to"])
+        return Response([{"id": o.id, "number": o.number, "total": str(o.total), "date": o.updated_at.date().isoformat(),
+                          "items": [b.service_name for b in o.bookings.all()] + [i.name for i in o.items.all()]} for o in qs])

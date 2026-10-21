@@ -2,6 +2,7 @@ import { t } from "../lib/i18n";
 import { useId, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 
 import { upload } from "../lib/api";
+import { getCity, setCity, useCities } from "../lib/shared-api";
 import { formatDateTime, statusInfo, type Tone } from "../lib/format";
 import Icon, { type IconName } from "./Icon";
 
@@ -308,5 +309,28 @@ export function Modal({ title, open, onClose, children }: { title: string; open:
         {children}
       </div>
     </div>
+  );
+}
+
+/** City switcher; picking a city reloads so every area list and filter follows it. */
+export function CitySelect({ className = "" }: { className?: string }) {
+  const { data: cities } = useCities();
+  if (!cities || cities.length < 2) return null;
+  return (
+    <label className={`flex items-center gap-1 ${className}`}>
+      <span className="sr-only">{t("শহর")}</span>
+      <Icon name="pin" size={16} />
+      <select
+        value={getCity()}
+        onChange={(e) => {
+          setCity(e.target.value);
+          window.location.reload();
+        }}
+        className="h-11 rounded-full border border-line bg-surface px-3 text-[15px]"
+      >
+        <option value="">{t("সব শহর")}</option>
+        {cities.map((c) => <option key={c} value={c}>{t(c)}</option>)}
+      </select>
+    </label>
   );
 }

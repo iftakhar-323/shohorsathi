@@ -24,7 +24,10 @@ apps/admin-web    ─┘                          ├─► order           ─�
                                               ├─► payment         ─► payment_db
                                               ├─► chat (ASGI/WS)  ─► chat_db
                                               ├─► notification    ─► notification_db
-                                              └─► city            ─► city_db
+                                              ├─► city            ─► city_db
+                                              ├─► loyalty         ─► loyalty_db
+                                              ├─► b2b             ─► b2b_db
+                                              └─► analytics       ─► analytics_db
             each service ◄──── events (Celery workers, Redis) ────► each service
 ```
 
@@ -41,6 +44,9 @@ apps/admin-web    ─┘                          ├─► order           ─�
 | `services/payment` | SSLCommerz (bKash/Nagad/cards) or a dev mock gateway; escrow ledger (held → released / refunded), refund & complaint requests |
 | `services/chat` | Django Channels: customer ↔ provider job chats, customer ↔ support with FAQ auto-reply; REST + WebSocket |
 | `services/city` | City issue reporting (photo + map pin, duplicate detection, upvotes, forward to authorities, resolve with photos) and the neighbourhood community hub |
+| `services/loyalty` | Points (earned on completed orders and subscriptions, redeemed at checkout), in-app wallet (top-up, pay, refunds on cancel), referrals, badges |
+| `services/b2b` | Building committees & businesses: members, annual maintenance contracts with scheduled visits, monthly invoices/receipts, corporate dashboard |
+| `services/analytics` | Event facts → GMV, revenue, commission, top services, new vs returning customers, demand heatmap, per-city filter |
 | `services/notification` | In-app notifications (Bangla + English) and SMS from events; admin broadcasts |
 | `packages/web-core` | Shared React code: API client with token refresh, auth, UI components, Bangla formatting |
 | `apps/customer-web` | Customer site (:5173) |
@@ -66,6 +72,12 @@ apps/admin-web    ─┘                          ├─► order           ─�
   are notified at each step.
 - **Emergency:** one tap → emergency-capable services for today with a priority charge → the nearest online providers
   are alerted first → live provider location on the customer's map while on the way.
+- **Loyalty:** completed orders earn points (and pay out a pending referral); at checkout points give a capped
+  discount and the wallet can pay; a cancelled order returns both. Wallet top-ups go through the payment gateway.
+- **B2B:** an organization applies → admin approves → members order in its name; maintenance contracts schedule visits
+  that are dispatched to providers nightly; on the 1st, each organization gets an invoice (contract fees + its
+  completed orders) with a printable receipt.
+- **Multi-city:** a city exists as soon as it has areas; customers pick their city, and analytics can be filtered by it.
 - **Provider onboarding:** apply with NID/photos (kitchen photos for home chefs) → admin approves → `provider.approved`
   makes the user a provider (picked up on the next token refresh).
 
@@ -97,7 +109,8 @@ pnpm --filter admin-web dev        # http://localhost:5175
 
 Payments use a local test checkout page (`PAYMENT_GATEWAY=mock`); set `PAYMENT_GATEWAY=sslcommerz` with store
 credentials for real bKash/Nagad/card payments. SMS texts are logged (`SMS_BACKEND=console`) until an SMS gateway is set.
-After editing `gateway/nginx.conf`, run `docker compose exec gateway nginx -s reload`.
+After editing `gateway/nginx.conf`, run `docker compose exec gateway nginx -s reload` (the folder is mounted, so the edit
+is picked up).
 
 In development OTP codes are written to the auth service log (`docker compose logs auth | grep OTP`).
 Adding a database to an existing Postgres volume: run the new `CREATE DATABASE` line from `infra/postgres/init.sql`
@@ -112,6 +125,7 @@ docker compose exec <service> pytest    # each Django service
 python3 scripts/e2e_phase1.py           # Phase 1 flow through the gateway with real events (stack must be running)
 python3 scripts/e2e_phase2.py           # subscriptions, payments/escrow, reviews, chat, notifications
 python3 scripts/e2e_phase3.py           # city issues, community, emergency request, live tracking
+python3 scripts/e2e_phase4.py           # wallet & points, referrals, B2B portal, analytics, multi-city
 pnpm -r build                           # type-check and build all web apps
 ```
 
@@ -123,4 +137,4 @@ pnpm -r build                           # type-check and build all web apps
 | 1 — MVP | Cart & orders (COD), service booking, provider portal, custom requests, admin panel | done |
 | 2 — Subscriptions & Trust | 7/15/30-day cleaning & meal plans, online payment + escrow, reviews, chat, notifications | done |
 | 3 — City Layer | Issue reporting, live map, emergency request, community hub | done |
-| 4 — Scale | Loyalty, B2B, analytics, multi-city | |
+| 4 — Scale | Loyalty points & wallet, referrals, B2B portal, analytics, multi-city | done |

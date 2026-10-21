@@ -2,12 +2,15 @@ import { AuthPage, Icon, LanguageToggle, RequireAuth, t, type IconName, useAuth 
 import type { ReactNode } from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
+import Analytics from "./pages/Analytics";
 import Areas from "./pages/Areas";
+import Business from "./pages/Business";
 import Catalog from "./pages/Catalog";
 import CustomRequests from "./pages/CustomRequests";
 import Dashboard from "./pages/Dashboard";
 import Issues from "./pages/Issues";
 import Jobs from "./pages/Jobs";
+import Loyalty from "./pages/Loyalty";
 import Orders from "./pages/Orders";
 import Payments from "./pages/Payments";
 import Payouts from "./pages/Payouts";
@@ -19,12 +22,15 @@ import Warranty from "./pages/Warranty";
 
 export const NAV: { to: string; label: string; icon: IconName }[] = [
   { to: "/", label: "ড্যাশবোর্ড", icon: "grid" },
+  { to: "/analytics", label: "অ্যানালিটিক্স", icon: "chart" },
   { to: "/orders", label: "অর্ডার ও বুকিং", icon: "cart" },
   { to: "/jobs", label: "জব ও অ্যাসাইন", icon: "wrench" },
   { to: "/custom-requests", label: "কাস্টম রিকোয়েস্ট", icon: "send" },
   { to: "/subscriptions", label: "সাবস্ক্রিপশন", icon: "repeat" },
   { to: "/payments", label: "পেমেন্ট ও রিফান্ড", icon: "money" },
   { to: "/issues", label: "শহরের সমস্যা", icon: "flag" },
+  { to: "/business", label: "বিল্ডিং ও ব্যবসা", icon: "building" },
+  { to: "/loyalty", label: "লয়্যালটি ও ওয়ালেট", icon: "gift" },
   { to: "/support", label: "সাপোর্ট চ্যাট", icon: "chat" },
   { to: "/broadcast", label: "নোটিফিকেশন পাঠান", icon: "bell" },
   { to: "/providers", label: "প্রোভাইডার যাচাই", icon: "shield" },
@@ -91,6 +97,9 @@ export default function App() {
                 <Route path="/payments" element={<Payments />} />
                 <Route path="/support" element={<SupportInbox />} />
                 <Route path="/issues" element={<Issues />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/business" element={<Business />} />
+                <Route path="/loyalty" element={<Loyalty />} />
                 <Route path="/broadcast" element={<Broadcast />} />
                 <Route path="/payouts" element={<Payouts />} />
                 <Route path="/warranty" element={<Warranty />} />

@@ -49,3 +49,8 @@ def review_created(payload):
 @shared_task(name="provider.weekly_payouts")
 def weekly_payouts():
     return logic.weekly_payouts()
+
+
+@shared_task(name="provider.b2b.visit_due")
+def b2b_visit_due(payload):
+    logic.create_job({**payload, "source": "b2b_visit", "source_id": payload["visit_id"]})

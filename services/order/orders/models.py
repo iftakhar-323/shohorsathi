@@ -46,6 +46,7 @@ class Order(models.Model):
     class PaymentMethod(models.TextChoices):
         COD = "cod"
         ONLINE = "online"
+        WALLET = "wallet"
 
     class PaymentStatus(models.TextChoices):
         UNPAID = "unpaid"
@@ -59,6 +60,9 @@ class Order(models.Model):
     subtotal = models.DecimalField(max_digits=12, decimal_places=2)
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    points_redeemed = models.PositiveIntegerField(default=0)
+    # Set when a member orders for their building/business (B2B portal); used for monthly invoices.
+    organization_id = models.PositiveBigIntegerField(null=True, blank=True, db_index=True)
     total = models.DecimalField(max_digits=12, decimal_places=2)
     # Address snapshot: the customer's saved address may change later, the order must not.
     contact_name = models.CharField(max_length=120)

@@ -12,6 +12,7 @@ const SOURCE: Record<string, string> = {
   warranty: "ওয়ারেন্টি",
   custom_request: "কাস্টম",
   subscription_visit: "সাবস্ক্রিপশন",
+  b2b_visit: "রক্ষণাবেক্ষণ চুক্তি",
 };
 
 function JobRow({ job, tab }: { job: Job; tab: Tab }) {

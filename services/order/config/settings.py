@@ -15,3 +15,4 @@ ORDER_DELIVERY_FEE = env("ORDER_DELIVERY_FEE", "0")
 
 # Priority charge (% of the service price) for one-tap emergency bookings.
 EMERGENCY_SURCHARGE_PERCENT = env("EMERGENCY_SURCHARGE_PERCENT", "25")
+POINT_VALUE_TAKA = env("POINT_VALUE_TAKA", "1")

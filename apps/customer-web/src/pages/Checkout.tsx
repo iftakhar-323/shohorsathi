@@ -4,6 +4,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
 import { useAddresses, useCart, type Order } from "../api/orders";
+import { useMyOrgs } from "./Business";
+import { useLoyalty } from "./Wallet";
 import { clearDrafts, getDraft, type BookingDraft } from "../lib/bookingDraft";
 
 export default function Checkout() {
@@ -20,7 +22,11 @@ export default function Checkout() {
   const [contactName, setContactName] = useState(user?.name ?? "");
   const [contactPhone, setContactPhone] = useState(user?.phone ?? "");
   const [note, setNote] = useState("");
-  const [payment, setPayment] = useState<"cod" | "online">("cod");
+  const [payment, setPayment] = useState<"cod" | "online" | "wallet">("cod");
+  const { data: loyalty } = useLoyalty();
+  const { data: orgs } = useMyOrgs();
+  const [usePoints, setUsePoints] = useState(false);
+  const [orgId, setOrgId] = useState("");
   const [schedules, setSchedules] = useState<Record<number, BookingDraft>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -78,6 +84,8 @@ export default function Checkout() {
         longitude,
         note,
         payment_method: payment,
+        redeem_points: usePoints ? loyalty?.points ?? 0 : 0,
+        organization_id: orgId ? Number(orgId) : null,
         service_details: schedules,
       });
       clearDrafts();
@@ -170,12 +178,25 @@ export default function Checkout() {
           <span>{formatTaka(cart.subtotal)}</span>
         </div>
         <p className="m-0 text-sm text-muted">{t("পণ্য থাকলে ডেলিভারি চার্জ যোগ হতে পারে। যন্ত্রাংশ লাগলে আলাদা দেখানো হবে।")}</p>
-        {([["cod", "ক্যাশ অন ডেলিভারি", "পণ্য পেয়ে বা কাজ শেষে টাকা দিন"], ["online", "বিকাশ / নগদ / কার্ড", "টাকা কাজ শেষ হওয়া পর্যন্ত নিরাপদে জমা থাকে"]] as const).map(([value, title, hint]) => (
+        {loyalty && loyalty.points > 0 && (
+          <label className="flex items-center gap-3 rounded-xl border border-line p-3 text-[15px]">
+            <input type="checkbox" checked={usePoints} onChange={(e) => setUsePoints(e.target.checked)} className="size-5 accent-brand" />
+            <span>
+              {t("{n} পয়েন্ট ব্যবহার করুন", { n: loyalty.points })}
+              <span className="block text-sm text-muted">{t("সর্বোচ্চ {p}% পর্যন্ত ছাড়", { p: loyalty.rules.max_redeem_percent })}</span>
+            </span>
+          </label>
+        )}
+        {orgs && orgs.some((o) => o.status === "approved") && (
+          <Select label={t("কার পক্ষে অর্ডার")} value={orgId} onChange={(e) => setOrgId(e.target.value)}
+            options={[{ value: "", label: t("নিজের জন্য") }, ...orgs.filter((o) => o.status === "approved").map((o) => ({ value: o.id, label: o.name }))]} />
+        )}
+        {([["cod", "ক্যাশ অন ডেলিভারি", "পণ্য পেয়ে বা কাজ শেষে টাকা দিন"], ["online", "বিকাশ / নগদ / কার্ড", "টাকা কাজ শেষ হওয়া পর্যন্ত নিরাপদে জমা থাকে"], ...(loyalty && Number(loyalty.wallet) > 0 ? [["wallet", "শহরসাথী ওয়ালেট", "ব্যালেন্স"]] : [])] as [ "cod" | "online" | "wallet", string, string][]).map(([value, title, hint]) => (
           <label key={value} className={`flex items-start gap-3 rounded-xl border p-3 text-[15px] ${payment === value ? "border-brand bg-brand-tint" : "border-line"}`}>
             <input type="radio" name="payment" checked={payment === value} onChange={() => setPayment(value)} className="mt-1 accent-brand" />
             <span>
               <span className="font-semibold">{t(title)}</span>
-              <span className="block text-sm text-muted">{t(hint)}</span>
+              <span className="block text-sm text-muted">{value === "wallet" ? `${t(hint)}: ${formatTaka(loyalty?.wallet)}` : t(hint)}</span>
             </span>
           </label>
         ))}

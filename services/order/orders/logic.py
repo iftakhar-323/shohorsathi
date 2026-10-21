@@ -147,6 +147,7 @@ def checkout(user_id, data):
         )
     cart.items.all().delete()
     log(order, Order.Status.PENDING, "Order placed")
+    settle_loyalty(order, data)
 
     events.publish(
         "order.placed",
@@ -155,14 +156,43 @@ def checkout(user_id, data):
             "user_id": user_id,
             "total": str(order.total),
             "payment_method": order.payment_method,
+            "area_id": order.area_id,
+            "area_name": order.area_name,
             "items": [{"slug": c.slug, "quantity": c.quantity} for c, _ in products],
         },
     )
     # Online orders reach providers only after the payment goes through (see payment_succeeded).
-    if order.payment_method == Order.PaymentMethod.COD:
+    if order.payment_method != Order.PaymentMethod.ONLINE:
         for booking in bookings:
             events.publish("booking.created", booking_payload(booking))
     return order
+
+
+def settle_loyalty(order, data):
+    """Points as a discount and/or wallet as payment, settled with the loyalty service during checkout."""
+    if data.get("organization_id"):
+        status, member = internal.post("b2b", "/api/internal/b2b/membership/", {"organization_id": data["organization_id"], "user_id": order.user_id})
+        if status != 200 or not member.get("ok"):
+            raise ValidationError({"organization_id": "You are not a member of this organization."})
+        order.organization_id = data["organization_id"]
+    points = data.get("redeem_points") or 0
+    try:
+        if points:
+            status, body = internal.post("loyalty", "/api/internal/loyalty/redeem-points/",
+                                         {"user_id": order.user_id, "order_id": order.id, "points": points, "subtotal": str(order.subtotal)})
+            discount = Decimal(body.get("discount", "0")) if status == 200 else Decimal("0")
+            order.discount = min(discount, order.subtotal)
+            order.points_redeemed = int(discount / Decimal(settings.POINT_VALUE_TAKA)) if discount else 0
+            order.total = order.subtotal + order.delivery_fee - order.discount
+        if order.payment_method == Order.PaymentMethod.WALLET:
+            status, body = internal.post("loyalty", "/api/internal/loyalty/wallet-pay/", {"user_id": order.user_id, "order_id": order.id, "amount": str(order.total)})
+            if status != 200:
+                raise ValidationError({"payment_method": "Not enough wallet balance."})
+            order.payment_status = Order.PaymentStatus.PAID
+    except ValidationError:
+        internal.post("loyalty", "/api/internal/loyalty/reverse/", {"order_id": order.id})
+        raise
+    order.save()
 
 
 @transaction.atomic
@@ -183,6 +213,11 @@ def payment_succeeded(payload):
 def payment_refunded(payload):
     if payload.get("purpose") == "order" and payload.get("full"):
         Order.objects.filter(pk=payload["reference_id"]).update(payment_status=Order.PaymentStatus.REFUNDED)
+
+
+def status_payload(order):
+    return {"order_id": order.id, "user_id": order.user_id, "status": order.status, "total": str(order.total),
+            "payment_method": order.payment_method, "organization_id": order.organization_id}
 
 
 def refresh_order_status(order):
@@ -209,7 +244,7 @@ def refresh_order_status(order):
         fields.append("payment_status")
     order.save(update_fields=fields)
     log(order, new)
-    events.publish("order.status_changed", {"order_id": order.id, "user_id": order.user_id, "status": new})
+    events.publish("order.status_changed", status_payload(order))
 
 
 @transaction.atomic
@@ -234,7 +269,7 @@ def cancel_order(order):
     order.status = Order.Status.CANCELLED
     order.save(update_fields=["status", "updated_at"])
     log(order, order.status, "Cancelled by customer")
-    events.publish("order.status_changed", {"order_id": order.id, "user_id": order.user_id, "status": order.status})
+    events.publish("order.status_changed", status_payload(order))
 
 
 @transaction.atomic
@@ -306,7 +341,7 @@ def set_product_status(order, status):
                 booking.status = Booking.Status.CANCELLED
                 booking.save(update_fields=["status"])
                 events.publish("booking.cancelled", {"source": "booking", "source_id": booking.id, "user_id": booking.user_id})
-        events.publish("order.status_changed", {"order_id": order.id, "user_id": order.user_id, "status": status})
+        events.publish("order.status_changed", status_payload(order))
         refresh_order_status(order)
 
 

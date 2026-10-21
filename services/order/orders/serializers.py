@@ -59,6 +59,8 @@ class CheckoutSerializer(serializers.Serializer):
     note = serializers.CharField(required=False, allow_blank=True, max_length=500)
     payment_method = serializers.ChoiceField(choices=Order.PaymentMethod.choices, default=Order.PaymentMethod.COD)
     service_details = serializers.DictField(child=ServiceDetailSerializer(), required=False, default=dict)
+    redeem_points = serializers.IntegerField(min_value=0, required=False, default=0)
+    organization_id = serializers.IntegerField(min_value=1, required=False, allow_null=True)
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -108,7 +110,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            "id", "number", "status", "payment_method", "payment_status", "subtotal", "delivery_fee", "discount",
+            "id", "number", "status", "payment_method", "payment_status", "subtotal", "delivery_fee", "discount", "points_redeemed", "organization_id",
             "total", "contact_name", "contact_phone", "address_line", "area_id", "area_name", "note", "items",
             "bookings", "created_at", "updated_at",
         ]

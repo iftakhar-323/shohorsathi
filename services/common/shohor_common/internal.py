@@ -26,6 +26,18 @@ def get(service, path, **params):
     return res.json()
 
 
+def post(service, path, body):
+    """POST to another service. Returns (status_code, json). Raises ServiceUnavailable if unreachable."""
+    url = settings.SERVICE_URLS[service].rstrip("/") + path
+    try:
+        res = requests.post(url, json=body, headers={HEADER: settings.INTERNAL_API_TOKEN}, timeout=5)
+    except requests.RequestException as e:
+        raise ServiceUnavailable(f"{service} unreachable") from e
+    if res.status_code >= 500:
+        raise ServiceUnavailable(f"{service} answered {res.status_code}")
+    return res.status_code, (res.json() if res.content else {})
+
+
 class IsInternal(BasePermission):
     def has_permission(self, request, view):
         return request.headers.get(HEADER) == settings.INTERNAL_API_TOKEN

@@ -110,6 +110,15 @@ class AreaListView(generics.ListAPIView):
         return qs.filter(city__iexact=city) if city else qs
 
 
+class CityListView(APIView):
+    """Cities with at least one active area: launching a city is just adding its areas."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response(sorted(set(Area.objects.filter(is_active=True).values_list("city", flat=True))))
+
+
 class AddressViewSet(viewsets.ModelViewSet):
     serializer_class = AddressSerializer
     pagination_class = None
@@ -177,6 +186,17 @@ class InternalUserView(APIView):
         if user is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response({"id": user.id, "phone": user.phone, "full_name": user.full_name, "email": user.email, "role": user.role})
+
+
+class InternalUserByPhoneView(APIView):
+    permission_classes = [IsInternal]
+    authentication_classes = []
+
+    def get(self, request, phone):
+        user = User.objects.filter(phone=phone, is_active=True).first()
+        if user is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response({"id": user.id, "phone": user.phone, "full_name": user.full_name})
 
 
 class InternalUserIdsView(APIView):

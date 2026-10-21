@@ -1,4 +1,4 @@
-import { Icon, LanguageToggle, NotificationBell, t, useAuth } from "@shohor/web-core";
+import { CitySelect, Icon, LanguageToggle, NotificationBell, t, useAuth } from "@shohor/web-core";
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 
@@ -43,6 +43,7 @@ export default function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <CitySelect className="hidden sm:flex" />
           <LanguageToggle />
           {user && <NotificationBell />}
           <Link
@@ -75,6 +76,7 @@ export default function Header() {
                     ["/subscriptions/mine", t("আমার সাবস্ক্রিপশন")],
                     ["/custom-requests", t("কাস্টম রিকোয়েস্ট")],
                     ["/chat", t("চ্যাট ও সাপোর্ট")],
+                    ["/business", t("বিল্ডিং ও ব্যবসা পোর্টাল")],
                     ["/issues/mine", t("আমার রিপোর্ট")],
                     ["/wallet", t("ওয়ালেট ও পয়েন্ট")],
                     ["/notifications", t("নোটিফিকেশন")],

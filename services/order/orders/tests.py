@@ -202,3 +202,42 @@ def test_emergency_booking_today_with_surcharge(customer):
     booking = ok.data["bookings"][0]
     assert booking["is_emergency"] and booking["surcharge"] == "75.00" and booking["price"] == "375.00"
     assert ok.data["total"] == "375.00"
+
+
+@pytest.mark.django_db
+def test_points_discount_and_wallet_payment(customer, monkeypatch, captured_events):
+    calls = []
+
+    def fake_post(service, path, body):
+        calls.append(path)
+        if path.endswith("redeem-points/"):
+            return 200, {"discount": "100"}
+        if path.endswith("wallet-pay/"):
+            return 200, {"ok": True}
+        return 200, {}
+
+    monkeypatch.setattr(internal, "post", fake_post)
+    item = fill_cart(customer)
+    details = {str(item): {"scheduled_date": timezone.localdate().isoformat(), "slot": "09-11"}}
+    res = customer.post("/api/orders/", {**ADDRESS, "service_details": details, "redeem_points": 100, "payment_method": "wallet"}, format="json")
+    assert res.status_code == 201, res.data
+    assert res.data["discount"] == "100.00" and res.data["total"] == "560.00" and res.data["payment_status"] == "paid"
+    assert "booking.created" in [e for e, _ in captured_events]  # wallet-paid orders go straight to providers
+
+
+@pytest.mark.django_db
+def test_wallet_short_rolls_back_and_reverses(customer, monkeypatch):
+    calls = []
+
+    def fake_post(service, path, body):
+        calls.append(path)
+        return (400, {"wallet": ["Not enough"]}) if path.endswith("wallet-pay/") else (200, {"discount": "50"})
+
+    monkeypatch.setattr(internal, "post", fake_post)
+    fill_cart(customer)
+    item = customer.get("/api/cart/").data["items"][-1]["id"]
+    details = {str(item): {"scheduled_date": timezone.localdate().isoformat(), "slot": "09-11"}}
+    res = customer.post("/api/orders/", {**ADDRESS, "service_details": details, "redeem_points": 50, "payment_method": "wallet"}, format="json")
+    assert res.status_code == 400 and not Order.objects.exists()
+    assert calls[-1] == "/api/internal/loyalty/reverse/"
+    assert customer.get("/api/cart/").data["items"]  # cart kept

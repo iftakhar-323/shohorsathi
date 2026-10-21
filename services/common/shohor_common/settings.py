@@ -122,6 +122,8 @@ SERVICE_URLS = {
     "subscription": env("SUBSCRIPTION_URL", "http://subscription:8000"),
     "custom_request": env("CUSTOM_REQUEST_URL", "http://custom-request:8000"),
     "chat": env("CHAT_URL", "http://chat:8000"),
+    "loyalty": env("LOYALTY_URL", "http://loyalty:8000"),
+    "b2b": env("B2B_URL", "http://b2b:8000"),
 }
 # Shared secret for service-to-service calls that are not made on behalf of a user.
 INTERNAL_API_TOKEN = env("INTERNAL_API_TOKEN", "dev-internal-token")

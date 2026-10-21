@@ -11,3 +11,6 @@ CREATE DATABASE payment_db;
 CREATE DATABASE chat_db;
 CREATE DATABASE notification_db;
 CREATE DATABASE city_db;
+CREATE DATABASE loyalty_db;
+CREATE DATABASE b2b_db;
+CREATE DATABASE analytics_db;

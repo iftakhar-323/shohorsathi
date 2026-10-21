@@ -117,3 +117,12 @@ def test_mock_page_renders(customer):
     tran = start(customer).data["tran_id"]
     page = APIClient().get(f"/api/payments/mock/{tran}/")
     assert page.status_code == 200 and b"660.00" in page.content
+
+
+@pytest.mark.django_db
+def test_wallet_topup_is_released_at_once(monkeypatch):
+    PAYABLE["/api/internal/loyalty/topups/3/payable/"] = {"user_id": 7, "amount": "500.00", "payable": True}
+    client = auth_client("customer", user_id=7)
+    tran = client.post("/api/payments/initiate/", {"purpose": "wallet_topup", "reference_id": 3}, format="json").data["tran_id"]
+    res = pay(tran, amount="500.00")
+    assert "status=released" in res["Location"]

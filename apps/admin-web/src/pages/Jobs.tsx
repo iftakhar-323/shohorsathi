@@ -24,7 +24,7 @@ type Job = {
 };
 type Suggestion = { id: number; full_name: string; phone: string; rating_avg: string; rating_count: number; trust_score: number; is_online: boolean; jobs_completed: number };
 
-const SOURCES: Record<string, string> = { booking: "বুকিং", warranty: "ওয়ারেন্টি", custom_request: "কাস্টম", subscription_visit: "সাবস্ক্রিপশন" };
+const SOURCES: Record<string, string> = { booking: "বুকিং", warranty: "ওয়ারেন্টি", custom_request: "কাস্টম", subscription_visit: "সাবস্ক্রিপশন", b2b_visit: "রক্ষণাবেক্ষণ চুক্তি" };
 
 function AssignPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const { data: suggestions, isPending } = useQuery({

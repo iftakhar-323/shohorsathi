@@ -20,7 +20,31 @@ export type CatalogItem = {
 export type Service = CatalogItem & { base_price: string; price_note: string; duration_minutes: number; warranty_days: number; emergency_available: boolean };
 export type Product = CatalogItem & { price: string; unit: string; stock: number; shop_name: string };
 
-export function useAreas(city?: string) {
+const CITY_KEY = "shohor.city";
+
+/** The city the customer browses in (remembered per browser); empty means all cities. */
+export function getCity(): string {
+  try {
+    return localStorage.getItem(CITY_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function setCity(city: string) {
+  try {
+    if (city) localStorage.setItem(CITY_KEY, city);
+    else localStorage.removeItem(CITY_KEY);
+  } catch {
+    // not remembered
+  }
+}
+
+export function useCities() {
+  return useQuery({ queryKey: ["cities"], queryFn: async () => (await api.get<string[]>("/cities/")).data, staleTime: 10 * 60_000 });
+}
+
+export function useAreas(city: string = getCity()) {
   return useQuery({
     queryKey: ["areas", city],
     queryFn: async () => (await api.get<Area[]>("/areas/", { params: city ? { city } : {} })).data,
@@ -57,7 +81,7 @@ export function areaName(areas: Area[] | undefined, id: number) {
 }
 
 /** Starts an online payment and sends the browser to the gateway (SSLCommerz or the dev mock page). */
-export async function payOnline(purpose: "order" | "subscription" | "custom_request_advance", referenceId: number) {
+export async function payOnline(purpose: "order" | "subscription" | "custom_request_advance" | "wallet_topup", referenceId: number) {
   const { data } = await api.post<{ tran_id: string; redirect_url: string }>("/payments/initiate/", { purpose, reference_id: referenceId });
   window.location.href = data.redirect_url;
 }

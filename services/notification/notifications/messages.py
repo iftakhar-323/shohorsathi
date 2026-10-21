@@ -84,6 +84,12 @@ def build(event, p):
         return [Note(p["user_id"], event, "রিফান্ড হয়েছে", "Refund issued", f"৳{p['amount']} ফেরত পাঠানো হয়েছে", f"৳{p['amount']} has been refunded", sms=True)]
     if event == "chat.message":
         return [Note(p["user_id"], event, f"{p['from']}-এর বার্তা", f"Message from {p['from']}", p["preview"], p["preview"], f"/chat/{p['conversation_id']}")]
+    if event == "loyalty.points_earned":
+        return [Note(p["user_id"], event, f"{p['points']} পয়েন্ট পেয়েছেন", f"You earned {p['points']} points",
+                     f"মোট {p['total']} পয়েন্ট", f"{p['total']} points in total", "/wallet")]
+    if event == "b2b.invoice_issued":
+        return [Note(p["user_id"], event, f"ইনভয়েস {p['number']}", f"Invoice {p['number']}", f"মোট ৳{p['total']}",
+                     f"Total ৳{p['total']}", f"/business/{p['organization_id']}", sms=True)]
     if event == "issue.status_changed":
         return [Note(p["user_id"], event, "আপনার রিপোর্টের আপডেট", "Update on your report", p.get("title", ""), p.get("title", ""), f"/issues/{p['issue_id']}")]
     return []
