@@ -7,8 +7,8 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
-staticfiles/
-media/
+/staticfiles/
+/media/
 
 # node
 node_modules/

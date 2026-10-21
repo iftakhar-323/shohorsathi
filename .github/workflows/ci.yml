@@ -9,6 +9,7 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         service: [auth, catalog, order, provider, custom_request, media]
     services:
