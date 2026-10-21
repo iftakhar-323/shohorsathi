@@ -16,6 +16,7 @@ import {
   TextArea,
   Timeline,
   api,
+  getCity,
   errorMessage,
   formatDate,
   getLang,
@@ -110,7 +111,7 @@ export function IssuesHome({ mine = false }: { mine?: boolean }) {
   const [status, setStatus] = useState("reported,forwarded,in_progress");
   const [near, setNear] = useState<[number, number] | null>(null);
   const [locError, setLocError] = useState("");
-  const params = { category: category || undefined, status: status || undefined, area: near || mine ? undefined : area, near: near ? near.join(",") : undefined, radius_km: near ? 2 : undefined, mine: mine ? 1 : undefined, sort: "top" };
+  const params = { category: category || undefined, status: status || undefined, area: near || mine ? undefined : area, city: near || mine || area ? undefined : getCity() || undefined, near: near ? near.join(",") : undefined, radius_km: near ? 2 : undefined, mine: mine ? 1 : undefined, sort: "top" };
   const { data, isPending } = useQuery({ queryKey: ["issues", params], queryFn: async () => (await api.get<Paginated<Issue>>("/issues/", { params })).data });
 
   function nearMe() {

@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Empty, ErrorNote, Icon, Loading, PageHeader, PhotoUpload, Select, TextArea, api, errorMessage, formatDateTime, localName, t, useAreas, useAuth, type Paginated } from "@shohor/web-core";
+import { Badge, Button, Card, Empty, ErrorNote, Icon, Loading, PageHeader, PhotoUpload, Select, TextArea, api, errorMessage, formatDateTime, getCity, localName, t, useAreas, useAuth, type Paginated } from "@shohor/web-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
@@ -84,7 +84,7 @@ export default function Community() {
   const [kind, setKind] = useState("");
   const { data, isPending } = useQuery({
     queryKey: ["posts", area, kind],
-    queryFn: async () => (await api.get<Paginated<Post>>("/community/posts/", { params: { area, kind: kind || undefined } })).data,
+    queryFn: async () => (await api.get<Paginated<Post>>("/community/posts/", { params: { area, city: area ? undefined : getCity() || undefined, kind: kind || undefined } })).data,
   });
   const [f, setF] = useState({ kind: "tip", body: "", provider_name: "" });
   const [photos, setPhotos] = useState<string[]>([]);

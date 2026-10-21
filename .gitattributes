@@ -1,0 +1,11 @@
+# Enforce LF line endings across all platforms (prevents Windows CRLF breaking bash scripts)
+* text=auto
+*.sh text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.map text eol=lf
+Dockerfile* text eol=lf
+.env* text eol=lf
+

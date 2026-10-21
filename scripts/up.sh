@@ -6,7 +6,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-for tool in docker python3 openssl curl; do
+# Find python (python3 on Linux/macOS, often python on Windows)
+if command -v python3 >/dev/null 2>&1; then
+  PY="python3"
+elif command -v python >/dev/null 2>&1; then
+  PY="python"
+else
+  echo "missing: python3 or python (see SETUP.md)"; exit 1
+fi
+
+for tool in docker "$PY" openssl curl; do
   command -v "$tool" >/dev/null || { echo "missing: $tool (see SETUP.md)"; exit 1; }
 done
 docker compose version >/dev/null 2>&1 || { echo "missing: Docker Compose v2 ('docker compose')"; exit 1; }
@@ -15,7 +24,7 @@ docker compose version >/dev/null 2>&1 || { echo "missing: Docker Compose v2 ('d
 ./scripts/gen-jwt-keys.sh
 
 # One image at a time: building all of them in parallel needs more than 8 GB of RAM.
-services=$(docker compose config --format json | python3 -c 'import json,sys; print(" ".join(n for n, s in json.load(sys.stdin)["services"].items() if "build" in s))')
+services=$(docker compose config --format json | $PY -c 'import json,sys; print(" ".join(n for n, s in json.load(sys.stdin)["services"].items() if "build" in s))')
 total=$(echo "$services" | wc -w); i=0
 for s in $services; do
   i=$((i + 1)); echo "[$i/$total] building $s"
@@ -42,7 +51,7 @@ if [ "${1:-}" = "--demo" ]; then
         -d '{"phone":"01700000000","password":"demo1234"}' "$gateway/api/auth/login/")" = 200 ]; then
     echo "demo data is already loaded (to start over: docker compose down -v && scripts/up.sh --demo)"
   else
-    python3 scripts/seed_demo.py "$gateway"
+    $PY scripts/seed_demo.py "$gateway"
   fi
 fi
 echo "next: pnpm install (first time) and pnpm dev  → http://localhost:5173 · :5174 · :5175"

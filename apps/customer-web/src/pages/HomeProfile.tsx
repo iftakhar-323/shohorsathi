@@ -35,6 +35,8 @@ interface HomeProfileData {
   reminders: Reminder[];
 }
 
+const PROPERTY_TYPES: Record<string, string> = { apartment: "ফ্ল্যাট / অ্যাপার্টমেন্ট", house: "বাড়ি / ডুপ্লেক্স", office: "অফিস / বাণিজ্যিক" };
+
 export default function HomeProfile() {
   const [profile, setProfile] = useState<HomeProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -229,7 +231,7 @@ export default function HomeProfile() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                   <div className="p-2.5 rounded-lg bg-surface-tint border border-line">
                     <span className="text-xs text-ink-muted block">{t("প্রপার্টি ধরন")}</span>
-                    <span className="font-semibold text-ink capitalize">{profile.property_type}</span>
+                    <span className="font-semibold text-ink">{t(PROPERTY_TYPES[profile.property_type] ?? profile.property_type)}</span>
                   </div>
                   <div className="p-2.5 rounded-lg bg-surface-tint border border-line">
                     <span className="text-xs text-ink-muted block">{t("আয়তন")}</span>

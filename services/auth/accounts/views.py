@@ -260,7 +260,7 @@ class HomeProfileViewSet(viewsets.ModelViewSet):
                 recommended_service_slug="ac-cleaning",
                 due_date=today + timedelta(days=90),
                 frequency_days=180,
-                notes="Recommended every 6 months to maintain cooling efficiency.",
+                notes="ঠান্ডা ঠিক রাখতে প্রতি ৬ মাসে সার্ভিসিং করানো ভালো।",
             )
         if profile.water_purifier:
             HomeReminder.objects.create(
@@ -271,7 +271,7 @@ class HomeProfileViewSet(viewsets.ModelViewSet):
                 recommended_service_slug="plumber-visit",
                 due_date=today + timedelta(days=60),
                 frequency_days=90,
-                notes="Replace sediment & carbon filters for pure drinking water.",
+                notes="বিশুদ্ধ পানির জন্য সেডিমেন্ট ও কার্বন ফিল্টার বদলান।",
             )
 
     @action(detail=True, methods=["get"])

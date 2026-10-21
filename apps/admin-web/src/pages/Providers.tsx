@@ -1,4 +1,9 @@
 import { api, areaName, Badge, Button, errorMessage, ErrorNote, formatDate, Modal, PageHeader, StatusBadge, t, useAreas } from "@shohor/web-core";
+
+const PROVIDER_TYPES: Record<string, string> = {
+  electrician: "ইলেকট্রিশিয়ান", plumber: "প্লাম্বার", cleaner: "ক্লিনার", ac_technician: "এসি টেকনিশিয়ান", painter: "পেইন্টার",
+  pest_control: "পেস্ট কন্ট্রোল", home_chef: "হোম শেফ", rider: "রাইডার", helper: "হেল্পার", other: "অন্যান্য",
+};
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -33,7 +38,7 @@ export default function Providers() {
   const [status, setStatus] = useState("pending");
   const [q, setQ] = useState("");
   const { data, isPending } = usePaged<Provider>(["admin-providers"], "/admin/providers/", { status: status || undefined, q: q || undefined });
-  const { data: areas } = useAreas();
+  const { data: areas } = useAreas("");  // every city, so providers from other cities show their area names
   const [open, setOpen] = useState<Provider | null>(null);
   const [error, setError] = useState("");
   const qc = useQueryClient();
@@ -77,7 +82,7 @@ export default function Providers() {
         onRowClick={setOpen}
         columns={[
           { label: t("নাম"), render: (p) => <><span className="font-semibold">{p.full_name}</span><span className="block text-[13px] text-muted">{p.phone}</span></> },
-          { label: t("ধরন"), render: (p) => p.provider_type },
+          { label: t("ধরন"), render: (p) => t(PROVIDER_TYPES[p.provider_type] ?? p.provider_type) },
           { label: t("এলাকা"), render: (p) => p.area_ids.map((id) => areaName(areas, id)).join(", ") },
           { label: t("কাজ / রেটিং"), render: (p) => `${p.jobs_completed} · ${p.rating_count ? `${p.rating_avg}★` : "—"}` },
           { label: t("ট্রাস্ট"), render: (p) => p.trust_score },
@@ -90,7 +95,7 @@ export default function Providers() {
           <>
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={open.status} />
-              <Badge>{open.provider_type}</Badge>
+              <Badge>{t(PROVIDER_TYPES[open.provider_type] ?? open.provider_type)}</Badge>
               {open.gender && <Badge>{open.gender === "female" ? t("মহিলা") : t("পুরুষ")}</Badge>}
               {open.is_online && <Badge tone="ok">{t("অনলাইন")}</Badge>}
             </div>

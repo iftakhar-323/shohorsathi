@@ -130,3 +130,18 @@ def test_authority_feed_link_lists_and_resolves_its_issues(reporter, captured_ev
     assert office.get(f"/api/issues/feed/{token}/").status_code == 404
     export = admin.get("/api/admin/issues/export/")
     assert export.status_code == 200 and "Broken streetlight" in export.content.decode("utf-8-sig")
+
+
+@pytest.mark.django_db
+def test_issue_and_post_lists_filter_by_city(reporter, monkeypatch):
+    from city_app import transparency
+
+    monkeypatch.setattr(transparency, "city_area_ids", lambda city: [9] if city == "Khulna" else [3])
+    reporter.post("/api/issues/", SPOT, format="json")  # area 3 (Dhaka)
+    reporter.post("/api/issues/", {**SPOT, "area_id": 9, "area_name": "সোনাডাঙ্গা", "latitude": "22.815500", "longitude": "89.548000"}, format="json")
+    titles = lambda city: [i["area_id"] for i in APIClient().get(f"/api/issues/?city={city}").data["results"]]
+    assert titles("Khulna") == [9] and titles("Dhaka") == [3]
+    assert len(APIClient().get("/api/issues/").data["results"]) == 2
+    reporter.post("/api/community/posts/", {"area_id": 9, "area_name": "সোনাডাঙ্গা", "kind": "tip", "body": "খুলনা"}, format="json")
+    reporter.post("/api/community/posts/", {"area_id": 3, "area_name": "Mirpur", "kind": "tip", "body": "ঢাকা"}, format="json")
+    assert [p["body"] for p in APIClient().get("/api/community/posts/?city=Khulna").data["results"]] == ["খুলনা"]

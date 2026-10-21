@@ -81,6 +81,8 @@ class IssueViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Ge
         p = self.request.query_params
         if a := p.get("area"):
             qs = qs.filter(area_id=a)
+        elif city := p.get("city"):
+            qs = qs.filter(area_id__in=transparency.city_area_ids(city))
         if c := p.get("category"):
             qs = qs.filter(category__in=c.split(","))
         if s := p.get("status"):
@@ -138,6 +140,8 @@ class AdminIssueViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
             qs = qs.filter(category=c)
         if a := p.get("area"):
             qs = qs.filter(area_id=a)
+        elif city := p.get("city"):
+            qs = qs.filter(area_id__in=transparency.city_area_ids(city))
         return qs
 
     @action(detail=True, methods=["post"])
@@ -259,6 +263,8 @@ class PostViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Destroy
         p = self.request.query_params
         if a := p.get("area"):
             qs = qs.filter(area_id=a)
+        elif city := p.get("city"):
+            qs = qs.filter(area_id__in=transparency.city_area_ids(city))
         if k := p.get("kind"):
             qs = qs.filter(kind=k)
         if uid(self.request):

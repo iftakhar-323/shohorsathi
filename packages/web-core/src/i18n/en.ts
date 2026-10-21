@@ -1316,4 +1316,8 @@ export const EN: Record<string, string> = {
   "কুমিল্লা": "Cumilla",
   "গাজীপুর": "Gazipur",
   "নারায়ণগঞ্জ": "Narayanganj",
+  "{n}টি চলমান": "{n} open",
+  "ফ্ল্যাট / অ্যাপার্টমেন্ট": "Flat / apartment",
+  "বাড়ি / ডুপ্লেক্স": "House / duplex",
+  "অফিস / বাণিজ্যিক": "Office / commercial",
 };

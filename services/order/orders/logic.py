@@ -233,7 +233,9 @@ def payment_refunded(payload):
 
 def status_payload(order):
     return {"order_id": order.id, "user_id": order.user_id, "status": order.status, "total": str(order.total),
-            "payment_method": order.payment_method, "organization_id": order.organization_id}
+            "payment_method": order.payment_method, "organization_id": order.organization_id,
+            # lets analytics count completed orders and revenue per area and city
+            "area_id": order.area_id, "area_name": order.area_name}
 
 
 def refresh_order_status(order):

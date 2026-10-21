@@ -2,6 +2,7 @@
   "name": "shohorsathi",
   "private": true,
   "scripts": {
+    "server": "python scripts/standalone_server.py",
     "dev": "pnpm --parallel --filter customer-web --filter provider-web --filter admin-web dev",
     "dev:customer": "pnpm --filter customer-web dev",
     "dev:provider": "pnpm --filter provider-web dev",

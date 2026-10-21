@@ -14,7 +14,7 @@ function ItemForm({ kind, item, onDone }: { kind: Kind; item: Row | null; onDone
     queryKey: ["admin-categories"],
     queryFn: async () => (await api.get<Category[]>("/categories/")).data,
   });
-  const { data: areas } = useAreas();
+  const { data: areas } = useAreas("");  // catalog items can be limited to areas of any city
   const blank: Row =
     kind === "categories"
       ? { id: 0, slug: "", kind: "service", name_en: "", name_bn: "", sort_order: 0, is_active: true, parent: null }

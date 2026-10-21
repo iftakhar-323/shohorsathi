@@ -1,62 +1,100 @@
-# ShohorSathi demo guide
+# ShohorSathi Demonstration Guide
 
-How to bring up a fully populated ShohorSathi on one laptop and walk through it in about 15 minutes.
+Step-by-step walkthrough to present the entire ShohorSathi platform on a single laptop in approximately 15 minutes.
 
-## 1. Start with demo data
+---
 
-Full instructions from a fresh clone are in [SETUP.md](SETUP.md). In short:
+## 1. Starting with Demo Data
+
+Complete installation instructions from a clean clone are detailed in [SETUP.md](SETUP.md).
+
+### Quick Start:
 
 ```bash
-scripts/up.sh --demo     # backend + demo data (photos, accounts, orders, city issues, offers, analytics history)
-pnpm install             # first time only
-pnpm dev                 # the three apps
+# Option A: Zero-Docker Mode (instant, lightweight, no Docker needed):
+python scripts/standalone_server.py
+# (in another terminal):
+pnpm install && pnpm dev
+
+# Option B: Full Docker Mode:
+scripts/up.sh --demo
+# (in another terminal):
+pnpm install && pnpm dev
 ```
 
-For fresh demo data before a presentation: `docker compose down -v && scripts/up.sh --demo` (deletes all data).
+To reset the database to a clean demo state prior to a formal demonstration:
+`docker compose down -v && scripts/up.sh --demo` (or restart `python scripts/standalone_server.py`).
 
-| App | URL | Log in as (password `demo1234` for all) |
+| Application | URL | Demo Account (Password: `demo1234` for all) |
 |---|---|---|
-| Customer site | http://localhost:5173 | Dhaka: `01711000001` রহিম (tenant, Dhanmondi) · `01711000002` নুসরাত · `01711000003` তানভীর · Khulna: `01711000004` ফারহানা · `01711000005` আরিফ · `01711000006` সুমাইয়া · `01711000007` রাকিব · `01711000008` তাসলিমা |
-| Provider portal | http://localhost:5174 | Dhaka: `01811000001` করিম · `01811000002` সালমা · `01811000003` জামাল · Khulna: `01811000004` মাসুদ · `01811000005` রেহানা · `01811000006` সাইফুল · `01811000007` নাজমুল |
-| Admin panel | http://localhost:5175 | `01700000000` |
+| **Customer Site** | http://localhost:5173 | Dhaka: `01711000001` (Rahim - tenant, Dhanmondi) · `01711000002` (Nusrat) · `01711000003` (Tanvir)<br>Khulna: `01711000004` (Farhana) · `01711000005` (Arif) · `01711000006` (Sumaiya) |
+| **Provider Portal** | http://localhost:5174 | Dhaka: `01811000001` (Karim - Electrician) · `01811000002` (Salma - Cleaner) · `01811000003` (Jamal - AC)<br>Khulna: `01811000004` (Masud) · `01811000005` (Rehana) · `01811000006` (Saiful) |
+| **Admin Panel** | http://localhost:5175 | `01700000000` (Super Admin) |
 
-New sign-ups need an OTP: in development it is printed in `docker compose logs auth` (search for `OTP for`).
+---
 
-## 2. Suggested walkthrough
+## 2. Recommended Presentation Walkthrough
 
-1. **Customer home** (signed out): Bangla by default, `English` button switches language; seasonal packages with photos;
-   neighbourhood group deal; emergency panel.
-2. **Services → এসি ক্লিনিং → book**: date, slot, problem photo, "female provider" option → cart → checkout
-   (cash, bKash/Nagad, points, tenant/landlord option).
-3. **Sign in as রহিম**: *My orders* → completed electrician order (timeline, before photo, 5★ review, warranty claim);
-   upcoming AC booking (arrival code, live share link for family, SOS button).
-4. **AI quote**: type "বাথরুমের পাইপ থেকে পানি পড়ছে" or upload a photo → suggested service and price range.
-   With `ANTHROPIC_API_KEY` in `.env` Claude looks at the photo; without it a keyword match answers (the page says which).
-5. **Home profile**: health score, upkeep reminders, tenant mode with the landlord's number.
-6. **Khulna** (pick খুলনা in the header's city picker): 15 areas — সোনাডাঙ্গা, খালিশপুর, দৌলতপুর, বয়রা, গল্লামারী, নিরালা,
-   শিববাড়ী, ডাকবাংলো, ময়লাপোতা, টুটপাড়া, লবণচরা, রূপসা, খান জাহান আলী, ফুলবাড়ীগেট, রায়েরমহল.
-   - **City problems:** 16 photo reports covering all 8 kinds (garbage, street lights, waterlogging, broken roads, drains,
-     mosquitoes, water supply, other such as hanging power lines), each sent to the right office — KCC Conservancy,
-     KCC Engineering, KCC Health (mosquito control), Khulna WASA, WZPDCL — and in every state from *reported* to
-     *resolved* (one *rejected* with the reason).
-   - **Services:** 14 orders covering every service type — electrician, AC cleaning and gas, cockroach control,
-     fridge repair and sink repair done and reviewed; deep clean, wall painting and house shifting booked; plumbing,
-     mosquito fogging and kitchen cleaning waiting for a provider. Sign in as সাইফুল (`01811000006`) to see the
-     plumbing job in *নতুন কাজ*, or as আরিফ (`01711000005`) for a customer's view.
-   - Also: cleaning subscription, IPS quote, 2 home profiles, 9 community posts, a Khulna monsoon package with a
-     Sundarbans photo, group deals in Khalishpur and Nirala.
-7. **City problems** → map with 20 photo reports in Dhaka and Khulna → **Transparency dashboard** (public, per authority, no personal data).
-8. **Provider portal as করিম**: job inbox, finished job (rate the customer), earnings and instant payout, training,
-   insurance. As সালমা: the cleaning job waiting in *নতুন কাজ*, training badge.
-9. **Admin panel**: dashboard; orders; providers; city issues (forward to an authority, CSV export, authority feed link);
-   **গ্রুপ ডিল ও অফার** (deals, seasonal packages, sponsored listing); **অ্যানালিটিক্স** → demand forecast,
-   customers at risk (send a come-back note), fraud signals; the city filter includes Khulna.
+### 1. Customer Home Experience (Guest View)
+- Displays bilingual toggle in header (Bangla / English switch).
+- Hero section with live search and Bengali voice recognition button (`bn-BD`).
+- Seasonal campaign banners with imagery (e.g., Eid deep cleaning, Monsoon waterproofing, Summer AC tune-up).
+- Neighbourhood group deals section with real-time participation status and target lock-in progress.
+- 1-click Emergency service assistance drawer.
 
-## 3. Good to know
+### 2. Service Booking Flow
+- Navigate to **Services → AC Cleaning → Book**:
+  - Select service date, time slot, and attach problem photos.
+  - Optional toggle: **"Female Provider Preferred"** (dispatched exclusively to verified female technicians).
+- Add to cart → Checkout:
+  - Payment choices: Cash on delivery, bKash / Nagad direct payments, loyalty reward points redemption.
+  - Tenant / Landlord mode toggle: allows entering landlord's phone number for repair expense approval.
 
-- The analytics history behind the forecast / churn / fraud tabs is **synthetic** (8 weeks, customer ids `#9000+`),
-  generated by `scripts/demo_analytics_history.py` so the charts have something to show.
-- Payments run against a mock gateway; SMS and WhatsApp messages are logged to the console instead of being sent.
-- Photos are free stock images (Pexels / Unsplash licences); sources are listed in `demo/images/CREDITS.md`.
-- Re-check everything in a browser: `cd apps/e2e && npx playwright test tests/demo-tour.spec.ts` opens every page of the
-  three apps, fails on JavaScript or API errors, and saves full-page screenshots in `apps/e2e/test-results/tour/`.
+### 3. Customer Dashboard & Safety (Sign in as Rahim: `01711000001`)
+- **My Orders:**
+  - Completed order view: service timeline, photo evidence before/after, 5-star customer review, warranty certificate.
+  - Upcoming booking view: secure 4-digit arrival verification code, live family tracking shareable URL, SOS emergency button.
+
+### 4. AI Photo Quote & Diagnostic Analysis (`/ai-quote`)
+- Interactive sample problem selector: Click on sample images (AC water leakage, pipe burst, burnt electrical wall outlet).
+- Claude Vision AI analyzes the visual damage or text description:
+  - Identifies the specific root cause and severity level (Low / Medium / High / Critical).
+  - Provides estimated price range in BDT and recommended catalog service.
+  - 1-click "Book Recommended Service" button for instant resolution.
+
+### 5. Digital Home Profile & Health Meter (`/home-profile`)
+- Displays overall Home Health Score (e.g., 88/100) based on age of electrical wiring, plumbing, and appliances.
+- Upcoming maintenance reminders (e.g., AC filter cleaning, water purifier filter change).
+- Tenant & Landlord mode: displays pre-authorized repair cost limits and landlord contact details.
+- Landlord-approved orders automatically generate an official printable **Rent Deduction Voucher**.
+
+### 6. Multi-City Expansion (Khulna & Chattogram)
+- Switch city to **Khulna** via the header city selector:
+  - 15 real urban coverage areas: Sonadanga, Khalishpur, Daulatpur, Boyra, Gollamari, Nirala, Shibbari, Dakbangla, Moylapota, Tutpara, Labanchara, Rupsha, Khan Jahan Ali, Fulbari Gate, Rayermahal.
+  - **City Issues:** 16 verified photo reports across 8 categories (waste management, streetlight failure, waterlogging, damaged roads, open drains, mosquito breeding, water supply disruptions).
+  - Forwarded to specific municipal authorities (KCC Conservancy, KCC Engineering, KCC Health, Khulna WASA, WZPDCL).
+  - Public **Transparency Dashboard** showing median resolution turnaround times, resolution rates, and zero personal data exposure.
+
+### 7. Provider Portal Experience (Sign in as Karim: `01811000001`)
+- **Job Inbox:** Displays available, in-progress, and past jobs.
+- **Two-Way Rating:** Providers can rate customers after job completion.
+- **Earnings & Instant Payout:** View accumulated earnings and request instant disbursement to bKash wallet.
+- **Training & Badges:** Interactive safety training modules with quiz verification, issuing digital completion certificates and profile verification badges.
+- **Micro-Insurance:** Micro-insurance policy enrollment and claim filing for on-duty health or accident protection.
+
+### 8. Admin Control Center (Sign in as Admin: `01700000000`)
+- Executive platform dashboard: real-time GMV, order completion rates, and provider capacity.
+- **City Issues Management:** Forward citizen reports to relevant civic agencies, download CSV feeds, and review resolution photos.
+- **Group Deals & Promotions:** Create neighbourhood group deals, schedule seasonal discount packages, and manage sponsored service placements.
+- **Analytics & Machine Learning Insights:**
+  - 7-day demand forecasting model per service category.
+  - Churn prediction identifying at-risk customers with 1-click win-back campaign triggers.
+  - Fraud detection signals (burst bookings, address clustering, unusual cancellation patterns).
+
+---
+
+## 3. Important Presentation Notes
+
+- **Synthetic Analytics History:** Analytics metrics for forecasting, customer churn, and fraud signals include an 8-week synthetic historical baseline (customer IDs `#9000+`) generated by `scripts/demo_analytics_history.py` to ensure visual clarity during evaluations.
+- **Payment & Messaging Simulation:** Payments run against a mock gateway; SMS and WhatsApp notifications are cleanly logged to the development console.
+- **Automated Browser Tour Test:** Run `cd apps/e2e && npx playwright test tests/demo-tour.spec.ts` to automatically navigate every screen across all three applications and capture full-page verification screenshots in `apps/e2e/test-results/tour/`.

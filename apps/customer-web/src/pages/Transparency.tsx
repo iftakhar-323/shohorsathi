@@ -1,4 +1,4 @@
-import { Card, Loading, PageHeader, Select, Stat, api, formatNumber, getLang, t } from "@shohor/web-core";
+import { Card, Loading, PageHeader, Select, Stat, api, cityName, formatNumber, getCity, getLang, t } from "@shohor/web-core";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -30,16 +30,17 @@ function Progress({ done, total }: { done: number; total: number }) {
 /** Public: how many city problems were reported through ShohorSathi, how many got fixed, by whom, how fast. */
 export default function Transparency() {
   const [period, setPeriod] = useState("90");
+  const city = getCity();
   const { data, isPending } = useQuery({
-    queryKey: ["transparency", period],
-    queryFn: async () => (await api.get<Report>("/issues/transparency/", { params: { days: period } })).data,
+    queryKey: ["transparency", period, city],
+    queryFn: async () => (await api.get<Report>("/issues/transparency/", { params: { days: period, city: city || undefined } })).data,
   });
   const en = getLang() === "en";
 
   return (
     <section className="mx-auto flex max-w-[1100px] flex-col gap-6 px-4 py-8 sm:px-6">
       <PageHeader
-        title={t("শহরের স্বচ্ছতা ড্যাশবোর্ড")}
+        title={city ? `${t("শহরের স্বচ্ছতা ড্যাশবোর্ড")} — ${cityName(city)}` : t("শহরের স্বচ্ছতা ড্যাশবোর্ড")}
         subtitle={t("নাগরিকদের রিপোর্ট করা সমস্যা কতটা, কত দ্রুত এবং কোন কর্তৃপক্ষ সমাধান করছে")}
         actions={<Select label={t("সময়")} value={period} onChange={(e) => setPeriod(e.target.value)} options={[{ value: "30", label: t("৩০ দিন") }, { value: "90", label: t("৯০ দিন") }, { value: "365", label: t("১ বছর") }]} />}
       />
@@ -85,7 +86,7 @@ export default function Transparency() {
               {data.open_hotspots.map((h) => (
                 <div key={h.area_id} className="flex justify-between border-b border-subtle py-1.5 last:border-0">
                   <span>{h.area_name}</span>
-                  <span className="font-semibold tabular-nums">{formatNumber(h.n)}</span>
+                  <span className="font-semibold tabular-nums">{t("{n}টি চলমান", { n: formatNumber(h.n) })}</span>
                 </div>
               ))}
             </Card>
