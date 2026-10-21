@@ -82,3 +82,36 @@ def test_only_one_default_address(client):
     addresses = client.get("/api/me/addresses/").data
     assert [a["is_default"] for a in addresses] == [True, False]
     assert addresses[1]["id"] == first.data["id"]
+
+
+@pytest.mark.django_db
+def test_refresh_picks_up_role_change(client):
+    tokens = register(client).data
+    from accounts.tasks import provider_approved
+
+    provider_approved({"user_id": User.objects.get(phone=PHONE).id})
+    res = client.post("/api/auth/token/refresh/", {"refresh": tokens["refresh"]}, format="json")
+    assert res.status_code == 200
+    assert AccessToken(res.data["access"])["role"] == "provider"
+    # the old refresh token is spent
+    again = client.post("/api/auth/token/refresh/", {"refresh": tokens["refresh"]}, format="json")
+    assert again.status_code == 401
+
+
+@pytest.mark.django_db
+def test_admin_blocks_user_and_blocked_user_cannot_refresh(client):
+    tokens = register(client).data
+    admin = User.objects.create_superuser(phone="01999999999", password="admin-pass-123", full_name="Admin")
+    login = client.post("/api/auth/login/", {"phone": admin.phone, "password": "admin-pass-123"}, format="json")
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")
+    target = User.objects.get(phone=PHONE)
+    assert client.post(f"/api/admin/users/{target.id}/block/").data["is_active"] is False
+    client.credentials()
+    assert client.post("/api/auth/token/refresh/", {"refresh": tokens["refresh"]}, format="json").status_code == 401
+
+
+@pytest.mark.django_db
+def test_customer_cannot_manage_areas(client):
+    tokens = register(client).data
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
+    assert client.post("/api/admin/areas/", {"name_en": "X", "name_bn": "X"}, format="json").status_code == 403

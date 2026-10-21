@@ -9,10 +9,12 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ["id", "kind", "parent", "slug", "name_en", "name_bn", "sort_order", "is_active"]
 
 
-ITEM_FIELDS = ["id", "category", "slug", "name_en", "name_bn", "description", "image_url", "area_ids", "is_active"]
+ITEM_FIELDS = ["id", "category", "category_slug", "slug", "name_en", "name_bn", "description", "image_url", "area_ids", "is_active"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    category_slug = serializers.CharField(source="category.slug", read_only=True)
+
     class Meta:
         model = Product
         fields = ITEM_FIELDS + ["price", "unit", "stock", "shop_name"]
@@ -24,6 +26,8 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class ServiceSerializer(serializers.ModelSerializer):
+    category_slug = serializers.CharField(source="category.slug", read_only=True)
+
     class Meta:
         model = Service
         fields = ITEM_FIELDS + ["base_price", "price_note", "duration_minutes", "warranty_days", "emergency_available"]

@@ -1,12 +1,16 @@
+import { Icon, useServices, type IconName } from "@shohor/web-core";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-import { useServices } from "../api/catalog";
-import Icon, { type IconName } from "../components/Icon";
-import { formatTaka } from "../lib/format";
+import { ServiceCard } from "./Services";
 
 const quickSearches = ["ইলেকট্রিশিয়ান", "প্লাম্বার", "এসি সার্ভিস", "হোম ক্লিনিং", "পেস্ট কন্ট্রোল"];
-const emergencies = ["গ্যাস লিক", "শর্ট সার্কিট", "পাইপ ফেটেছে", "লিফট আটকে"];
+const emergencies = [
+  { label: "গ্যাস লিক", category: "plumbing" },
+  { label: "শর্ট সার্কিট", category: "electrical" },
+  { label: "পাইপ ফেটেছে", category: "plumbing" },
+  { label: "বিদ্যুৎ নেই", category: "electrical" },
+];
 
 const layers: { to: string; icon: IconName; title: string; body: string; tone: string }[] = [
   {
@@ -45,6 +49,7 @@ export default function Home() {
 
 function Hero() {
   const [query, setQuery] = useState("");
+  const navigate = useNavigate();
 
   return (
     <section className="mx-auto flex max-w-[1200px] flex-wrap items-stretch gap-8 px-6 pt-12 pb-8">
@@ -64,7 +69,10 @@ function Hero() {
         <form
           role="search"
           className="flex max-w-[620px] gap-2 rounded-2xl border border-line bg-surface p-2"
-          onSubmit={(e) => e.preventDefault()}
+          onSubmit={(e) => {
+            e.preventDefault();
+            navigate(`/services?q=${encodeURIComponent(query)}`);
+          }}
         >
           <label htmlFor="hero-search" className="sr-only">
             সার্ভিস বা পণ্য খুঁজুন
@@ -94,7 +102,7 @@ function Hero() {
             <button
               key={label}
               type="button"
-              onClick={() => setQuery(label)}
+              onClick={() => navigate(`/services?q=${encodeURIComponent(label)}`)}
               className="rounded-full border border-line bg-surface px-4 py-2.5 text-[15px]"
             >
               {label}
@@ -112,19 +120,19 @@ function Hero() {
         </div>
         <p className="m-0 leading-relaxed text-night-text">এক ট্যাপে কাছের প্রোভাইডারকে অ্যালার্ট। প্রায়োরিটি চার্জ প্রযোজ্য।</p>
         <div className="grid grid-cols-2 gap-2.5">
-          {emergencies.map((label) => (
-            <button
-              key={label}
-              type="button"
-              className="min-h-13 rounded-2xl border border-night-line bg-night-raised text-[15px] font-medium"
+          {emergencies.map((e) => (
+            <Link
+              key={e.label}
+              to={`/services?category=${e.category}&emergency=1`}
+              className="flex min-h-13 items-center justify-center rounded-2xl border border-night-line bg-night-raised text-[15px] font-medium text-white no-underline"
             >
-              {label}
-            </button>
+              {e.label}
+            </Link>
           ))}
         </div>
-        <button type="button" className="mt-auto h-13 rounded-2xl bg-alert text-[17px] font-bold text-ink">
+        <Link to="/services?emergency=1" className="mt-auto flex h-13 items-center justify-center rounded-2xl bg-alert text-[17px] font-bold text-ink no-underline">
           এখনই সাহায্য চাই
-        </button>
+        </Link>
       </aside>
     </section>
   );
@@ -171,37 +179,7 @@ function PopularServices() {
           Array.from({ length: 4 }, (_, i) => (
             <div key={i} className="h-[280px] animate-pulse rounded-[20px] border border-line bg-surface" />
           ))}
-        {data?.results.slice(0, 8).map((service) => (
-          <article
-            key={service.id}
-            className="flex flex-col overflow-hidden rounded-[20px] border border-line bg-surface"
-          >
-            {service.image_url ? (
-              <img src={service.image_url} alt="" className="h-[132px] w-full object-cover" />
-            ) : (
-              <div className="flex h-[132px] items-center justify-center bg-brand-soft text-brand-strong">
-                <Icon name="wrench" size={36} />
-              </div>
-            )}
-            <div className="flex flex-1 flex-col gap-2 p-4.5">
-              <div className="flex items-center gap-1.5 text-[13px] font-semibold text-brand-strong">
-                <Icon name="check" size={14} />
-                যাচাইকৃত প্রোভাইডার · {service.warranty_days} দিনের ওয়ারেন্টি
-              </div>
-              <h3 className="m-0 text-lg font-bold">{service.name_bn}</h3>
-              <p className="m-0 text-sm leading-normal text-muted">{service.description}</p>
-              <div className="mt-auto flex items-center justify-between gap-2 pt-2">
-                <span className="font-bold">{formatTaka(service.base_price)} থেকে</span>
-                <Link
-                  to={`/services/${service.slug}`}
-                  className="flex h-11 items-center rounded-xl border border-brand px-4 text-[15px] font-semibold text-brand-strong no-underline"
-                >
-                  বুক করুন
-                </Link>
-              </div>
-            </div>
-          </article>
-        ))}
+        {data?.results.slice(0, 8).map((service) => <ServiceCard key={service.id} service={service} />)}
       </div>
     </section>
   );
@@ -218,7 +196,7 @@ function CustomRequestCta() {
           </p>
         </div>
         <Link
-          to="/custom-request"
+          to="/custom-requests/new"
           className="flex h-[50px] items-center rounded-2xl bg-brand px-6 font-semibold text-white no-underline"
         >
           রিকোয়েস্ট পাঠান

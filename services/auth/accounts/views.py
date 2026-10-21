@@ -1,10 +1,12 @@
 from django.db import transaction
-from rest_framework import generics, status, viewsets
+from rest_framework import generics, mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenViewBase
+from shohor_common.permissions import IsAdmin
 
 from . import otp
 from .models import Address, Area, OtpCode, User
@@ -13,10 +15,11 @@ from .serializers import (
     AreaSerializer,
     OtpRequestSerializer,
     PasswordResetSerializer,
+    AdminUserSerializer,
     RegisterSerializer,
     UserSerializer,
 )
-from .tokens import LoginSerializer, token_pair
+from .tokens import LoginSerializer, RefreshSerializer, token_pair
 
 
 class OtpThrottle(AnonRateThrottle):
@@ -65,6 +68,10 @@ class RegisterView(APIView):
 
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
+
+
+class RefreshView(TokenViewBase):
+    serializer_class = RefreshSerializer
 
 
 class PasswordResetView(APIView):
@@ -121,3 +128,40 @@ class AddressViewSet(viewsets.ModelViewSet):
         address = serializer.save(**extra)
         if address.is_default:
             self.get_queryset().exclude(pk=address.pk).update(is_default=False)
+
+
+class AdminAreaViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdmin]
+    serializer_class = AreaSerializer
+    queryset = Area.objects.all()
+    pagination_class = None
+
+
+class AdminUserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    permission_classes = [IsAdmin]
+    serializer_class = AdminUserSerializer
+
+    def get_queryset(self):
+        qs = User.objects.order_by("-date_joined")
+        params = self.request.query_params
+        if role := params.get("role"):
+            qs = qs.filter(role=role)
+        if q := params.get("q"):
+            qs = qs.filter(phone__contains=q) | qs.filter(full_name__icontains=q)
+        return qs
+
+    @action(detail=True, methods=["post"])
+    def block(self, request, pk=None):
+        return self._set_active(False)
+
+    @action(detail=True, methods=["post"])
+    def unblock(self, request, pk=None):
+        return self._set_active(True)
+
+    def _set_active(self, active):
+        user = self.get_object()
+        if user == self.request.user:
+            return Response({"detail": "You cannot block yourself."}, status=status.HTTP_400_BAD_REQUEST)
+        user.is_active = active
+        user.save(update_fields=["is_active"])
+        return Response(AdminUserSerializer(user).data)

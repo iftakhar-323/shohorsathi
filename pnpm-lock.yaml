@@ -8,8 +8,11 @@ importers:
 
   .: {}
 
-  apps/customer-web:
+  apps/admin-web:
     dependencies:
+      '@shohor/web-core':
+        specifier: workspace:*
+        version: link:../../packages/web-core
       '@tanstack/react-query':
         specifier: ^5.59.0
         version: 5.104.5(@types/react@18.3.31)(react@18.3.1)
@@ -50,6 +53,119 @@ importers:
       vite:
         specifier: ^6.0.0
         version: 6.4.4(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)
+
+  apps/customer-web:
+    dependencies:
+      '@shohor/web-core':
+        specifier: workspace:*
+        version: link:../../packages/web-core
+      '@tanstack/react-query':
+        specifier: ^5.59.0
+        version: 5.104.5(@types/react@18.3.31)(react@18.3.1)
+      axios:
+        specifier: ^1.7.7
+        version: 1.20.0(debug@4.4.3)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      react-router-dom:
+        specifier: ^6.27.0
+        version: 6.30.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: ^4.0.0
+        version: 4.3.3(vite@6.4.4(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0))
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
+      '@types/react':
+        specifier: ^18.3.11
+        version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.3.1
+        version: 18.3.7(@types/react@18.3.31)
+      '@vitejs/plugin-react':
+        specifier: ^4.3.3
+        version: 4.7.0(vite@6.4.4(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0))
+      tailwindcss:
+        specifier: ^4.0.0
+        version: 4.3.3
+      typescript:
+        specifier: ~5.6.3
+        version: 5.6.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.4(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)
+
+  apps/provider-web:
+    dependencies:
+      '@shohor/web-core':
+        specifier: workspace:*
+        version: link:../../packages/web-core
+      '@tanstack/react-query':
+        specifier: ^5.59.0
+        version: 5.104.5(@types/react@18.3.31)(react@18.3.1)
+      axios:
+        specifier: ^1.7.7
+        version: 1.20.0(debug@4.4.3)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      react-router-dom:
+        specifier: ^6.27.0
+        version: 6.30.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: ^4.0.0
+        version: 4.3.3(vite@6.4.4(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0))
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
+      '@types/react':
+        specifier: ^18.3.11
+        version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.3.1
+        version: 18.3.7(@types/react@18.3.31)
+      '@vitejs/plugin-react':
+        specifier: ^4.3.3
+        version: 4.7.0(vite@6.4.4(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0))
+      tailwindcss:
+        specifier: ^4.0.0
+        version: 4.3.3
+      typescript:
+        specifier: ~5.6.3
+        version: 5.6.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.4(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)
+
+  packages/web-core:
+    devDependencies:
+      '@tanstack/react-query':
+        specifier: ^5.59.0
+        version: 5.104.5(@types/react@18.3.31)(react@18.3.1)
+      '@types/react':
+        specifier: ^18.3.11
+        version: 18.3.31
+      axios:
+        specifier: ^1.7.7
+        version: 1.20.0(debug@4.4.3)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-router-dom:
+        specifier: ^6.27.0
+        version: 6.30.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      typescript:
+        specifier: ~5.6.3
+        version: 5.6.3
 
 packages:
 

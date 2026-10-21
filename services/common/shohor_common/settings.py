@@ -107,6 +107,22 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
 }
 
+# Event bus (see shohor_common.events) and background jobs.
+CELERY_BROKER_URL = env("REDIS_URL", "redis://redis:6379/0")
+CELERY_TASK_ACKS_LATE = True
+CELERY_TIMEZONE = "Asia/Dhaka"
+EVENTS_CAPTURE = False
+
+# Internal service addresses, used for the few synchronous calls between services.
+SERVICE_URLS = {
+    "auth": env("AUTH_URL", "http://auth:8000"),
+    "catalog": env("CATALOG_URL", "http://catalog:8000"),
+    "provider": env("PROVIDER_URL", "http://provider:8000"),
+    "order": env("ORDER_URL", "http://order:8000"),
+}
+# Shared secret for service-to-service calls that are not made on behalf of a user.
+INTERNAL_API_TOKEN = env("INTERNAL_API_TOKEN", "dev-internal-token")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

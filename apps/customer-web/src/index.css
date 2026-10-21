@@ -1,36 +1,3 @@
 @import "tailwindcss";
-
-/* Design tokens from the ShohorSathi UI design canvas. */
-@theme {
-  --font-sans: "Hind Siliguri", system-ui, sans-serif;
-
-  --color-ground: #f6f8f5;
-  --color-surface: #ffffff;
-  --color-ink: #12201a;
-  --color-muted: #4a5a52;
-  --color-line: #dce5df;
-  --color-subtle: #eef2ef;
-
-  --color-brand: #17784a;
-  --color-brand-strong: #0f5a37;
-  --color-brand-soft: #e3f1e8;
-  --color-brand-tint: #f3faf5;
-
-  --color-night: #12201a;
-  --color-night-raised: #1b2f25;
-  --color-night-line: #2e4a3c;
-  --color-night-text: #c9d6cf;
-
-  --color-alert: #f59e0b;
-  --color-alert-soft: #fef3c7;
-  --color-alert-strong: #92400e;
-  --color-info-soft: #dbeafe;
-  --color-info-strong: #1e40af;
-}
-
-body {
-  margin: 0;
-  background: var(--color-ground);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-}
+@import "@shohor/web-core/theme.css";
+@source "../../../packages/web-core/src";

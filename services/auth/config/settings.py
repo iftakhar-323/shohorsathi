@@ -6,7 +6,7 @@ ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 STATIC_URL = "/api/auth/static/"
 
-INSTALLED_APPS = INSTALLED_APPS + ["rest_framework_simplejwt", "accounts"]
+INSTALLED_APPS = INSTALLED_APPS + ["rest_framework_simplejwt", "rest_framework_simplejwt.token_blacklist", "accounts"]
 AUTH_USER_MODEL = "accounts.User"
 
 # The auth service owns the user table, so it loads the real user instead of a stateless TokenUser.

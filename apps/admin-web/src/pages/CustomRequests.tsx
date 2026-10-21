@@ -1,0 +1,169 @@
+import { Button, Card, ErrorNote, Field, Modal, PageHeader, StatusBadge, TextArea, Timeline, api, errorMessage, formatDate, formatTaka, useCategories } from "@shohor/web-core";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+
+import { DataTable, FilterChips, usePaged } from "../components";
+
+type Quote = { id: number; labor: string; materials: string; transport: string; platform_fee: string; total: string; timeline_days: number; note: string; is_current: boolean; created_at: string };
+type Req = {
+  id: number;
+  service_type: string;
+  description: string;
+  media_urls: string[];
+  customer_name: string;
+  customer_phone: string;
+  area_name: string;
+  address_line: string;
+  preferred_date: string;
+  budget_min: string | null;
+  budget_max: string | null;
+  status: string;
+  category_slug: string;
+  quote: Quote | null;
+  quotes: Quote[];
+  counter: { amount: string; message: string } | null;
+  logs: { status: string; note: string; created_at: string }[];
+  created_at: string;
+};
+
+function QuoteForm({ req, onDone }: { req: Req; onDone: () => void }) {
+  const { data: categories } = useCategories("service");
+  const [q, setQ] = useState({ labor: "", materials: "0", transport: "0", platform_fee: "0", timeline_days: "1", note: "", category_slug: req.category_slug });
+  const [error, setError] = useState("");
+  const total = ["labor", "materials", "transport", "platform_fee"].reduce((s, k) => s + Number(q[k as keyof typeof q] || 0), 0);
+  const set = (k: keyof typeof q) => (e: { target: { value: string } }) => setQ({ ...q, [k]: e.target.value });
+
+  async function send() {
+    setError("");
+    try {
+      await api.patch(`/admin/custom-requests/${req.id}/quote/`, q);
+      onDone();
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  }
+
+  return (
+    <Card className="flex flex-col gap-3 bg-brand-tint">
+      <span className="font-bold">খরচের হিসাব পাঠান</span>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="মজুরি" type="number" min={0} value={q.labor} onChange={set("labor")} required />
+        <Field label="উপকরণ" type="number" min={0} value={q.materials} onChange={set("materials")} />
+        <Field label="যাতায়াত" type="number" min={0} value={q.transport} onChange={set("transport")} />
+        <Field label="প্ল্যাটফর্ম ফি" type="number" min={0} value={q.platform_fee} onChange={set("platform_fee")} />
+        <Field label="সময় (দিন)" type="number" min={1} value={q.timeline_days} onChange={set("timeline_days")} />
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="cat" className="text-[15px] font-semibold">প্রোভাইডার ক্যাটাগরি</label>
+          <select id="cat" value={q.category_slug} onChange={set("category_slug")} className="h-11 rounded-xl border border-line px-3">
+            <option value="">বাছুন</option>
+            {categories?.map((c) => <option key={c.slug} value={c.slug}>{c.name_bn}</option>)}
+          </select>
+        </div>
+      </div>
+      <TextArea label="নোট" value={q.note} onChange={set("note")} />
+      <span className="text-lg font-bold">মোট {formatTaka(total)}</span>
+      <ErrorNote>{error}</ErrorNote>
+      <Button onClick={send} disabled={!q.labor || !q.category_slug}>কোট পাঠান</Button>
+    </Card>
+  );
+}
+
+export default function CustomRequests() {
+  const [status, setStatus] = useState("submitted,under_review,countered");
+  const { data, isPending } = usePaged<Req>(["admin-cr"], "/admin/custom-requests/", { status: status || undefined });
+  const { data: trends } = useQuery({ queryKey: ["cr-trends"], queryFn: async () => (await api.get<{ name: string; count: number }[]>("/admin/custom-requests/trends/")).data });
+  const [openId, setOpenId] = useState<number | null>(null);
+  const { data: open } = useQuery({
+    queryKey: ["admin-cr", openId],
+    queryFn: async () => (await api.get<Req>(`/admin/custom-requests/${openId}/`)).data,
+    enabled: !!openId,
+  });
+  const [error, setError] = useState("");
+  const qc = useQueryClient();
+
+  function refresh() {
+    qc.invalidateQueries({ queryKey: ["admin-cr"] });
+  }
+
+  async function act(path: string, body?: object) {
+    setError("");
+    try {
+      await api.post(`/admin/custom-requests/${openId}/${path}/`, body);
+      refresh();
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <PageHeader title="কাস্টম রিকোয়েস্ট" />
+      <FilterChips
+        value={status}
+        onChange={setStatus}
+        options={[
+          { value: "submitted,under_review,countered", label: "অ্যাকশন দরকার" },
+          { value: "quote_sent", label: "কোট পাঠানো" },
+          { value: "accepted,provider_assigned,in_progress", label: "চলমান" },
+          { value: "completed", label: "সম্পন্ন" },
+          { value: "rejected,cancelled", label: "বাতিল" },
+          { value: "", label: "সব" },
+        ]}
+      />
+      <DataTable
+        loading={isPending}
+        rows={data?.results}
+        onRowClick={(r) => setOpenId(r.id)}
+        columns={[
+          { label: "কাজ", render: (r) => <span className="font-semibold">{r.service_type}</span> },
+          { label: "গ্রাহক", render: (r) => r.customer_name },
+          { label: "এলাকা", render: (r) => r.area_name },
+          { label: "বাজেট", render: (r) => (r.budget_max ? `${formatTaka(r.budget_min)}–${formatTaka(r.budget_max)}` : "—") },
+          { label: "কোট", render: (r) => (r.quote ? formatTaka(r.quote.total) : "—") },
+          { label: "অবস্থা", render: (r) => <StatusBadge status={r.status} /> },
+          { label: "তারিখ", render: (r) => formatDate(r.created_at) },
+        ]}
+      />
+      {trends && trends.length > 0 && (
+        <Card className="flex flex-col gap-2">
+          <h2 className="m-0 text-lg font-bold">বেশি চাওয়া কাজ</h2>
+          <p className="m-0 text-sm text-muted">বারবার আসা রিকোয়েস্টগুলো নিয়মিত ক্যাটালগে যোগ করার কথা ভাবুন।</p>
+          <div className="flex flex-wrap gap-2">
+            {trends.slice(0, 10).map((t) => (
+              <span key={t.name} className="rounded-full border border-line px-3 py-1 text-sm">{t.name} · {t.count}</span>
+            ))}
+          </div>
+        </Card>
+      )}
+      <Modal title={open?.service_type ?? ""} open={!!openId && !!open} onClose={() => setOpenId(null)}>
+        {open && (
+          <>
+            <div className="flex flex-col gap-1 text-[15px]">
+              <span>{open.customer_name} · <a href={`tel:${open.customer_phone}`}>{open.customer_phone}</a></span>
+              <span className="text-muted">{open.address_line}, {open.area_name} · {formatDate(open.preferred_date)}</span>
+              <p className="m-0 rounded-xl bg-subtle p-3 whitespace-pre-line">{open.description}</p>
+              {open.media_urls.length > 0 && <div className="flex flex-wrap gap-2">{open.media_urls.map((u) => <img key={u} src={u} alt="" className="size-20 rounded-xl object-cover" />)}</div>}
+              {open.counter && <span className="font-semibold text-alert-strong">গ্রাহকের পাল্টা প্রস্তাব: {formatTaka(open.counter.amount)} {open.counter.message && `— ${open.counter.message}`}</span>}
+            </div>
+            <ErrorNote>{error}</ErrorNote>
+            {open.status === "submitted" && <Button variant="secondary" onClick={() => act("review")}>রিভিউ শুরু করুন</Button>}
+            {["submitted", "under_review", "countered"].includes(open.status) && (
+              <>
+                <QuoteForm req={open} onDone={refresh} />
+                <Button variant="danger" onClick={() => { const reason = prompt("কেন বাতিল করছেন?"); if (reason) act("decline", { reason }); }}>
+                  রিকোয়েস্ট বাতিল
+                </Button>
+              </>
+            )}
+            {open.quotes.length > 0 && (
+              <div className="flex flex-col gap-1 text-sm text-muted">
+                {open.quotes.map((q) => <span key={q.id}>{formatDate(q.created_at)}: {formatTaka(q.total)} {q.is_current && "(বর্তমান)"}</span>)}
+              </div>
+            )}
+            <Timeline events={[...open.logs].reverse()} />
+          </>
+        )}
+      </Modal>
+    </div>
+  );
+}

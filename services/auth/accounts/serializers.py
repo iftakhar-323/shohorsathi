@@ -35,6 +35,13 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "phone", "role", "is_phone_verified", "date_joined"]
 
 
+class AdminUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "phone", "email", "full_name", "role", "is_phone_verified", "is_active", "date_joined"]
+        read_only_fields = fields
+
+
 class AreaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Area

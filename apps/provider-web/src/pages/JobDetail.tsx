@@ -1,0 +1,181 @@
+import { Button, Card, ErrorNote, Field, Icon, Loading, PageHeader, PhotoUpload, StatusBadge, TextArea, Timeline, api, errorMessage, formatDate, formatTaka, slotLabel } from "@shohor/web-core";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+
+import type { Job } from "../api";
+
+const DEFAULT_CHECKLIST = ["কাজের জায়গা পরিষ্কার রাখা হয়েছে", "গ্রাহককে কাজ দেখানো হয়েছে", "পুরনো যন্ত্রাংশ গ্রাহককে দেওয়া হয়েছে"];
+
+/** While on the way or working, share the device position every 30s for the customer's live map. */
+function useShareLocation(active: boolean) {
+  const [sharing, setSharing] = useState(false);
+  useEffect(() => {
+    if (!active || !sharing || !("geolocation" in navigator)) return;
+    const send = () =>
+      navigator.geolocation.getCurrentPosition((pos) =>
+        api.post("/providers/me/location/", { latitude: pos.coords.latitude.toFixed(6), longitude: pos.coords.longitude.toFixed(6) }).catch(() => {}),
+      );
+    send();
+    const timer = setInterval(send, 30_000);
+    return () => clearInterval(timer);
+  }, [active, sharing]);
+  return [sharing, setSharing] as const;
+}
+
+export default function JobDetail() {
+  const { id } = useParams();
+  const qc = useQueryClient();
+  const { data: job, isPending } = useQuery({
+    queryKey: ["job", id],
+    queryFn: async () => (await api.get<Job>(`/providers/jobs/${id}/`)).data,
+  });
+  const [code, setCode] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [note, setNote] = useState("");
+  const [checklist, setChecklist] = useState(DEFAULT_CHECKLIST.map((label) => ({ label, done: false })));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [sharing, setSharing] = useShareLocation(!!job && ["on_the_way", "working"].includes(job.status));
+
+  if (isPending || !job) return <Loading />;
+
+  async function advance(status: string, body: object = {}) {
+    setBusy(true);
+    setError("");
+    try {
+      await api.patch(`/providers/jobs/${id}/status/`, { status, ...body });
+      setPhotos([]);
+      qc.invalidateQueries({ queryKey: ["job", id] });
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const mapsUrl = job.latitude ? `https://www.openstreetmap.org/?mlat=${job.latitude}&mlon=${job.longitude}#map=17/${job.latitude}/${job.longitude}` : null;
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+      <div className="flex flex-col gap-5">
+        <PageHeader title={job.title} subtitle={`${formatDate(job.scheduled_date)}, ${slotLabel(job.slot)}`} actions={<StatusBadge status={job.status} />} />
+
+        <Card className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="flex size-11 items-center justify-center rounded-full bg-brand-soft text-brand-strong">
+              <Icon name="user" />
+            </span>
+            <div className="flex flex-1 flex-col">
+              <span className="font-semibold">{job.customer_name}</span>
+              <span className="text-sm text-muted">
+                {job.address_line ? `${job.address_line}, ` : ""}
+                {job.area_name}
+              </span>
+            </div>
+            {job.customer_phone && (
+              <a href={`tel:${job.customer_phone}`} className="flex h-11 items-center gap-2 rounded-xl bg-brand px-4 font-semibold text-white no-underline">
+                <Icon name="phone" size={16} /> কল
+              </a>
+            )}
+          </div>
+          {mapsUrl && (
+            <a href={mapsUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 font-semibold">
+              <Icon name="map" size={16} /> ম্যাপে দেখুন
+            </a>
+          )}
+          {job.description && <p className="m-0 rounded-xl bg-subtle p-3 whitespace-pre-line">{job.description}</p>}
+          {job.photo_urls.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {job.photo_urls.map((u) => (
+                <a key={u} href={u} target="_blank" rel="noreferrer">
+                  <img src={u} alt="গ্রাহকের দেওয়া ছবি" className="size-24 rounded-xl object-cover" />
+                </a>
+              ))}
+            </div>
+          )}
+          <span className="text-lg font-bold">{formatTaka(job.amount)}</span>
+        </Card>
+
+        <ErrorNote>{error}</ErrorNote>
+
+        {job.status === "accepted" && (
+          <Card className="flex flex-col gap-3">
+            <h2 className="m-0 text-lg font-bold">রওনা দিন</h2>
+            <p className="m-0 text-muted">রওনা দিলে গ্রাহক জানতে পারবেন এবং আপনার লোকেশন দেখতে পাবেন।</p>
+            <Button loading={busy} icon="send" onClick={() => { setSharing(true); advance("on_the_way"); }}>
+              পথে আছি
+            </Button>
+          </Card>
+        )}
+
+        {job.status === "on_the_way" && (
+          <Card className="flex flex-col gap-3">
+            <h2 className="m-0 text-lg font-bold">পৌঁছে কাজ শুরু করুন</h2>
+            {["booking", "warranty"].includes(job.source) && (
+              <Field label="গ্রাহকের ৪ সংখ্যার কোড" inputMode="numeric" maxLength={4} value={code} onChange={(e) => setCode(e.target.value)} hint="গ্রাহকের অ্যাপে কোডটি দেখানো আছে" />
+            )}
+            <PhotoUpload label="কাজের আগের ছবি" value={photos} onChange={setPhotos} purpose="job_photo" max={4} />
+            <Button loading={busy} onClick={() => advance("working", { arrival_code: code, photos })}>
+              কাজ শুরু
+            </Button>
+          </Card>
+        )}
+
+        {job.status === "working" && (
+          <Card className="flex flex-col gap-3">
+            <h2 className="m-0 text-lg font-bold">কাজ শেষ করুন</h2>
+            <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
+              <legend className="mb-1 font-semibold">চেকলিস্ট</legend>
+              {checklist.map((item, i) => (
+                <label key={item.label} className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={item.done}
+                    onChange={() => setChecklist(checklist.map((c, j) => (j === i ? { ...c, done: !c.done } : c)))}
+                    className="size-5 accent-brand"
+                  />
+                  {item.label}
+                </label>
+              ))}
+            </fieldset>
+            <PhotoUpload label="কাজের পরের ছবি" value={photos} onChange={setPhotos} purpose="job_photo" max={4} />
+            <TextArea label="নোট (ঐচ্ছিক)" value={note} onChange={(e) => setNote(e.target.value)} placeholder="কী কী করা হয়েছে, কোনো যন্ত্রাংশ বদলানো হয়েছে কি না" />
+            <Button loading={busy} icon="check" onClick={() => advance("completed", { photos, note, checklist })}>
+              কাজ সম্পন্ন
+            </Button>
+          </Card>
+        )}
+
+        {["on_the_way", "working"].includes(job.status) && (
+          <label className="flex items-center gap-3 text-[15px]">
+            <input type="checkbox" checked={sharing} onChange={(e) => setSharing(e.target.checked)} className="size-5 accent-brand" />
+            গ্রাহকের সাথে লাইভ লোকেশন শেয়ার করুন
+          </label>
+        )}
+
+        {(job.before_photos.length > 0 || job.after_photos.length > 0) && (
+          <Card className="grid gap-3 sm:grid-cols-2">
+            {[["আগে", job.before_photos], ["পরে", job.after_photos]].map(([label, list]) => (
+              <div key={label as string} className="flex flex-col gap-2">
+                <span className="font-semibold">{label as string}</span>
+                <div className="flex flex-wrap gap-2">
+                  {(list as string[]).map((u) => (
+                    <img key={u} src={u} alt="" className="size-20 rounded-xl object-cover" />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </Card>
+        )}
+      </div>
+      {job.logs && (
+        <Card className="flex h-fit flex-col gap-4">
+          <h2 className="m-0 text-lg font-bold">টাইমলাইন</h2>
+          <Timeline events={[...job.logs].reverse()} />
+        </Card>
+      )}
+    </div>
+  );
+}

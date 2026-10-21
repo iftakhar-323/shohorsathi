@@ -12,3 +12,34 @@ def jwt_keypair():
         serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
     ).decode()
     return private, public
+
+
+def overrides(simple_jwt):
+    """Overrides every service's settings_test applies: in-memory keys, captured events, eager Celery."""
+    private, public = jwt_keypair()
+    return {
+        "SIMPLE_JWT": {**simple_jwt, "SIGNING_KEY": private, "VERIFYING_KEY": public},
+        "EVENTS_CAPTURE": True,
+        "CELERY_TASK_ALWAYS_EAGER": True,
+        "PASSWORD_HASHERS": ["django.contrib.auth.hashers.MD5PasswordHasher"],
+    }
+
+
+def token(role="customer", user_id=1, **claims):
+    from rest_framework_simplejwt.tokens import AccessToken
+
+    t = AccessToken()
+    t["user_id"] = user_id
+    t["role"] = role
+    t["name"] = claims.pop("name", f"User {user_id}")
+    for k, v in claims.items():
+        t[k] = v
+    return str(t)
+
+
+def auth_client(role="customer", user_id=1, **claims):
+    from rest_framework.test import APIClient
+
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token(role, user_id, **claims)}")
+    return client
