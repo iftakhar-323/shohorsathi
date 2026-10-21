@@ -1,0 +1,9 @@
+{
+  "name": "shohorsathi",
+  "private": true,
+  "scripts": {
+    "dev:customer": "pnpm --filter customer-web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint"
+  }
+}

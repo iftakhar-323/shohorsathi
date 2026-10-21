@@ -1,0 +1,62 @@
+name: shohorsathi
+
+x-django: &django
+  env_file: .env
+  volumes:
+    - ./.keys:/keys:ro
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+
+  auth:
+    <<: *django
+    build:
+      context: ./services
+      dockerfile: auth/Dockerfile
+    environment:
+      POSTGRES_DB: auth_db
+      DJANGO_SECRET_KEY: ${AUTH_SECRET_KEY}
+      JWT_PRIVATE_KEY_PATH: /keys/jwt_private.pem
+      JWT_PUBLIC_KEY_PATH: /keys/jwt_public.pem
+
+  catalog:
+    <<: *django
+    build:
+      context: ./services
+      dockerfile: catalog/Dockerfile
+    environment:
+      POSTGRES_DB: catalog_db
+      DJANGO_SECRET_KEY: ${CATALOG_SECRET_KEY}
+      JWT_PUBLIC_KEY_PATH: /keys/jwt_public.pem
+
+  gateway:
+    image: nginx:1.27-alpine
+    ports:
+      - "${GATEWAY_PORT:-8088}:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - auth
+      - catalog
+
+volumes:
+  pgdata:

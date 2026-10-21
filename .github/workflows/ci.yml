@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [auth, catalog]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: shohor
+          POSTGRES_PASSWORD: shohor
+          POSTGRES_DB: ${{ matrix.service }}_db
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U shohor"
+          --health-interval 5s
+          --health-retries 10
+    env:
+      POSTGRES_DB: ${{ matrix.service }}_db
+      POSTGRES_USER: shohor
+      POSTGRES_PASSWORD: shohor
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ../common -r requirements.txt
+      - run: python manage.py makemigrations --check --dry-run
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings_test
+      - run: pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.8.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter customer-web build

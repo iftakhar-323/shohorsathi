@@ -1,0 +1,123 @@
+from django.db import transaction
+from rest_framework import generics, status, viewsets
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
+from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from . import otp
+from .models import Address, Area, OtpCode, User
+from .serializers import (
+    AddressSerializer,
+    AreaSerializer,
+    OtpRequestSerializer,
+    PasswordResetSerializer,
+    RegisterSerializer,
+    UserSerializer,
+)
+from .tokens import LoginSerializer, token_pair
+
+
+class OtpThrottle(AnonRateThrottle):
+    rate = "10/hour"
+
+
+class OtpRequestView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [OtpThrottle]
+
+    def post(self, request):
+        data = OtpRequestSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        phone, purpose = data.validated_data["phone"], data.validated_data["purpose"]
+        # Do not reveal whether a number is registered: reset requests for unknown numbers look the same.
+        if purpose == OtpCode.Purpose.RESET_PASSWORD and not User.objects.filter(phone=phone).exists():
+            return Response({"detail": "Code sent."})
+        try:
+            otp.issue(phone, purpose)
+        except otp.OtpError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        return Response({"detail": "Code sent."})
+
+
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    @transaction.atomic
+    def post(self, request):
+        data = RegisterSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        v = data.validated_data
+        try:
+            otp.consume(v["phone"], OtpCode.Purpose.REGISTER, v["otp"])
+        except otp.OtpError as e:
+            return Response({"otp": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
+        user = User.objects.create_user(
+            phone=v["phone"],
+            password=v["password"],
+            full_name=v["full_name"],
+            email=v.get("email", ""),
+            is_phone_verified=True,
+        )
+        return Response({"user": UserSerializer(user).data, **token_pair(user)}, status=status.HTTP_201_CREATED)
+
+
+class LoginView(TokenObtainPairView):
+    serializer_class = LoginSerializer
+
+
+class PasswordResetView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        data = PasswordResetSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        v = data.validated_data
+        try:
+            otp.consume(v["phone"], OtpCode.Purpose.RESET_PASSWORD, v["otp"])
+            user = User.objects.get(phone=v["phone"])
+        except (otp.OtpError, User.DoesNotExist):
+            return Response({"otp": ["Code expired or incorrect."]}, status=status.HTTP_400_BAD_REQUEST)
+        user.set_password(v["new_password"])
+        user.save(update_fields=["password"])
+        return Response({"detail": "Password updated."})
+
+
+class MeView(generics.RetrieveUpdateAPIView):
+    serializer_class = UserSerializer
+
+    def get_object(self):
+        return self.request.user
+
+
+class AreaListView(generics.ListAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = AreaSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = Area.objects.filter(is_active=True)
+        city = self.request.query_params.get("city")
+        return qs.filter(city__iexact=city) if city else qs
+
+
+class AddressViewSet(viewsets.ModelViewSet):
+    serializer_class = AddressSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return Address.objects.filter(user=self.request.user).select_related("area")
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        self._save(serializer, user=self.request.user)
+
+    @transaction.atomic
+    def perform_update(self, serializer):
+        self._save(serializer)
+
+    def _save(self, serializer, **extra):
+        address = serializer.save(**extra)
+        if address.is_default:
+            self.get_queryset().exclude(pk=address.pk).update(is_default=False)
