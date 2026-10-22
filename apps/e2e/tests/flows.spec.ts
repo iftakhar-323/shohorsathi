@@ -237,7 +237,8 @@ test("community: post, like and comment", async ({ page }) => {
   await signIn(page, "01711000008", "Khulna");
   await page.goto(`${C}/community`);
   await page.getByLabel("কী জানাতে চান?").fill("ডাকবাংলোয় কাল সকালে পানি থাকবে না।");
-  await page.getByLabel("এলাকা").selectOption({ label: "ডাকবাংলো" });
+  // the form starts with her home area (Dakbangla) even though the list filter shows every area
+  await expect(page.getByLabel("কোন এলাকার জন্য")).toHaveValue(/\d+/);
   await button(page, "পোস্ট করুন").click();
   await expect(page.getByText("ডাকবাংলোয় কাল সকালে পানি থাকবে না।").first()).toBeVisible();
   expect(problems).toEqual([]);

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
+import { useAddresses } from "../api/orders";
 import { useSelectedArea } from "../lib/area";
 
 type Post = { id: number; author_name: string; area_name: string; kind: string; body: string; photo_urls: string[]; provider_name: string; like_count: number; comment_count: number; liked: boolean; mine: boolean; created_at: string };
@@ -87,12 +88,17 @@ export default function Community() {
     queryFn: async () => (await api.get<Paginated<Post>>("/community/posts/", { params: { area, city: area ? undefined : getCity() || undefined, kind: kind || undefined } })).data,
   });
   const [f, setF] = useState({ kind: "tip", body: "", provider_name: "" });
+  const { data: addresses } = useAddresses(!!user);
+  // the post's area: picked in the form, else the area filter above, else the customer's saved home
+  const [postArea, setPostArea] = useState<number>();
+  const home = addresses?.find((a) => a.is_default) ?? addresses?.[0];
+  const chosenArea = postArea ?? area ?? home?.area;
   const [photos, setPhotos] = useState<string[]>([]);
   const [error, setError] = useState("");
 
   async function post(e: FormEvent) {
     e.preventDefault();
-    const a = areas?.find((x) => x.id === area);
+    const a = areas?.find((x) => x.id === chosenArea);
     if (!a) return setError(t("এলাকা বাছুন।"));
     setError("");
     try {
@@ -120,6 +126,8 @@ export default function Community() {
             ))}
           </div>
           <TextArea label={t("কী জানাতে চান?")} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} required />
+          <Select label={t("কোন এলাকার জন্য")} value={chosenArea ?? ""} onChange={(e) => setPostArea(e.target.value ? Number(e.target.value) : undefined)}
+            options={[{ value: "", label: t("এলাকা বাছুন") }, ...(areas ?? []).map((a) => ({ value: a.id, label: localName(a) }))]} />
           {f.kind === "recommendation" && (
             <input aria-label={t("প্রোভাইডারের নাম")} placeholder={t("প্রোভাইডারের নাম")} value={f.provider_name} onChange={(e) => setF({ ...f, provider_name: e.target.value })} className="h-11 rounded-xl border border-line px-3" />
           )}
