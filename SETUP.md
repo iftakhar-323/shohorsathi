@@ -32,6 +32,20 @@ pnpm dev
 
 *Windows Tip:* Simply double-click `run-windows.bat` in the project root to start both backend and frontend automatically in dedicated windows.
 
+**How it works and what to expect:**
+
+- Every page shows the real demo data: the API answers were recorded from the Docker backend into `demo/data/standalone_snapshot.json` and are replayed per user.
+- The demo actions work and are kept in memory until the server stops:
+  - cart and checkout (cash, bKash, Nagad or card through a mock payment page)
+  - cancel and reschedule, reviews, saved addresses
+  - city-problem reports with photos, upvotes, community posts
+  - custom requests and quotes, subscriptions, home profile, AI quote
+  - provider jobs (accept, arrival code, photos, complete)
+  - admin quotes and issue forwarding
+- Restarting the server resets everything to the clean demo state.
+- It is a demo stand-in, not the backend. There is no live chat (websocket), no background jobs, and no real SMS. Sign-ups use OTP `123456`.
+- After you change the seed data or the APIs, record a new snapshot. With the Docker stack running on fresh demo data and `pnpm dev` running, use `node scripts/standalone/record_snapshot.mjs`.
+
 ---
 
 ## 🐳 Option 2: Full Docker Microservices Architecture
