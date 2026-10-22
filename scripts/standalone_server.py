@@ -1002,7 +1002,7 @@ class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
 if __name__ == "__main__":
     n_users = len([u for u in USERS])
     print(f"ShohorSathi standalone backend on http://localhost:{PORT}  ({n_users} demo accounts, recorded {SNAP.get('recorded_at', '?')[:10]})")
-    print("Start the apps in another terminal with: pnpm dev   →  http://localhost:5173 · :5174 · :5175   (password demo1234)")
+    print("Start the apps in another terminal with: pnpm dev  ->  http://localhost:5173, :5174, :5175   (password demo1234)")
     try:
         Server(("0.0.0.0", PORT), Handler).serve_forever()
     except OSError as e:
