@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { Navigate, useLocation } from "react-router-dom";
 
 import { api, getTokens, onTokensChange, setTokens, type Tokens } from "./api";
+import { t } from "./i18n";
 
 export type Role = "customer" | "provider" | "admin";
 export type SessionUser = { id: number; role: Role; name: string; phone: string };
@@ -73,6 +74,17 @@ export function RequireAuth({ children, roles }: { children: ReactNode; roles?: 
   const { user } = useAuth();
   const location = useLocation();
   if (!user) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
-  if (roles && !roles.includes(user.role)) return <Navigate to="/forbidden" replace />;
+  if (roles && !roles.includes(user.role)) return <Forbidden />;
   return <>{children}</>;
+}
+
+function Forbidden() {
+  const { user, logout } = useAuth();
+  return (
+    <section className="mx-auto flex max-w-[560px] flex-col items-start gap-3 px-6 py-20">
+      <h1 className="m-0 text-2xl font-bold">{t("এই অ্যাকাউন্ট দিয়ে এই পেজ খোলা যাবে না")}</h1>
+      <p className="m-0 text-muted">{t("{name} হিসেবে লগইন আছেন। অন্য অ্যাকাউন্টে লগইন করতে লগআউট করুন।", { name: user?.name ?? "" })}</p>
+      <button type="button" onClick={logout} className="h-11 rounded-xl bg-brand px-4 font-semibold text-white">{t("লগআউট")}</button>
+    </section>
+  );
 }

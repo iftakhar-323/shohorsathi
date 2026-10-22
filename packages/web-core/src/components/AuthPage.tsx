@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { errorMessage } from "../lib/api";
 import { useAuth, type Role } from "../lib/auth";
+import { siteUrl } from "../lib/sites";
 import Icon from "./Icon";
 import { Button, ErrorNote, Field, SuccessNote } from "./ui";
 
@@ -177,8 +178,8 @@ export default function AuthPage({
             <label className="flex items-start gap-2">
               <input type="checkbox" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1 size-5 accent-brand" />
               <span>
-                {t("আমি")} <a href="/terms" target="_blank" rel="noreferrer">{t("ব্যবহারের শর্ত")}</a> {t("ও")}{" "}
-                <a href="/privacy" target="_blank" rel="noreferrer">{t("প্রাইভেসি নীতি")}</a> {t("পড়েছি ও মেনে নিচ্ছি")}
+                {t("আমি")} <a href={siteUrl("customer", "/terms")} target="_blank" rel="noreferrer">{t("ব্যবহারের শর্ত")}</a> {t("ও")}{" "}
+                <a href={siteUrl("customer", "/privacy")} target="_blank" rel="noreferrer">{t("প্রাইভেসি নীতি")}</a> {t("পড়েছি ও মেনে নিচ্ছি")}
               </span>
             </label>
             <label className="flex items-start gap-2 text-muted">

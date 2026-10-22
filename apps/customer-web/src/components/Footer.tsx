@@ -1,4 +1,4 @@
-import { t } from "@shohor/web-core";
+import { siteUrl, t } from "@shohor/web-core";
 export default function Footer() {
   return (
     <footer className="bg-night text-night-text">
@@ -7,7 +7,7 @@ export default function Footer() {
           <span className="text-[22px] font-bold text-white">{t("আপনি কি দক্ষ কারিগর বা হোম শেফ?")}</span>
           <span>{t("শহরসাথীতে যোগ দিন, নিজের সময়ে কাজ করুন, সাপ্তাহিক পেমেন্ট বিকাশ/নগদে।")}</span>
         </div>
-        <a href="/provider" className="rounded-2xl bg-white px-6 py-3.5 font-bold text-ink no-underline">
+        <a href={siteUrl("provider", "/login")} className="rounded-2xl bg-white px-6 py-3.5 font-bold text-ink no-underline">
           {t("প্রোভাইডার হিসেবে যোগ দিন")}
         </a>
       </div>
