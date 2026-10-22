@@ -149,7 +149,7 @@ export default function CustomRequests() {
             {open.status === "submitted" && <Button variant="secondary" onClick={() => act("review")}>{t("রিভিউ শুরু করুন")}</Button>}
             {["submitted", "under_review", "countered"].includes(open.status) && (
               <>
-                <QuoteForm req={open} onDone={refresh} />
+                <QuoteForm req={open} onDone={() => { refresh(); setOpenId(null); }} />
                 <Button variant="danger" onClick={() => { const reason = prompt(t("কেন বাতিল করছেন?")); if (reason) act("decline", { reason }); }}>
                   {t("রিকোয়েস্ট বাতিল")}
                 </Button>

@@ -40,6 +40,12 @@ PROVIDERS = [
     ("01811000006", "সাইফুল ইসলাম", "ac_technician", ["ac", "plumbing"], "male"),
     ("01811000007", "নাজমুল হক", "painter", ["painting", "moving"], "male"),
 ]
+HOME_ADDRESSES = {
+    "01711000001": ("Dhanmondi", "বাড়ি ১২, রোড ৭"), "01711000002": ("Mirpur", "বাড়ি ৪, রোড ২"),
+    "01711000003": ("Uttara", "বাড়ি ৭, সেক্টর ৪"), "01711000004": ("Sonadanga", "বাড়ি ৩৪, মজিদ সরণি"),
+    "01711000005": ("Khalishpur", "হাউজিং এস্টেট, ব্লক বি"), "01711000006": ("Boyra", "বয়রা মেইন রোড, বাড়ি ৯"),
+    "01711000007": ("Nirala", "নিরালা আবাসিক, রোড ১৩"), "01711000008": ("Dakbangla", "কে ডি ঘোষ রোড, বাড়ি ২১"),
+}
 KHULNA_PROVIDERS = {"01811000004", "01811000005", "01811000006", "01811000007"}
 AREAS = [
     ("Dhaka", "Dhanmondi", "ধানমন্ডি", "23.746466", "90.376015"),
@@ -148,6 +154,12 @@ def main():
         areas[en] = {**a, "lat": lat, "lng": lng}
     city_ids = {city: [areas[a[1]]["id"] for a in AREAS if a[0] == city] for city in {a[0] for a in AREAS}}
     customers = {p: register(p, n) for p, n in CUSTOMERS}
+    # a saved home address for every demo customer, so checkout and subscriptions start filled in
+    for phone, (area, line) in HOME_ADDRESSES.items():
+        token = customers[phone]["access"]
+        if not call("GET", "/api/me/addresses/", token, expect=200):
+            call("POST", "/api/me/addresses/", token, {"label": "বাসা", "area": areas[area]["id"], "line": line,
+                                                       "latitude": areas[area]["lat"], "longitude": areas[area]["lng"], "is_default": True}, expect=201)
     step(f"admin {ADMIN[0]}, {len(areas)} areas in Dhaka, Chattogram and Khulna, {len(customers)} customers")
 
     # 2. Providers: apply, admin approves, online with emergency contact

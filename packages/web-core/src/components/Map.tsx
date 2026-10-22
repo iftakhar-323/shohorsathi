@@ -6,11 +6,21 @@ import { CircleMarker, MapContainer, Popup, TileLayer, useMap, useMapEvents } fr
 
 import { api } from "../lib/api";
 import { formatDateTime } from "../lib/format";
+import { getCity } from "../lib/shared-api";
 import { t } from "../lib/i18n";
 import { Button } from "./ui";
 
 // Dhaka by default; the first city.
 export const DEFAULT_CENTER: [number, number] = [23.8103, 90.4125];
+const CITY_CENTERS: Record<string, [number, number]> = {
+  Dhaka: DEFAULT_CENTER, Chattogram: [22.3569, 91.7832], Khulna: [22.8456, 89.5403], Rajshahi: [24.3745, 88.6042],
+  Sylhet: [24.8949, 91.8687], Barishal: [22.701, 90.3535], Rangpur: [25.7439, 89.2752], Mymensingh: [24.7471, 90.4203],
+};
+
+/** Where a map starts when it has nothing to show yet: the city picked in the header, else Dhaka. */
+export function cityCenter(): [number, number] {
+  return CITY_CENTERS[getCity()] ?? DEFAULT_CENTER;
+}
 const OSM = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
@@ -43,7 +53,7 @@ export function MapView({ points, center, zoom = 14, height = 360, onMove }: {
   height?: number;
   onMove?: (center: [number, number]) => void;
 }) {
-  const c = center ?? (points[0] ? [points[0].lat, points[0].lng] : DEFAULT_CENTER);
+  const c = center ?? (points[0] ? [points[0].lat, points[0].lng] : cityCenter());
   function Watcher() {
     useMapEvents({ moveend: (e) => onMove?.([e.target.getCenter().lat, e.target.getCenter().lng]) });
     return null;
@@ -70,7 +80,7 @@ export function MapPicker({ value, onChange, height = 280 }: {
   onChange: (v: { lat: number; lng: number }) => void;
   height?: number;
 }) {
-  const [center, setCenter] = useState<[number, number]>(value ? [value.lat, value.lng] : DEFAULT_CENTER);
+  const [center, setCenter] = useState<[number, number]>(value ? [value.lat, value.lng] : cityCenter());
   const [error, setError] = useState("");
 
   function Clicker() {

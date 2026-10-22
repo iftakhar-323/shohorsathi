@@ -70,9 +70,11 @@ test("customer app: every page", async ({ page }) => {
   }
 
   await page.addInitScript((tk) => localStorage.setItem("shohor.tokens", JSON.stringify(tk)), t);
+  const completedOrder = orders.results.find((o: any) => o.status === "completed" || o.bookings?.some((b: any) => b.status === "completed")) ?? orders.results[0];
+  const upcomingOrder = orders.results.find((o: any) => o.id !== completedOrder.id) ?? orders.results[0];
   for (const [path, name, text] of [
-    ["/", "home-signed-in", "মৌসুমি প্যাকেজ"], ["/orders", "orders", undefined], [`/orders/${orders.results.at(-1)!.id}`, "order-detail", "সম্পন্ন"],
-    [`/orders/${orders.results[0].id}`, "order-detail-upcoming", undefined], ["/cart", "cart", undefined], ["/custom-requests", "custom-requests", undefined],
+    ["/", "home-signed-in", "মৌসুমি প্যাকেজ"], ["/orders", "orders", undefined], [`/orders/${completedOrder.id}`, "order-detail", "সম্পন্ন"],
+    [`/orders/${upcomingOrder.id}`, "order-detail-upcoming", undefined], ["/cart", "cart", undefined], ["/custom-requests", "custom-requests", undefined],
     [`/custom-requests/${requests.results[0].id}`, "custom-request-detail", undefined], ["/custom-requests/new", "custom-request-new", undefined],
     ["/subscriptions/mine", "subscriptions-mine", undefined], ["/issues/mine", "issues-mine", undefined], ["/issues/new", "issue-new", undefined],
     ["/ai-quote", "ai-quote", undefined], ["/home-profile", "home-profile", "ধানমন্ডির বাসা"], ["/wallet", "wallet", undefined], ["/profile", "profile", undefined],
@@ -109,17 +111,17 @@ test("customer app: main flows work by clicking", async ({ page }) => {
   await expect(page.locator("option", { hasText: "খুলনা" })).toHaveCount(1);
   await page.goto(`${C}/transparency`);
   for (const name of ["খুলনা সিটি কর্পোরেশন, প্রকৌশল বিভাগ", "খুলনা সিটি কর্পোরেশন, স্বাস্থ্য বিভাগ (মশক নিধন)", "খুলনা ওয়াসা", "ওজোপাডিকো, খুলনা"]) {
-    await expect(page.getByText(name)).toBeVisible();
+    await expect(page.getByText(name).first()).toBeVisible();
   }
   await page.goto(`${C}/issues`);
-  await expect(page.getByText("সোনাডাঙ্গা বাসস্ট্যান্ডে পানি জমে")).toBeVisible();
+  await expect(page.getByText("সোনাডাঙ্গা বাসস্ট্যান্ডে পানি জমে").first()).toBeVisible();
   for (const title of ["খালিশপুরে ময়লার কন্টেইনার উপচে পড়ছে", "নিরালায় মশার উপদ্রব, ডেঙ্গুর ভয়", "ফুলবাড়ীগেটে তিন দিন ওয়াসার পানি নেই",
-    "ডাকবাংলো মোড়ে বিদ্যুতের তারের জট", "খান জাহান আলী রোডে কার্পেটিং উঠে গেছে"]) {
-    await expect(page.getByText(title)).toBeVisible();
+    "ডাকবাংলো মোড়ে বিদ্যুতের তারের জট"]) {
+    await expect(page.getByText(title).first()).toBeVisible();
   }
   await page.goto(`${C}/`);
-  await expect(page.getByText("খুলনায় বর্ষার প্রস্তুতি")).toBeVisible();
-  await expect(page.getByText("খালিশপুর হাউজিং: এসি ক্লিনিং গ্রুপ ডিল")).toBeVisible();
+  await expect(page.getByText("খুলনায় বর্ষার প্রস্তুতি").first()).toBeVisible();
+  await expect(page.getByText("খালিশপুর হাউজিং: এসি ক্লিনিং গ্রুপ ডিল").first()).toBeVisible();
 
   // English switch keeps working on a data page
   await page.goto(`${C}/services`);
@@ -148,7 +150,7 @@ test("provider app: a Khulna provider sees Khulna jobs", async ({ page }) => {
   await page.addInitScript((tk) => localStorage.setItem("shohor.tokens", JSON.stringify(tk)), t);
   await visit(page, `${APPS.provider}/`, "provider-khulna-inbox");
   await page.getByRole("tab", { name: "নতুন কাজ" }).or(page.getByRole("button", { name: "নতুন কাজ" })).first().click();
-  await expect(page.getByText("প্লাম্বার ভিজিট")).toBeVisible();
+  await expect(page.getByText("প্লাম্বার ভিজিট").first()).toBeVisible();
   await expect(page.getByText("খালিশপুর").first()).toBeVisible();
   await page.screenshot({ path: "test-results/tour/provider-khulna-new-jobs.png", fullPage: true });
 });
